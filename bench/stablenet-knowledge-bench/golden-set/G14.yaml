@@ -1,0 +1,19 @@
+version: 2
+id: G14
+bucket: invariants
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: validator-set-monotone
+intent: "Verify RI-4: validator set membership is checked before quorum computation."
+prompt: "In go-stablenet WBFT, how is validator set membership enforced before quorum counting? Cite the validator set type and its membership check."
+expected_citations:
+  - file: consensus/wbft/validator/default.go
+    start_line: null
+    end_line: null
+    symbol: defaultSet.QuorumSize
+expected_keywords:
+  - validator
+  - quorum
+invariant_refs:
+  - RI-4

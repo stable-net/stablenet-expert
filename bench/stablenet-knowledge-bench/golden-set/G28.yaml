@@ -1,0 +1,20 @@
+version: 2
+id: G28
+bucket: cherry_pick_boundary
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: handler-vs-handler-istanbul
+intent: "Distinguish geth's handler.go from StableNet's handler_istanbul.go."
+prompt: "In go-stablenet, what WBFT-specific message handling is added in eth/handler_istanbul.go that is NOT present in geth's eth/handler.go? What types of consensus messages does handler_istanbul.go route?"
+expected_citations:
+  - file: eth/handler_istanbul.go
+    start_line: null
+    end_line: null
+    symbol: null
+expected_keywords:
+  - handler_istanbul
+  - WBFT
+  - consensus message
+invariant_refs:
+  - RI-9

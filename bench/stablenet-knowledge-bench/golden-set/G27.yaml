@@ -1,0 +1,19 @@
+version: 2
+id: G27
+bucket: hotspot
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: txpool-validation-fee-delegation
+intent: "Understand validation rules for fee-delegated transactions in go-stablenet txpool."
+prompt: "In go-stablenet's core/txpool/validation.go, what additional validation is applied to fee-delegated transactions that is not applied to regular transactions?"
+expected_citations:
+  - file: core/txpool/validation.go
+    start_line: null
+    end_line: null
+    symbol: null
+expected_keywords:
+  - validation
+  - fee delegation
+invariant_refs:
+  - RI-11

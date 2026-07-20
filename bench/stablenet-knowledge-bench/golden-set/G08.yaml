@@ -1,0 +1,19 @@
+version: 2
+id: G08
+bucket: seeded_cks_eval
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: get-validators
+intent: "Explain how the WBFT backend retrieves the current validator set."
+prompt: "How does GetValidators() work in go-stablenet's WBFT backend (consensus/wbft/backend/backend.go)? Where does it source the validator list?"
+expected_citations:
+  - file: consensus/wbft/backend/backend.go
+    start_line: null
+    end_line: null
+    symbol: GetValidators
+expected_keywords:
+  - GetValidators
+  - validator
+invariant_refs:
+  - RI-1

@@ -1,0 +1,19 @@
+version: 2
+id: G19
+bucket: invariants
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: gov-validator-init-invariant
+intent: "Verify RI-9: initializeValidator sets all required validator fields atomically."
+prompt: "What validator fields does initializeValidator() in systemcontracts/gov_validator.go initialize, and in what order? Are all fields written atomically before the function returns?"
+expected_citations:
+  - file: systemcontracts/gov_validator.go
+    start_line: 52
+    end_line: 184
+    symbol: initializeValidator
+expected_keywords:
+  - initializeValidator
+  - atomic
+invariant_refs:
+  - RI-9

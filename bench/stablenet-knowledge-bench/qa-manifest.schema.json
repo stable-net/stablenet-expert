@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CKG Benchmark Q&A Manifest",
+  "description": "Manifest that drives a CKG benchmark run: selects golden-set questions, context-provision methods, driver, and run parameters.",
+  "type": "object",
+  "required": ["experiment", "golden_set", "methods", "driver", "go_stablenet_root", "sha_pin"],
+  "additionalProperties": false,
+  "properties": {
+    "experiment": {
+      "type": "string",
+      "description": "Human-readable experiment name, used as the output directory prefix.",
+      "minLength": 1
+    },
+    "golden_set": {
+      "type": "object",
+      "description": "How to select questions from the golden-set library.",
+      "required": ["source"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Path (relative to stablenet-knowledge-bench root) to the golden-set index YAML or a glob pattern.",
+          "default": "golden-set/index.yaml"
+        },
+        "ids": {
+          "type": "array",
+          "description": "If present, run only these question IDs (e.g. [\"G01\",\"G02\"]). Empty or absent means all.",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "buckets": {
+          "type": "array",
+          "description": "If present, restrict to questions from these buckets.",
+          "items": { "type": "string" },
+          "default": []
+        }
+      }
+    },
+    "methods": {
+      "type": "array",
+      "description": "Ordered list of context-provision methods to evaluate.",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": ["M1_raw", "M1_fair", "M2_graph_full", "M3_incremental", "M4_get_for_task"]
+      }
+    },
+    "driver": {
+      "type": "string",
+      "description": "AI driver to use for all method runs.",
+      "enum": ["claude_cli", "replay"]
+    },
+    "go_stablenet_root": {
+      "type": "string",
+      "description": "Absolute path to the go-stablenet repository root. Used by M1/hallucination scorer for disk fallback.",
+      "minLength": 1
+    },
+    "sha_pin": {
+      "type": "string",
+      "description": "Git SHA (full or short) of the go-stablenet commit the golden-set was authored against. Matched to indexed_head at run start.",
+      "minLength": 7
+    },
+    "batch_size": {
+      "type": "integer",
+      "description": "Number of (question, method) cells to run per invocation before saving state and allowing resume.",
+      "minimum": 1,
+      "default": 8
+    },
+    "output_dir": {
+      "type": "string",
+      "description": "Directory (relative to stablenet-knowledge-bench root) where run artifacts are written. Defaults to 'runs/<experiment>'.",
+      "default": ""
+    },
+    "driver_config": {
+      "type": "object",
+      "description": "Driver-specific configuration overrides.",
+      "additionalProperties": true,
+      "properties": {
+        "replay_dir": {
+          "type": "string",
+          "description": "Path to directory containing replay fixture files (for replay driver)."
+        },
+        "claude_cli_timeout": {
+          "type": "integer",
+          "description": "Timeout in seconds for each claude CLI invocation.",
+          "default": 120
+        }
+      }
+    },
+    "cks_config": {
+      "type": "object",
+      "description": "cks MCP server configuration for methods M2/M3/M4.",
+      "additionalProperties": true,
+      "properties": {
+        "health_check": {
+          "type": "boolean",
+          "description": "Abort run if cks health check fails (for methods that require cks).",
+          "default": true
+        }
+      }
+    }
+  }
+}

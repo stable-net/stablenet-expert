@@ -1,0 +1,19 @@
+version: 2
+id: G17
+bucket: invariants
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: finalize-quorum-check
+intent: "Verify RI-7: Finalize is called only after quorum commit seals are collected."
+prompt: "In go-stablenet WBFT, at what point in handleCommit/Finalize is it verified that quorum commit seals have been collected? Cite the guard condition."
+expected_citations:
+  - file: consensus/wbft/core/commit.go
+    start_line: null
+    end_line: null
+    symbol: handleCommit
+expected_keywords:
+  - quorum
+  - Finalize
+invariant_refs:
+  - RI-7

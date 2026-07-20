@@ -1,0 +1,25 @@
+{
+  "experiment": "gsn-stable0005-C-skills",
+  "_doc": "Single-ARM (C_project_skills) run of STABLE-0005 in an isolated worktree. C uses bench-solver-project-skills (target project's own .claude assets only; no cks, no coding-agent plugin); evaluator is a measurement-only referee. Pair with stable-0005-A.json and stable-0005-B.json. See docs/bench-abc-mode-definitions.md.",
+  "modes": ["C_project_skills"],
+  "mode_agents": { "C_project_skills": "bench-solver-project-skills" },
+  "shared_agents": { "plan": "planner", "implement": "implementer", "evaluate": "evaluator" },
+  "tasks": [
+    {
+      "id": "STABLE-0005",
+      "ticket": "bench/fixtures/tickets/STABLE-0005.json",
+      "module": "miner-anzeon",
+      "base_commit": "0bf2f4d1b",
+      "oracle": {
+        "chainbench_test": "basic/tx-send",
+        "reference_fix": "bench/fixtures/pr77/expert-fix.diff"
+      },
+      "_pr": "#77",
+      "_quality": "clean (base==indexed head 0bf2f4d1b -> zero index drift; cross-module staleness)"
+    }
+  ],
+  "_go_stablenet_root_note": "Per-arm isolated worktree at 0bf2f4d1b. C needs no cks; the worktree only isolates C's edits from the other arms and from the cks source_root.",
+  "go_stablenet_root": "../go-stablenet/pr/bench-C-skills",
+  "batch_size": 1,
+  "config": { "max_eval_cycles": 3 }
+}

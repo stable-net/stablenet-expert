@@ -1,0 +1,19 @@
+version: 2
+id: G18
+bucket: invariants
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: genesis-alloc-balance-zero
+intent: "Verify RI-8: params-only alloc entries in genesis have zero balance."
+prompt: "In go-stablenet genesis initialization, what happens to alloc entries that only set contract parameters but no balance? Cite the zero-balance enforcement."
+expected_citations:
+  - file: core/genesis.go
+    start_line: null
+    end_line: null
+    symbol: DefaultStableNetMainnetGenesisBlock
+expected_keywords:
+  - alloc
+  - balance
+invariant_refs:
+  - RI-8

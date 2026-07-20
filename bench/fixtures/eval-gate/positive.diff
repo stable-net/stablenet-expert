@@ -1,0 +1,89 @@
+diff --git a/core/txpool/legacypool/legacypool.go b/core/txpool/legacypool/legacypool.go
+index 1111111..3333333 100644
+--- a/core/txpool/legacypool/legacypool.go
++++ b/core/txpool/legacypool/legacypool.go
+@@ -180,6 +180,9 @@ type LegacyPool struct {
+ 	pending map[common.Address]*list   // All currently processable transactions
+ 	queue   map[common.Address]*list   // Queued but non-processable transactions
+ 	beats   map[common.Address]time.Time
++
++	// feePayerSpent tracks the cumulative fee-delegation obligation per fee payer.
++	feePayerSpent map[common.Address]*big.Int
+ }
+
+@@ -640,6 +643,7 @@ func (pool *LegacyPool) add(tx *types.Transaction, local bool) (replaced bool, e
+ 	}
+ 	pool.pending[from] = ...
++	pool.addFeePayerObligation(tx)
+ 	return true, nil
+ }
+
+@@ -710,9 +714,10 @@ func (pool *LegacyPool) removeTx(hash common.Hash, outofbound bool) {
+ 	}
++	pool.subFeePayerObligation(tx)
+ 	delete(pool.all, hash)
+ }
+
+@@ -905,6 +910,8 @@ func (pool *LegacyPool) truncatePending() {
+ 		for _, tx := range caps {
+ 			hash := tx.Hash()
+ 			pool.all.Remove(hash)
++			// release the fee-payer obligation on the eviction path too.
++			pool.subFeePayerObligation(tx)
+ 			log.Trace("Removed fairness-exceeding pending transaction", "hash", hash)
+ 		}
+ 	}
++
++// addFeePayerObligation / subFeePayerObligation maintain feePayerSpent.
++func (pool *LegacyPool) addFeePayerObligation(tx *types.Transaction) { /* ... */ }
++func (pool *LegacyPool) subFeePayerObligation(tx *types.Transaction) { /* ... */ }
++
++// validatePoolInternals recomputes feePayerSpent from the live pending/queue
++// set and asserts it equals the maintained aggregate (consistency invariant).
++func (pool *LegacyPool) validatePoolInternals() error {
++	recomputed := map[common.Address]*big.Int{}
++	for _, l := range pool.pending {
++		for _, tx := range l.Flatten() {
++			if fp := tx.FeePayer(); fp != nil {
++				if recomputed[*fp] == nil { recomputed[*fp] = new(big.Int) }
++				recomputed[*fp].Add(recomputed[*fp], tx.FeePayerCost())
++			}
++		}
++	}
++	for fp, want := range recomputed {
++		if pool.feePayerSpent[fp].Cmp(want) != 0 {
++			return fmt.Errorf("feePayerSpent drift for %s", fp.Hex())
++		}
++	}
++	return nil
++}
+diff --git a/core/txpool/legacypool/legacypool_test.go b/core/txpool/legacypool/legacypool_test.go
+index 4444444..5555555 100644
+--- a/core/txpool/legacypool/legacypool_test.go
++++ b/core/txpool/legacypool/legacypool_test.go
+@@ -2100,0 +2101,40 @@ func TestFeePayerObligationAddRemove(t *testing.T) {
++// Consistency-invariant test: recompute-from-source equals the maintained map.
++func TestFeePayerSpentInvariant(t *testing.T) {
++	pool, _ := setupPool()
++	defer pool.Close()
++	for i := 0; i < 50; i++ {
++		pool.add(feeDelegatedTx(t, i), false)
++	}
++	if err := pool.validatePoolInternals(); err != nil {
++		t.Fatalf("invariant violated after add: %v", err)
++	}
++}
++
++// Adversarial eviction-path test: drive feePayerSpent through truncatePending
++// (capacity eviction), not just add/remove — the path maintenance hooks miss.
++func TestTruncatePendingReleasesFeePayerObligation(t *testing.T) {
++	pool, _ := setupPool()
++	defer pool.Close()
++	for i := 0; i < pool.config.GlobalSlots*2; i++ {
++		pool.add(feeDelegatedTx(t, i), false)
++	}
++	pool.truncatePending()
++	if err := pool.validatePoolInternals(); err != nil {
++		t.Fatalf("feePayerSpent drifted after truncatePending: %v", err)
++	}
++}

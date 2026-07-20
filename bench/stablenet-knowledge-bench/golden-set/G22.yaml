@@ -1,0 +1,20 @@
+version: 2
+id: G22
+bucket: hotspot
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: race-roundchange-timer
+intent: "Understand the race condition fix in newRoundChangeTimer (commit c37994e9b)."
+prompt: "Commit c37994e9b fixed a race condition in newRoundChangeTimer. Describe exactly what the race was, what code path triggered it, and how the fix resolves it."
+expected_citations:
+  - file: consensus/wbft/core/roundchange.go
+    start_line: null
+    end_line: null
+    symbol: newRoundChangeTimer
+expected_keywords:
+  - race
+  - timer
+  - mutex
+invariant_refs:
+  - RI-3

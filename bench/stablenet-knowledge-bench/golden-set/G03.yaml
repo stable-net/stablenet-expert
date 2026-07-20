@@ -1,0 +1,18 @@
+version: 2
+id: G03
+bucket: seeded_cks_eval
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: wbft-prepare
+intent: "Explain what handlePrepare does and the condition under which it advances to the PREPARED state."
+prompt: "What does handlePrepare() do in go-stablenet WBFT? What message-count condition does it check before transitioning to PREPARED?"
+expected_citations:
+  - file: consensus/wbft/core/prepare.go
+    start_line: null
+    end_line: null
+    symbol: handlePrepare
+expected_keywords:
+  - handlePrepare
+  - PREPARED
+invariant_refs: []

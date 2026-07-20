@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "bench experiment manifest",
+  "description": "Defines a 3-way comparison experiment: tasks run under each information-regime mode. Consumed by the bench-orchestration skill; the measurement tool (compare.py) reads the resulting cells.",
+  "type": "object",
+  "required": ["experiment", "modes", "mode_agents", "tasks"],
+  "properties": {
+    "experiment": { "type": "string", "description": "Experiment id; also the dir name under .stablenet-expert/bench/." },
+    "modes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Mode ids to run (e.g. A_stablenet_knowledge_mcp, B_code_only, C_code_skills). Cells = tasks x modes."
+    },
+    "mode_agents": {
+      "type": "object",
+      "description": "mode id -> the ANALYSIS/PLANNING/DESIGN agent for that mode.",
+      "additionalProperties": { "type": "string" }
+    },
+    "shared_agents": {
+      "type": "object",
+      "description": "Agents shared by every mode (implement, evaluate).",
+      "properties": {
+        "implement": { "type": "string" },
+        "evaluate": { "type": "string" }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "ticket"],
+        "properties": {
+          "id": { "type": "string" },
+          "ticket": { "type": "string", "description": "path to a ticket.json (the work item)" },
+          "module": { "type": "string", "description": "primary go-stablenet module under test (consensus|txpool|systemcontracts|state|miner|...). For coverage tracking; avoids single-module bias." },
+          "base_commit": { "type": "string", "description": "go-stablenet commit the cell branch is cut from. For a known-fixed bug, set this to the bug's PARENT commit so the defect is actually present; else the task is trivially satisfied. Defaults to the current go_stablenet_root HEAD." },
+          "oracle": {
+            "type": "object",
+            "description": "Correctness oracle hints (e.g. which chainbench test must pass).",
+            "properties": {
+              "chainbench_test": { "type": "string" },
+              "reference_fix": { "type": "string", "description": "Expert/ground-truth fix to compare the agent's diff against (a commit-ish reachable from base_commit, and/or a saved .diff path). Enables an expert-similarity review axis: how close did the agent's solution come to the human PR. Functional pass (chainbench_test) and similarity are reported separately." }
+            }
+          }
+        }
+      }
+    },
+    "go_stablenet_root": { "type": "string", "description": "path to the go-stablenet repo under test. Relative paths resolve against the coding-agent checkout root, so a sibling repo is ../go-stablenet (sibling layout, docs/SETUP.md). Committed manifests must not embed machine-specific absolute paths; absolute paths are for machine-local (uncommitted) overrides only." },
+    "batch_size": { "type": "integer", "minimum": 1, "default": 1,
+      "description": "cells to run per /bench invocation (token-limit-aware)" },
+    "config": {
+      "type": "object",
+      "description": "Per-cell pipeline knobs (mirrors state.config).",
+      "properties": {
+        "max_eval_cycles": { "type": "integer", "minimum": 1, "default": 3,
+          "description": "Bug-cycle ceiling per cell: EVALUATION_FAIL re-plans up to this many times before BLOCKED (bench-orchestration §4.4 step e)." }
+      }
+    }
+  }
+}

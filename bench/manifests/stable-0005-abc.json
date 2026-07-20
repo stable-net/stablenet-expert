@@ -1,0 +1,30 @@
+{
+  "experiment": "gsn-stable0005-abc",
+  "_doc": "Single-task A/B/C cell for STABLE-0005 (miner-anzeon / PR #77), whole-approach modes per docs/bench-abc-mode-definitions.md. A=coding-agent+cks pipeline; B=bare LLM+code+grep solver; C=project-native .claude solver.",
+  "_superseded_by": "For folder-isolated execution use the single-arm split stable-0005-{A,B,C}.json — each arm runs in its own worktree at 0bf2f4d1b so the cks source_root (go-stablenet/pr/pr-77-problem) stays pristine and arms cannot cross-contaminate or leak into the cks/ckg index. This combined manifest would run all three arms in ONE go_stablenet_root; do not use it for the isolated run.",
+  "modes": ["A_stablenet_knowledge_mcp", "B_code_only", "C_project_skills"],
+  "mode_agents": {
+    "A_stablenet_knowledge_mcp": "analyzer",
+    "B_code_only": "bench-solver-codeonly",
+    "C_project_skills": "bench-solver-project-skills"
+  },
+  "shared_agents": { "plan": "planner", "implement": "implementer", "evaluate": "evaluator" },
+  "tasks": [
+    {
+      "id": "STABLE-0005",
+      "ticket": "bench/fixtures/tickets/STABLE-0005.json",
+      "module": "miner-anzeon",
+      "base_commit": "0bf2f4d1b",
+      "oracle": {
+        "chainbench_test": "basic/tx-send",
+        "reference_fix": "bench/fixtures/pr77/expert-fix.diff"
+      },
+      "_pr": "#77",
+      "_quality": "clean (base==indexed head 0bf2f4d1b -> zero index drift; cross-module staleness)"
+    }
+  ],
+  "_go_stablenet_root_note": "DEPRECATED path for this combined manifest — pointing it at the cks source_root (pr-77-problem) would contaminate the indexed tree. Isolated runs use the single-arm split; see _superseded_by. Fairness for A_stablenet_knowledge_mcp is commit-equality (worktree HEAD == cks indexed_head 0bf2f4d1b), not path-equality.",
+  "go_stablenet_root": "../go-stablenet/pr/bench-A-cks",
+  "batch_size": 1,
+  "config": { "max_eval_cycles": 3 }
+}

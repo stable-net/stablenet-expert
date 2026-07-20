@@ -1,0 +1,18 @@
+version: 2
+id: G09
+bucket: seeded_cks_eval
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: bls-aggregated-seal
+intent: "Describe the AggregatedSeal type and its role in WBFT block finalization."
+prompt: "What is the AggregatedSeal type in go-stablenet's WBFT (core/types.go)? What fields does it contain and how is it used in block headers?"
+expected_citations:
+  - file: consensus/wbft/core/types.go
+    start_line: null
+    end_line: null
+    symbol: AggregatedSeal
+expected_keywords:
+  - AggregatedSeal
+  - seal
+invariant_refs: []

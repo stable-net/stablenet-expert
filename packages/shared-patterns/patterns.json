@@ -1,0 +1,117 @@
+{
+  "version": "1.0.0",
+  "patterns": [
+    {
+      "id": "private_key_pem",
+      "name": "PEM Private Key",
+      "regex": "-----BEGIN\\s+(RSA|EC|OPENSSH|DSA|ENCRYPTED)?\\s*PRIVATE KEY-----",
+      "severity": "critical",
+      "action": "block"
+    },
+    {
+      "id": "aws_access_key",
+      "name": "AWS Access Key ID",
+      "regex": "AKIA[0-9A-Z]{16}",
+      "severity": "critical",
+      "action": "redact"
+    },
+    {
+      "id": "aws_secret_key",
+      "name": "AWS Secret Access Key",
+      "regex": "(?i)aws_secret_access_key\\s*[=:]\\s*[A-Za-z0-9/+=]{40}",
+      "severity": "critical",
+      "action": "redact"
+    },
+    {
+      "id": "gcp_service_account",
+      "name": "GCP Service Account Key",
+      "regex": "\"type\"\\s*:\\s*\"service_account\"",
+      "severity": "critical",
+      "action": "block"
+    },
+    {
+      "id": "openai_api_key",
+      "name": "OpenAI API Key",
+      "regex": "sk-[a-zA-Z0-9]{20,}",
+      "severity": "critical",
+      "action": "redact"
+    },
+    {
+      "id": "anthropic_api_key",
+      "name": "Anthropic API Key",
+      "regex": "sk-ant-[a-zA-Z0-9-]{20,}",
+      "severity": "critical",
+      "action": "redact"
+    },
+    {
+      "id": "db_connection_string",
+      "name": "Database Connection String",
+      "regex": "(postgres|mysql|mongodb)(\\+srv)?://[^\\s]+:[^\\s]+@[^\\s]+",
+      "severity": "high",
+      "action": "redact"
+    },
+    {
+      "id": "jwt_token",
+      "name": "JWT Token",
+      "regex": "eyJ[A-Za-z0-9_-]{10,}\\.eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]+",
+      "severity": "high",
+      "action": "redact"
+    },
+    {
+      "id": "bearer_token",
+      "name": "Bearer Token in Header",
+      "regex": "(?i)(authorization|bearer)\\s*[=:]\\s*bearer\\s+[A-Za-z0-9_.-]+",
+      "severity": "high",
+      "action": "redact"
+    },
+    {
+      "id": "webhook_secret",
+      "name": "Webhook Secret",
+      "regex": "(?i)(webhook[_-]?secret|x-hub-signature)\\s*[=:]\\s*[A-Za-z0-9_.-]{10,}",
+      "severity": "high",
+      "action": "redact"
+    },
+    {
+      "id": "password_assignment",
+      "name": "Password Assignment",
+      "regex": "(?i)(password|passwd|pwd)\\s*[=:]\\s*[\"']?[^\\s\"']{6,}[\"']?",
+      "severity": "high",
+      "action": "redact"
+    },
+    {
+      "id": "ip_address_internal",
+      "name": "Internal IP Address",
+      "regex": "\\b(10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|172\\.(1[6-9]|2\\d|3[01])\\.\\d{1,3}\\.\\d{1,3}|192\\.168\\.\\d{1,3}\\.\\d{1,3})\\b",
+      "severity": "medium",
+      "action": "redact"
+    },
+    {
+      "id": "email_address",
+      "name": "Email Address",
+      "regex": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
+      "severity": "medium",
+      "action": "warn"
+    },
+    {
+      "id": "high_entropy_string",
+      "name": "High Entropy Secret Candidate",
+      "type": "entropy",
+      "threshold": 4.5,
+      "min_length": 20,
+      "max_length": 200,
+      "severity": "warning",
+      "action": "warn",
+      "exclude_patterns": [
+        "^[a-f0-9]+$",
+        "^[A-Z_]+$",
+        "^(https?|ftp)://"
+      ]
+    }
+  ],
+  "config": {
+    "block_behavior": "abort_with_report",
+    "redact_replacement": "[REDACTED:{pattern_id}]",
+    "warn_behavior": "pass_with_metadata",
+    "max_scan_size_bytes": 1048576
+  }
+}

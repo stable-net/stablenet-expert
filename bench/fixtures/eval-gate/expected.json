@@ -1,0 +1,13 @@
+{
+  "_comment": "Expected §4.6 derived-state consistency gate decisions. Used to verify the evaluator's gate fires correctly (item E). See README.md.",
+  "negative.diff": {
+    "gate_triggered": true,
+    "status": "FAIL",
+    "why": "Adds derived state (feePayerSpent map + addFeePayerObligation/subFeePayerObligation) but the diff contains NO consistency-invariant test (recompute-and-compare) and NO adversarial eviction/truncation-path test. §4.6 step 3 → FAIL → bug cycle."
+  },
+  "positive.diff": {
+    "gate_triggered": true,
+    "status": "PASS",
+    "why": "Same derived state, but the diff ALSO adds validatePoolInternals (recompute-from-source invariant), TestFeePayerSpentInvariant, and TestTruncatePendingReleasesFeePayerObligation (adversarial truncation path), and maintains the aggregate on the truncatePending eviction path. §4.6 step 2 satisfied → gate PASS."
+  }
+}

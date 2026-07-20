@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/0xmhha/stablenet-expert/scripts/contract/agent-mcp.schema.json",
+  "title": "R1' Agent-facing MCP Contract (C1 SSoT)",
+  "description": "Single source of truth for every tool the stablenet-core-dev plugin calls. Providers: stablenet-knowledge (our .mcp.json alias for the code-knowledge-system MCP; registered tools keep their cks_* names), chainbench, jira-gateway. ckv/ckg are dev-only and intentionally NOT in this contract. Each provider's conformance test validates its registered tools against this file; scripts/contract/lint-tool-names.sh asserts every mcp__server__tool reference in the agent/command prompts is a tool name listed here.",
+  "definitions": {
+    "Citation": {
+      "type": "object",
+      "properties": {
+        "file": { "type": "string" },
+        "start_line": { "type": "integer" },
+        "end_line": { "type": "integer" }
+      },
+      "required": ["file"]
+    },
+    "PRRef": {
+      "type": "object",
+      "properties": {
+        "number": { "type": "integer" },
+        "title": { "type": "string" },
+        "merged_at": { "type": "string" }
+      }
+    }
+  },
+  "providers": {
+    "stablenet-knowledge": {
+      "server": "stablenet-knowledge",
+      "namespace": "cks.",
+      "tools": {
+        "cks_context_get_for_task": {
+          "owner": "stablenet-knowledge",
+          "description": "Compose a budgeted evidence pack for a development task (the primary planning entrypoint): intent -> semantic -> keyword/graph -> budget -> sanitize.",
+          "input": { "properties": { "prompt": { "type": "string" }, "max_citations": { "type": "number" }, "budget_tokens": { "type": "number" } }, "required": ["prompt"] }
+        },
+        "cks_context_semantic_search": {
+          "owner": "stablenet-knowledge",
+          "description": "Vector (meaning) search over the indexed corpus. Hits carry source=ckv.",
+          "input": { "properties": { "query": { "type": "string" }, "k": { "type": "number" }, "language": { "type": "string" }, "path_glob": { "type": "string" }, "kinds": { "type": "array" } }, "required": ["query"] }
+        },
+        "cks_context_search_text": {
+          "owner": "stablenet-knowledge",
+          "description": "BM25 keyword (exactness) search over the indexed corpus. Hits carry source=ckg.",
+          "input": { "properties": { "query": { "type": "string" }, "k": { "type": "number" }, "language": { "type": "string" }, "path_glob": { "type": "string" } }, "required": ["query"] }
+        },
+        "cks_context_find_symbol": {
+          "owner": "stablenet-knowledge",
+          "description": "Resolve a symbol name to its definition citation(s).",
+          "input": { "properties": { "name": { "type": "string" }, "language": { "type": "string" }, "kinds": { "type": "array" } }, "required": ["name"] }
+        },
+        "cks_context_find_callers": {
+          "owner": "stablenet-knowledge",
+          "description": "List the callers of a symbol (reverse call edges).",
+          "input": { "properties": { "symbol": { "type": "string" }, "depth": { "type": "number" }, "max_total": { "type": "number" } }, "required": ["symbol"] }
+        },
+        "cks_context_find_callees": {
+          "owner": "stablenet-knowledge",
+          "description": "List the callees of a symbol (forward call edges).",
+          "input": { "properties": { "symbol": { "type": "string" }, "depth": { "type": "number" }, "max_total": { "type": "number" } }, "required": ["symbol"] }
+        },
+        "cks_context_get_subgraph": {
+          "owner": "stablenet-knowledge",
+          "description": "Return all nodes/edges within depth hops of a symbol, all edge types.",
+          "input": { "properties": { "symbol": { "type": "string" }, "depth": { "type": "number" }, "max_total": { "type": "number" } }, "required": ["symbol"] }
+        },
+        "cks_context_impact_analysis": {
+          "owner": "stablenet-knowledge",
+          "description": "Reverse-dependency closure of a symbol, grouped by coupling category (callers/interface/type_users/distributed/concurrent/other).",
+          "input": { "properties": { "symbol": { "type": "string" }, "depth": { "type": "number" }, "max_total": { "type": "number" } }, "required": ["symbol"] }
+        },
+        "cks_context_concurrency_impact": {
+          "owner": "stablenet-knowledge",
+          "description": "Concurrency blast radius of a symbol: goroutines/channels/locks it spawns/sends-to/acquires and modules reached over concurrency edges, both directions.",
+          "input": { "properties": { "symbol": { "type": "string" }, "depth": { "type": "number" }, "max_total": { "type": "number" } }, "required": ["symbol"] }
+        },
+        "cks_context_change_history": {
+          "owner": "stablenet-knowledge",
+          "description": "PR refs (provenance) and/or BM25-ranked hunk evidence for a symbol or intent.",
+          "input": { "properties": { "intent": { "type": "string" }, "symbol": { "type": "string" }, "k": { "type": "number" }, "max_count": { "type": "number" } } }
+        },
+        "cks_context_find_invariants": {
+          "owner": "stablenet-knowledge",
+          "description": "Curated invariants (domain rules) filtered by file, policy category, and minimum confidence tier. Direct lookup for the rules governing a file about to change.",
+          "input": { "properties": { "file": { "type": "string" }, "category": { "type": "string" }, "tier_min": { "type": "number" } } }
+        },
+        "cks_context_get_conventions": {
+          "owner": "stablenet-knowledge",
+          "description": "Per-package AST-convention summaries (codebase idioms: error handling, locking, naming) under a package prefix.",
+          "input": { "properties": { "package_prefix": { "type": "string" } } }
+        },
+        "cks_ops_health": {
+          "owner": "stablenet-knowledge",
+          "description": "Backend reachability + version pins. Reports degraded when ckv (embedder) is unavailable.",
+          "input": { "properties": {} }
+        },
+        "cks_ops_freshness": {
+          "owner": "stablenet-knowledge",
+          "description": "Index-vs-HEAD staleness: indexed head, current head, changed files.",
+          "input": { "properties": {} }
+        },
+        "cks_ops_index": {
+          "owner": "stablenet-knowledge",
+          "description": "Refresh the ckv + ckg indexes (maintenance op). mode=incremental|full.",
+          "input": { "properties": { "mode": { "type": "string" }, "since_commit": { "type": "string" } } }
+        }
+      }
+    },
+    "chainbench": {
+      "server": "chainbench",
+      "namespace": "chainbench_",
+      "tools": {
+        "chainbench_init": {
+          "owner": "chainbench",
+          "description": "Initialize a local go-stablenet network from a profile (genesis + TOML + datadirs).",
+          "input": { "properties": { "profile": { "type": "string" }, "project_root": { "type": "string" }, "binary_path": { "type": "string" } } }
+        },
+        "chainbench_start": {
+          "owner": "chainbench",
+          "description": "Start all chain nodes of an initialized network.",
+          "input": { "properties": { "project_root": { "type": "string" }, "binary_path": { "type": "string" } } }
+        },
+        "chainbench_status": {
+          "owner": "chainbench",
+          "description": "Per-node block height, peers, running state, and consensus health.",
+          "input": { "properties": { "network": { "type": "string" } } }
+        },
+        "chainbench_test_run": {
+          "owner": "chainbench",
+          "description": "Run a built-in test by 'category/name' (e.g. basic/consensus, basic/tx-send).",
+          "input": { "properties": { "test": { "type": "string" }, "format": { "type": "string" } }, "required": ["test"] }
+        },
+        "chainbench_report": {
+          "owner": "chainbench",
+          "description": "Test results report. With format=json returns the C4 loop-back shape parsed for summary.failed.",
+          "input": { "properties": { "format": { "type": "string" } } },
+          "output": {
+            "properties": {
+              "summary": {
+                "properties": {
+                  "total_tests": { "type": "integer" },
+                  "passed": { "type": "integer" },
+                  "failed": { "type": "integer" },
+                  "assertions": { "properties": { "passed": { "type": "integer" }, "failed": { "type": "integer" } } }
+                }
+              },
+              "tests": { "type": "array" }
+            }
+          }
+        },
+        "chainbench_failure_context": {
+          "owner": "chainbench",
+          "description": "Most recent failure context snapshot (per-node height, peers, syncing, log tails).",
+          "input": { "properties": {} }
+        },
+        "chainbench_stop": {
+          "owner": "chainbench",
+          "description": "Stop all running chain nodes gracefully (local network only).",
+          "input": { "properties": { "network": { "type": "string" } } }
+        },
+        "chainbench_restart": {
+          "owner": "chainbench",
+          "description": "Restart the chain: stop all nodes, clean data, re-initialize with the same profile, and start fresh.",
+          "input": { "properties": { "project_root": { "type": "string" }, "binary_path": { "type": "string" } } }
+        },
+        "chainbench_state_compact": {
+          "owner": "chainbench",
+          "description": "Compact JSON snapshot (<300B) of current chain state: running status, profile, per-node height/peers, consensus health, last test result.",
+          "input": { "properties": {} }
+        },
+        "chainbench_test_list": {
+          "owner": "chainbench",
+          "description": "List all available built-in tests, organized by category (e.g. basic/consensus, basic/tx-send).",
+          "input": { "properties": {} }
+        },
+        "chainbench_contract_deploy": {
+          "owner": "chainbench",
+          "description": "Deploy a contract by signing a contract-creation tx (to: nil). mode 'legacy' (gas_price) or '1559' (max_fee + max_priority). Returns {tx_hash, contract_address}; confirm via chainbench_tx_wait.",
+          "input": { "properties": { "network": { "type": "string" }, "signer": { "type": "string" }, "mode": { "type": "string" }, "bytecode": { "type": "string" }, "abi": { "type": "string" }, "constructor_args": { "type": "array" }, "gas": { "type": ["string", "number"] }, "gas_price": { "type": "string" }, "max_fee_per_gas": { "type": "string" }, "max_priority_fee_per_gas": { "type": "string" }, "node_id": { "type": "string" }, "nonce": { "type": ["string", "number"] }, "value": { "type": "string" } }, "required": ["network", "signer", "mode", "bytecode"] }
+        },
+        "chainbench_contract_call": {
+          "owner": "chainbench",
+          "description": "Read-only contract call (eth_call). Provide raw calldata, or abi+method+args for server-side encoding. Returns result_raw always; result_decoded only in ABI mode.",
+          "input": { "properties": { "network": { "type": "string" }, "contract_address": { "type": "string" }, "abi": { "type": "string" }, "method": { "type": "string" }, "args": { "type": "array" }, "calldata": { "type": "string" }, "from": { "type": "string" }, "block_number": { "type": ["string", "number"] }, "node_id": { "type": "string" } }, "required": ["network", "contract_address"] }
+        },
+        "chainbench_tx_send": {
+          "owner": "chainbench",
+          "description": "Send a signed transaction. Modes: 'legacy' (gas_price), '1559' (max_fee + max_priority), 'set_code' (EIP-7702, authorization_list), 'fee_delegation' (go-stablenet 0x16, fee_payer). Signer/fee_payer are aliases; key material never crosses the MCP boundary.",
+          "input": { "properties": { "network": { "type": "string" }, "signer": { "type": "string" }, "mode": { "type": "string" }, "to": { "type": "string" }, "value": { "type": "string" }, "data": { "type": "string" }, "gas": { "type": ["string", "number"] }, "gas_price": { "type": "string" }, "max_fee_per_gas": { "type": "string" }, "max_priority_fee_per_gas": { "type": "string" }, "nonce": { "type": ["string", "number"] }, "fee_payer": { "type": "string" }, "authorization_list": { "type": "array" }, "node_id": { "type": "string" } }, "required": ["network", "signer", "mode"] }
+        },
+        "chainbench_tx_wait": {
+          "owner": "chainbench",
+          "description": "Poll for a tx receipt with exponential backoff; returns receipt fields when mined (status, block_number, gas_used, logs_count, ...) or {status:'pending'} on timeout. Default timeout_ms 60000.",
+          "input": { "properties": { "network": { "type": "string" }, "tx_hash": { "type": "string" }, "node_id": { "type": "string" }, "timeout_ms": { "type": "integer" } }, "required": ["network", "tx_hash"] }
+        },
+        "chainbench_txpool_inspect": {
+          "owner": "chainbench",
+          "description": "Transaction pool status (pending/queued counts) across all running nodes or a specific node.",
+          "input": { "properties": { "node": { "type": "integer" } } }
+        },
+        "chainbench_node_rpc": {
+          "owner": "chainbench",
+          "description": "Send a JSON-RPC call directly to a specific node and return the response (e.g. eth_blockNumber, eth_getBalance, net_peerCount).",
+          "input": { "properties": { "node": { "type": "integer" }, "method": { "type": "string" }, "params": { "type": "string" } }, "required": ["node", "method"] }
+        },
+        "chainbench_consensus_status": {
+          "owner": "chainbench",
+          "description": "WBFT consensus activity statistics over a block range: validator participation, block-authoring distribution, round stability, seal signature counts.",
+          "input": { "properties": { "blocks": { "type": "integer" }, "node": { "type": "integer" } } }
+        },
+        "chainbench_consensus_health": {
+          "owner": "chainbench",
+          "description": "Quick consensus health check across all running nodes: block production, sync status, validator agreement, round stability.",
+          "input": { "properties": {} }
+        },
+        "chainbench_consensus_validators": {
+          "owner": "chainbench",
+          "description": "WBFT validator set at a specific block (validator addresses and count). Omit block for latest.",
+          "input": { "properties": { "block": { "type": "integer" }, "node": { "type": "integer" } } }
+        },
+        "chainbench_consensus_block_info": {
+          "owner": "chainbench",
+          "description": "Decoded WBFT extra data from a block header: consensus round, prepared/committed seals, RANDAO reveal, gas tip, epoch info.",
+          "input": { "properties": { "block": { "type": "integer" }, "node": { "type": "integer" } }, "required": ["block"] }
+        },
+        "chainbench_network_partition": {
+          "owner": "chainbench",
+          "description": "Create or heal a network partition between two node groups (admin_removePeer / admin_addPeer) to test BFT consensus under splits.",
+          "input": { "properties": { "action": { "type": "string" }, "group_a": { "type": "array" }, "group_b": { "type": "array" } }, "required": ["action", "group_a", "group_b"] }
+        },
+        "chainbench_network_peers": {
+          "owner": "chainbench",
+          "description": "Peer connectivity for all running nodes or a specific node: peer count, connected peer IDs, topology overview.",
+          "input": { "properties": { "node": { "type": "integer" } } }
+        },
+        "chainbench_network_topology": {
+          "owner": "chainbench",
+          "description": "Set a P2P topology for testing: 'full-mesh', 'hub-spoke' (via hub node), or 'ring'. Useful for testing consensus under restricted connectivity.",
+          "input": { "properties": { "topology": { "type": "string" }, "hub": { "type": "integer" } }, "required": ["topology"] }
+        },
+        "chainbench_log_search": {
+          "owner": "chainbench",
+          "description": "Search node log files for a grep-compatible regex pattern; returns matching log lines. Omit node to search all nodes.",
+          "input": { "properties": { "pattern": { "type": "string" }, "node": { "type": "integer" } }, "required": ["pattern"] }
+        },
+        "chainbench_log_timeline": {
+          "owner": "chainbench",
+          "description": "Consensus event timeline from all node logs: block proposals, votes, commits, and view changes ordered by timestamp.",
+          "input": { "properties": {} }
+        },
+        "chainbench_events_get": {
+          "owner": "chainbench",
+          "description": "Fetch event logs (eth_getLogs) with optional address / block-range / topics filtering. When abi + event are both given, each log is decoded server-side as decoded:{event,args}.",
+          "input": { "properties": { "network": { "type": "string" }, "address": { "type": "string" }, "from_block": { "type": ["string", "number"] }, "to_block": { "type": ["string", "number"] }, "topics": { "type": "array" }, "abi": { "type": "string" }, "event": { "type": "string" }, "node_id": { "type": "string" } }, "required": ["network"] }
+        }
+      }
+    },
+    "jira": {
+      "server": "jira-gateway",
+      "namespace": "jira_",
+      "tools": {
+        "jira_read_ticket": {
+          "owner": "jira-gateway",
+          "description": "Read a Jira ticket. Returns fields + _filter_metadata.scan_result (CLEAN/REDACTED/BLOCKED).",
+          "input": { "properties": { "ticket_id": { "type": "string" } }, "required": ["ticket_id"] }
+        },
+        "jira_read_comments": {
+          "owner": "jira-gateway",
+          "description": "Read a ticket's comments.",
+          "input": { "properties": { "ticket_id": { "type": "string" } }, "required": ["ticket_id"] }
+        },
+        "jira_search": {
+          "owner": "jira-gateway",
+          "description": "Search tickets (JQL).",
+          "input": { "properties": { "jql": { "type": "string" }, "max_results": { "type": "number" } }, "required": ["jql"] }
+        },
+        "jira_add_comment": {
+          "owner": "jira-gateway",
+          "description": "Add a comment to a ticket.",
+          "input": { "properties": { "ticket_id": { "type": "string" }, "body": { "type": "string" } }, "required": ["ticket_id", "body"] }
+        },
+        "jira_update_status": {
+          "owner": "jira-gateway",
+          "description": "Transition a ticket's status.",
+          "input": { "properties": { "ticket_id": { "type": "string" }, "status": { "type": "string" } }, "required": ["ticket_id", "status"] }
+        },
+        "jira_update_assignee": {
+          "owner": "jira-gateway",
+          "description": "Reassign a ticket.",
+          "input": { "properties": { "ticket_id": { "type": "string" }, "assignee": { "type": "string" } }, "required": ["ticket_id", "assignee"] }
+        }
+      }
+    }
+  }
+}

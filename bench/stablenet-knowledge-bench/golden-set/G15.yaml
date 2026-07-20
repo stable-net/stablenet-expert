@@ -1,0 +1,19 @@
+version: 2
+id: G15
+bucket: invariants
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: fee-delegation-sender-auth
+intent: "Verify RI-5: fee delegation transactions require explicit sender authorization."
+prompt: "How does go-stablenet ensure that fee delegation transactions (tx_fee_delegation.go) are authorized by the original sender? What prevents forgery?"
+expected_citations:
+  - file: core/types/tx_fee_delegation.go
+    start_line: null
+    end_line: null
+    symbol: null
+expected_keywords:
+  - fee delegation
+  - sender
+invariant_refs:
+  - RI-5

@@ -1,0 +1,20 @@
+{
+  "ticket_id": "STABLE-0003",
+  "type": "Bug Fix",
+  "summary": "트랜잭션 풀이 포화 상태일 때 정상 fee-delegation tx가 잔액 부족으로 부당하게 거부된다",
+  "description": "## 작업 유형: Bug Fix\n## 요약\n한 fee-payer 가 여러 계정의 수수료를 대납하는 fee-delegation(0x16) tx 를 트랜잭션 풀이 포화될 때까지 보내면, 이후 같은 fee-payer 의 정상 tx 가 잔액 부족(false positive)으로 거부된다. 풀이 일부 tx 를 퇴출(capacity eviction)한 뒤에도 증상이 지속된다.\n## 재현 방법\n1. 4노드 로컬 네트워크 시작\n2. 한 fee-payer 가 다수 계정의 fee 를 대납하는 fee-delegation tx 를 풀 한도까지 적재\n3. 풀이 일부 tx 를 퇴출하도록 유도\n4. 동일 fee-payer 로 신규 정상 FD tx 전송\n## 기대 동작\n퇴출로 여력이 회복되어 신규 정상 FD tx 가 수락된다.\n## 실제 동작\nfee-payer 의 누적 수수료 채무가 실제보다 과대 집계된 것처럼 동작 → 정상 FD tx 거부. DoS 방어가 작동해야 할 바로 그 순간에 정상 트래픽을 막는다.\n## 영향 범위\n- 모듈: core/txpool (가용성 + fee-delegation 정확성)\n- 심각도: high\n## 수용 기준\n- [ ] 풀 포화·퇴출 이후에도 정상 fee-delegation tx 가 수락된다\n- [ ] fee-payer 누적 채무 정확성을 검증하는 회귀 unit test 추가\n- [ ] race test 통과\n- [ ] chainbench basic/tx-send(및 fee-delegation 경로) 통과\n## 비고\n해법(어느 경로에서 무엇을 보정할지)과 invariant 설계는 명시하지 않는다 — 에이전트가 영향 받는 모든 write-site 를 스스로 열거·수정해야 한다(파생상태 부작용 처리 능력 평가 목적).",
+  "assignee": null,
+  "status": "To Do",
+  "status_category": "todo",
+  "labels": ["bug", "txpool", "fee-delegation"],
+  "created": "2026-06-15T00:00:00Z",
+  "updated": "2026-06-15T00:00:00Z",
+  "_filter_metadata": {
+    "scan_result": "CLEAN",
+    "redacted_count": 0,
+    "redacted_patterns": [],
+    "blocked_patterns": [],
+    "warnings": [],
+    "scanned_at": "2026-06-15T00:00:00Z"
+  }
+}

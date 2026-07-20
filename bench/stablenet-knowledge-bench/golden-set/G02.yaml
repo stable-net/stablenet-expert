@@ -1,0 +1,19 @@
+version: 2
+id: G02
+bucket: seeded_cks_eval
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: wbft-round-change
+intent: "Understand what triggers the round-change timer in WBFT and how it resets."
+prompt: "In go-stablenet WBFT, what does newRoundChangeTimer() do and when is it called? What prevents timer race conditions?"
+expected_citations:
+  - file: consensus/wbft/core/roundchange.go
+    start_line: null
+    end_line: null
+    symbol: newRoundChangeTimer
+expected_keywords:
+  - newRoundChangeTimer
+  - timer
+invariant_refs:
+  - RI-3

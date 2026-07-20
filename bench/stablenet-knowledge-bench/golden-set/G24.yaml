@@ -1,0 +1,20 @@
+version: 2
+id: G24
+bucket: hotspot
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: genesis-zero-balance-alloc
+intent: "Understand the zero-balance fix for params-only alloc entries (commit 3eada119e)."
+prompt: "Commit 3eada119e fixed zero Balance for params-only alloc entries in initializeGovCouncil. What was wrong before, and what does the fix ensure about alloc entries?"
+expected_citations:
+  - file: core/genesis.go
+    start_line: null
+    end_line: null
+    symbol: null
+expected_keywords:
+  - alloc
+  - balance
+  - zero
+invariant_refs:
+  - RI-8

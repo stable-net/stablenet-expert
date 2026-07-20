@@ -1,0 +1,19 @@
+version: 2
+id: G12
+bucket: invariants
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: genesis-system-contract-registry
+intent: "Verify RI-2: every system contract address is registered in the genesis block."
+prompt: "In go-stablenet, which system contract addresses are registered at genesis? Cite the code that maps contract names to addresses in the genesis initialization path."
+expected_citations:
+  - file: core/genesis.go
+    start_line: null
+    end_line: null
+    symbol: DefaultStableNetMainnetGenesisBlock
+expected_keywords:
+  - genesis
+  - systemcontract
+invariant_refs:
+  - RI-2

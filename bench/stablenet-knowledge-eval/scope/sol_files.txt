@@ -1,0 +1,11 @@
+systemcontracts/solidity/libraries/AddressSetLib.sol
+systemcontracts/solidity/libraries/ECRecover.sol
+systemcontracts/solidity/libraries/EIP712.sol
+systemcontracts/solidity/libraries/MessageHashUtils.sol
+systemcontracts/solidity/libraries/SignatureChecker.sol
+systemcontracts/solidity/v1/GovCouncil.sol
+systemcontracts/solidity/v1/GovMasterMinter.sol
+systemcontracts/solidity/v1/GovMinter.sol
+systemcontracts/solidity/v1/GovValidator.sol
+systemcontracts/solidity/v1/NativeCoinAdapter.sol
+systemcontracts/solidity/v2/GovMinter.sol

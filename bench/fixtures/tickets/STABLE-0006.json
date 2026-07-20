@@ -1,0 +1,13 @@
+{
+  "ticket_id": "STABLE-0006",
+  "type": "Feature",
+  "summary": "하드포크 등록을 중앙화해 누락·불일치를 없앤다",
+  "description": "## 작업 유형: Feature\n## 요약\n현재 하드포크 등록이 코드 곳곳에 수동으로 흩어져 있어 누락·불일치가 발생하기 쉽다. 하드포크 등록을 중앙화하고, block-0/런타임 하드포크가 일관된 단일 경로로 적용되도록 한다.\n## 목표\n- 하드포크 등록의 단일 소스(single source of truth) 확보\n- genesis(block-0) 및 런타임 하드포크가 일관되게 적용\n## 영향 범위\n- 모듈: params / hardfork (+ consensus/wbft config, genesis)\n- 심각도: medium\n## 수용 기준\n- [ ] 하드포크 등록이 단일 소스로 일원화된다\n- [ ] block-0 및 런타임 하드포크가 일관된 경로로 적용된다\n- [ ] 전 업그레이드 경로를 커버하는 테스트 + unit 통과\n## 비고\n해법 설계는 명시하지 않는다. ⚠️ feature 라 유효한 설계가 여럿 → **전문가-유사도는 약한 신호**(주로 비용/정확성 축으로 활용). 대규모 diff(테스트데이터 포함), grep 경쟁 대조군 성격.",
+  "assignee": null,
+  "status": "To Do",
+  "status_category": "todo",
+  "labels": ["feature", "params", "hardfork"],
+  "created": "2026-06-15T00:00:00Z",
+  "updated": "2026-06-15T00:00:00Z",
+  "_filter_metadata": { "scan_result": "CLEAN", "redacted_count": 0, "redacted_patterns": [], "blocked_patterns": [], "warnings": [], "scanned_at": "2026-06-15T00:00:00Z" }
+}

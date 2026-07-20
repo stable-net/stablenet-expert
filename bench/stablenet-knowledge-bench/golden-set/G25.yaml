@@ -1,0 +1,19 @@
+version: 2
+id: G25
+bucket: hotspot
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: anzeon-tip-env-refresh
+intent: "Understand when AnzeonTipEnv refreshes current block gas tip (commit 98f05c2a0)."
+prompt: "What change did commit 98f05c2a0 make to AnzeonTipEnv in eth/gasprice/anzeon.go? When does it now refresh the current-block GasTip, and what bug did this fix?"
+expected_citations:
+  - file: eth/gasprice/anzeon.go
+    start_line: null
+    end_line: null
+    symbol: null
+expected_keywords:
+  - AnzeonTipEnv
+  - GasTip
+  - refresh
+invariant_refs: []

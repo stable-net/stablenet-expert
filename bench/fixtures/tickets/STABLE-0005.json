@@ -1,0 +1,25 @@
+{
+  "ticket_id": "STABLE-0005",
+  "type": "Bug Fix",
+  "summary": "거버넌스로 가스 우선순위 팁 정책을 변경한 직후 밸리데이터가 아닌 계정의 정상 거래가 한동안 부당하게 거부된다",
+  "description": "## 작업 유형: Bug Fix\n## 요약\n거버넌스로 가스 우선순위 팁(minimum tip) 정책을 변경한 직후, 밸리데이터가 아닌 일반 계정의 정상 거래가 한동안 부당하게 거부된다. 잠시 지나면 저절로 정상 처리된다.\n## 재현 방법\n1. 4노드 로컬 네트워크 시작\n2. 거버넌스로 가스 팁 정책을 변경\n3. 변경 직후 추가 거래 없이 한동안 두어 빈 블록만 생성되게 함\n4. 밸리데이터가 아닌 계정으로 일반 tx 전송\n## 기대 동작\n정책 변경 이후에도 일반 계정의 정상 거래가 정상적으로 수락된다.\n## 실제 동작\n변경 직후 한동안 정상 거래가 거부되다가, 새 거래가 처리되면 저절로 정상화된다. 밸리데이터 계정은 영향받지 않는다.\n## 영향 범위\n- 모듈: 가스 수수료(팁) 정책 ↔ 트랜잭션 수락 경로 (정확한 위치는 진단으로 규명)\n- 심각도: high (가용성 — 정상 거래 거부)\n## 수용 기준\n- [ ] 가스 팁 정책 변경 후 idle(빈 블록) 구간에서도 일반 계정 정상 거래가 수락된다\n- [ ] 위 시나리오를 재현하는 회귀 unit test 추가\n- [ ] race test 통과\n- [ ] chainbench basic/tx-send 통과\n## 비고\n관측 가능한 표면 증상만 기술한다 — 내부 메커니즘·정확한 위치는 명시하지 않는다(에이전트가 스스로 진단·수정). 전문가 정답은 평가 시점에만 참조(bench/fixtures/pr77/expert-fix.diff).",
+  "assignee": null,
+  "status": "To Do",
+  "status_category": "todo",
+  "labels": [
+    "bug",
+    "gasprice",
+    "anzeon",
+    "miner"
+  ],
+  "created": "2026-06-15T00:00:00Z",
+  "updated": "2026-06-15T00:00:00Z",
+  "_filter_metadata": {
+    "scan_result": "CLEAN",
+    "redacted_count": 0,
+    "redacted_patterns": [],
+    "blocked_patterns": [],
+    "warnings": [],
+    "scanned_at": "2026-06-15T00:00:00Z"
+  }
+}

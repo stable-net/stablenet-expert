@@ -1,0 +1,13 @@
+{
+  "ticket_id": "STABLE-0008",
+  "type": "Feature",
+  "summary": "수수료 정책을 고정 최소 우선수수료(minPriorityFee) 기반으로 전환한다",
+  "description": "## 작업 유형: Feature\n## 요약\n수수료 정책을 운영자/거버넌스가 정한 고정 최소 우선수수료 기반으로 전환한다. miner 가 임의로 gas price 를 설정해 정책을 우회하지 못하게 하고, tip 제안이 설정된 고정 최소값을 따르도록 한다.\n## 목표\n- miner 의 임의 gas price 설정이 수수료 정책을 바꾸지 못함\n- tip 제안 로직이 설정된 고정 최소 우선수수료를 일관되게 반환\n## 영향 범위\n- 모듈: miner / eth/gasprice / cmd flags (수수료 정책)\n- 심각도: medium\n## 수용 기준\n- [ ] miner 의 임의 gas price 설정이 정책을 변경하지 못한다\n- [ ] tip 제안이 설정된 고정 최소 우선수수료를 반환한다\n- [ ] 회귀 테스트 + unit 통과\n## 비고\n해법 설계는 명시하지 않는다. ⚠️ feature 라 전문가-유사도는 약한 신호. 실제 PR(#14)은 다중 기능 squash + base_commit 이 dev 에서 멀어 인덱스 drift 큼 → 핵심 deliverable 로 범위 한정 평가.",
+  "assignee": null,
+  "status": "To Do",
+  "status_category": "todo",
+  "labels": ["feature", "miner", "gasprice", "fee-policy"],
+  "created": "2026-06-15T00:00:00Z",
+  "updated": "2026-06-15T00:00:00Z",
+  "_filter_metadata": { "scan_result": "CLEAN", "redacted_count": 0, "redacted_patterns": [], "blocked_patterns": [], "warnings": [], "scanned_at": "2026-06-15T00:00:00Z" }
+}

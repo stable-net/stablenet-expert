@@ -1,0 +1,19 @@
+version: 2
+id: G16
+bucket: invariants
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: commit-seal-uniqueness
+intent: "Verify RI-6: each validator contributes at most one commit seal per round."
+prompt: "How does go-stablenet WBFT prevent a validator from submitting duplicate commit seals in the same round? Cite the deduplication logic."
+expected_citations:
+  - file: consensus/wbft/core/commit.go
+    start_line: null
+    end_line: null
+    symbol: handleCommit
+expected_keywords:
+  - seal
+  - duplicate
+invariant_refs:
+  - RI-6

@@ -1,0 +1,21 @@
+{
+  "experiment": "ckg-bench-default",
+  "golden_set": {
+    "source": "golden-set/index.yaml",
+    "ids": [],
+    "buckets": []
+  },
+  "methods": ["M1_raw", "M2_graph_full", "M3_incremental", "M4_get_for_task"],
+  "driver": "replay",
+  "go_stablenet_root": "../go-stablenet",
+  "sha_pin": "9978930ba",
+  "batch_size": 8,
+  "output_dir": "",
+  "driver_config": {
+    "replay_dir": "tests/fixtures/replay",
+    "strict": false
+  },
+  "cks_config": {
+    "health_check": false
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "_comment": "Per-MTok USD price override for compare.py --prices. Merged over the snapshot in bench/lib/usage.py. VERIFY against current Anthropic pricing. cache_write = ephemeral write tier, cache_read = read tier.",
+  "claude-opus-4-7": { "input": 15, "output": 75, "cache_write": 18.75, "cache_read": 1.50 },
+  "claude-opus-4-8": { "input": 15, "output": 75, "cache_write": 18.75, "cache_read": 1.50 },
+  "claude-sonnet-4-6": { "input": 3, "output": 15, "cache_write": 3.75, "cache_read": 0.30 },
+  "claude-haiku-4-5": { "input": 1, "output": 5, "cache_write": 1.25, "cache_read": 0.10 }
+}

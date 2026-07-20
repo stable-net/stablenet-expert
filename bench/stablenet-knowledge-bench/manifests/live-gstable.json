@@ -1,0 +1,28 @@
+{
+ "experiment": "ckg-bench-live-gstable",
+ "golden_set": {
+  "source": "golden-set/index.yaml",
+  "ids": [],
+  "buckets": []
+ },
+ "methods": [
+  "M1_raw",
+  "M2_graph_full",
+  "M3_incremental",
+  "M4_get_for_task",
+  "M1_fair"
+ ],
+ "driver": "claude_cli",
+ "go_stablenet_root": "/Users/kevin/work/github/0xmhha/auto-coding/test/go-stablenet",
+ "sha_pin": "0bf2f4d1b",
+ "batch_size": 200,
+ "output_dir": "",
+ "driver_config": {
+  "claude_bin": "claude",
+  "claude_cli_timeout": 300
+ },
+ "cks_config": {
+  "health_check": false
+ },
+ "domain_corpus_root": "/Users/kevin/work/github/0xmhha/auto-coding/code-knowledge-system/generated/domain-corpus/go-stablenet/entries"
+}

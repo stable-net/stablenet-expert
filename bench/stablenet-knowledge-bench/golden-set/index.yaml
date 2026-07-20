@@ -1,0 +1,162 @@
+version: 1
+sha_pin: "9978930ba"
+description: "CKG Benchmark golden-set — 30 known-answer questions for go-stablenet"
+total: 30
+
+bucket_counts:
+  seeded_cks_eval: 10
+  invariants: 11
+  hotspot: 6
+  cherry_pick_boundary: 3
+
+questions:
+  - id: G01
+    file: G01.yaml
+    bucket: seeded_cks_eval
+    topic: wbft-quorum
+    difficulty: medium
+  - id: G02
+    file: G02.yaml
+    bucket: seeded_cks_eval
+    topic: wbft-round-change
+    difficulty: medium
+  - id: G03
+    file: G03.yaml
+    bucket: seeded_cks_eval
+    topic: wbft-prepare
+    difficulty: medium
+  - id: G04
+    file: G04.yaml
+    bucket: seeded_cks_eval
+    topic: wbft-commit-finalize
+    difficulty: hard
+  - id: G05
+    file: G05.yaml
+    bucket: seeded_cks_eval
+    topic: gov-validator-init
+    difficulty: hard
+  - id: G06
+    file: G06.yaml
+    bucket: seeded_cks_eval
+    topic: state-transition-gasprice
+    difficulty: medium
+  - id: G07
+    file: G07.yaml
+    bucket: seeded_cks_eval
+    topic: blacklist-check
+    difficulty: easy
+  - id: G08
+    file: G08.yaml
+    bucket: seeded_cks_eval
+    topic: get-validators
+    difficulty: medium
+  - id: G09
+    file: G09.yaml
+    bucket: seeded_cks_eval
+    topic: bls-aggregated-seal
+    difficulty: medium
+  - id: G10
+    file: G10.yaml
+    bucket: seeded_cks_eval
+    topic: genesis-syscontract-init
+    difficulty: hard
+  - id: G11
+    file: G11.yaml
+    bucket: invariants
+    topic: wbft-quorum-invariant
+    difficulty: medium
+  - id: G12
+    file: G12.yaml
+    bucket: invariants
+    topic: genesis-system-contract-registry
+    difficulty: hard
+  - id: G13
+    file: G13.yaml
+    bucket: invariants
+    topic: round-change-timer-safety
+    difficulty: hard
+  - id: G14
+    file: G14.yaml
+    bucket: invariants
+    topic: validator-set-monotone
+    difficulty: medium
+  - id: G15
+    file: G15.yaml
+    bucket: invariants
+    topic: fee-delegation-sender-auth
+    difficulty: medium
+  - id: G16
+    file: G16.yaml
+    bucket: invariants
+    topic: commit-seal-uniqueness
+    difficulty: hard
+  - id: G17
+    file: G17.yaml
+    bucket: invariants
+    topic: finalize-quorum-check
+    difficulty: hard
+  - id: G18
+    file: G18.yaml
+    bucket: invariants
+    topic: genesis-alloc-balance-zero
+    difficulty: hard
+  - id: G19
+    file: G19.yaml
+    bucket: invariants
+    topic: gov-validator-init-invariant
+    difficulty: hard
+  - id: G20
+    file: G20.yaml
+    bucket: invariants
+    topic: justification-forgery-prevention
+    difficulty: medium
+  - id: G21
+    file: G21.yaml
+    bucket: invariants
+    topic: txpool-cumulative-balance
+    difficulty: medium
+  - id: G22
+    file: G22.yaml
+    bucket: hotspot
+    topic: race-roundchange-timer
+    difficulty: hard
+  - id: G23
+    file: G23.yaml
+    bucket: hotspot
+    topic: wbft-justification-forgery-fix
+    difficulty: hard
+  - id: G24
+    file: G24.yaml
+    bucket: hotspot
+    topic: genesis-zero-balance-alloc
+    difficulty: medium
+  - id: G25
+    file: G25.yaml
+    bucket: hotspot
+    topic: anzeon-tip-env-refresh
+    difficulty: medium
+  - id: G26
+    file: G26.yaml
+    bucket: hotspot
+    topic: txpool-cumulative-balance-fee-delegation
+    difficulty: hard
+  - id: G27
+    file: G27.yaml
+    bucket: hotspot
+    topic: txpool-validation-fee-delegation
+    difficulty: medium
+  - id: G28
+    file: G28.yaml
+    bucket: cherry_pick_boundary
+    topic: handler-vs-handler-istanbul
+    difficulty: hard
+  - id: G29
+    file: G29.yaml
+    bucket: cherry_pick_boundary
+    topic: tx-fee-delegation-type
+    difficulty: hard
+  - id: G30
+    file: G30.yaml
+    bucket: cherry_pick_boundary
+    topic: quorum-protocol-vs-eth-protocol
+    difficulty: medium

@@ -1,0 +1,20 @@
+version: 2
+id: G26
+bucket: hotspot
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: txpool-cumulative-balance-fee-delegation
+intent: "Understand the txpool cumulative balance fix for fee delegation (current branch)."
+prompt: "The branch fix/txpool-cumulative-balance-fee-delegation adds cumulative balance checks for fee-delegated transactions in legacypool. Which function validates the sender's balance, and what change ensures fee-delegated costs are included in the check?"
+expected_citations:
+  - file: core/txpool/legacypool/legacypool.go
+    start_line: null
+    end_line: null
+    symbol: null
+expected_keywords:
+  - legacypool
+  - fee delegation
+  - balance
+invariant_refs:
+  - RI-11

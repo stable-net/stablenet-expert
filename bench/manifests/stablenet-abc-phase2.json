@@ -1,0 +1,50 @@
+{
+  "experiment": "gsn-fullpipe-abc-phase2",
+  "_comment": "Phase-2: multi-module full-pipeline A/B/C (총비용 측정). bug-cycle 루프 + total-cost 회계(compare.py) 사용. base_commit/oracle는 autopilot 세션에서 live go-stablenet에 대해 검증 후 채워야 함 — 미검증 값으로 본 실행 금지(§d).",
+  "modes": [
+    "A_stablenet_knowledge_mcp",
+    "B_code_only",
+    "C_code_skills"
+  ],
+  "mode_agents": {
+    "A_stablenet_knowledge_mcp": "analyzer",
+    "B_code_only": "bench-analyzer-codeonly",
+    "C_code_skills": "bench-analyzer-skills"
+  },
+  "shared_agents": {
+    "plan": "planner",
+    "implement": "implementer",
+    "evaluate": "evaluator"
+  },
+  "tasks": [
+    {
+      "id": "STABLE-0001",
+      "ticket": "bench/fixtures/tickets/STABLE-0001.json",
+      "module": "consensus",
+      "oracle": {
+        "chainbench_test": "basic/consensus"
+      }
+    },
+    {
+      "id": "STABLE-0002",
+      "ticket": "bench/fixtures/tickets/STABLE-0002.json",
+      "module": "txpool",
+      "oracle": {
+        "chainbench_test": "basic/tx-send"
+      }
+    },
+    {
+      "id": "STABLE-0003",
+      "ticket": "bench/fixtures/tickets/STABLE-0003.json",
+      "module": "txpool",
+      "oracle": {
+        "chainbench_test": "basic/tx-send"
+      }
+    }
+  ],
+  "go_stablenet_root": "../go-stablenet",
+  "batch_size": 1,
+  "config": {
+    "max_eval_cycles": 3
+  }
+}

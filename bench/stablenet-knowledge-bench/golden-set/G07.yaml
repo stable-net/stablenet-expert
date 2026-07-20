@@ -1,0 +1,18 @@
+version: 2
+id: G07
+bucket: seeded_cks_eval
+language: en
+difficulty: easy
+sha_pin: "9978930ba"
+topic: blacklist-check
+intent: "Find how isBlacklisted is implemented in the governance council contract."
+prompt: "How does isBlacklisted() work in go-stablenet's systemcontracts/gov_council.go? What data source does it check?"
+expected_citations:
+  - file: systemcontracts/gov_council.go
+    start_line: null
+    end_line: null
+    symbol: isBlacklisted
+expected_keywords:
+  - isBlacklisted
+  - blacklist
+invariant_refs: []

@@ -1,0 +1,19 @@
+version: 2
+id: G20
+bucket: invariants
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: justification-forgery-prevention
+intent: "Verify RI-10: WBFT justification messages cannot be forged or replayed."
+prompt: "How does go-stablenet WBFT prevent justification message forgery or replay attacks? Cite the validation logic and the commit that fixed a related bug."
+expected_citations:
+  - file: consensus/wbft/core/roundchange.go
+    start_line: null
+    end_line: null
+    symbol: null
+expected_keywords:
+  - justification
+  - forgery
+invariant_refs:
+  - RI-10

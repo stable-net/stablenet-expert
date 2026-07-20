@@ -1,0 +1,52 @@
+{
+  "case_id": "feepayer-truncate",
+  "summary": "Fee-delegation cumulative-balance fix: a feePayerSpent aggregate mirrors per-fee-payer pending obligations. Must be maintained at every txpool mutation site, including the truncatePending eviction path. Modeled on the real bug evaluator §4.6 cites.",
+  "design": {
+    "diff_has_add_sub_helpers": true,
+    "write_site_contract": {
+      "derived_state": "feePayerSpent",
+      "mirrors": "sum of pending tx fees per fee-payer",
+      "sites": [
+        {"site": "txpool.go:addTx",            "action": "add",     "reason": "new pending tx adds obligation",        "covered_by_test": "TestFeePayerSpentInvariant"},
+        {"site": "txpool.go:removeTx",          "action": "sub",     "reason": "removed tx releases obligation",         "covered_by_test": "TestFeePayerSpentInvariant"},
+        {"site": "txpool.go:truncatePending",   "action": "sub",     "reason": "eviction drops pending txs — easily missed", "covered_by_test": "TestTruncatePendingReleasesFeePayerObligation"},
+        {"site": "txpool.go:reorgFeePayer",     "action": "rebuild", "reason": "reorg replays pending — recompute",      "covered_by_test": "TestFeePayerSpentInvariant"}
+      ],
+      "invariant_test": "TestFeePayerSpentInvariant",
+      "adversarial_test": "TestTruncatePendingReleasesFeePayerObligation"
+    }
+  },
+  "plan": {
+    "prose_steps": [
+      "## Step 1: add feePayerSpent map + add/sub helpers",
+      "## Step 2: maintain feePayerSpent on add/remove/truncate/reorg paths",
+      "## Step 3: add consistency-invariant + adversarial truncation test"
+    ],
+    "contract_steps": [
+      {"id": 1, "description": "add feePayerSpent map + add/sub helpers"},
+      {"id": 2, "description": "maintain feePayerSpent on add/remove/truncate/reorg paths"},
+      {"id": 3, "description": "add consistency-invariant + adversarial truncation test"}
+    ]
+  },
+  "impl": {
+    "maintained_sites": [
+      "txpool.go:addTx",
+      "txpool.go:removeTx",
+      "txpool.go:truncatePending",
+      "txpool.go:reorgFeePayer"
+    ],
+    "existing_tests": [
+      "TestFeePayerSpentInvariant",
+      "TestTruncatePendingReleasesFeePayerObligation"
+    ]
+  },
+  "ground_truth": {
+    "required_sites": [
+      "txpool.go:addTx",
+      "txpool.go:removeTx",
+      "txpool.go:truncatePending",
+      "txpool.go:reorgFeePayer"
+    ],
+    "note": "A clean baseline: contract == ground truth, every site maintained and covered, both tests present. Should PASS under both rulesets (no false positive)."
+  }
+}

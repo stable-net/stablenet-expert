@@ -1,0 +1,19 @@
+version: 2
+id: G11
+bucket: invariants
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: wbft-quorum-invariant
+intent: "Verify RI-1: the quorum size formula is floor(2N/3)+1 for N validators."
+prompt: "What is the exact quorum size formula used in go-stablenet WBFT? Cite the code that computes it, and explain why this formula ensures BFT safety with f < N/3 faults."
+expected_citations:
+  - file: consensus/wbft/validator/default.go
+    start_line: 226
+    end_line: 229
+    symbol: defaultSet.QuorumSize
+expected_keywords:
+  - QuorumSize
+  - "2F+1"
+invariant_refs:
+  - RI-1

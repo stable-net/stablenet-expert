@@ -1,0 +1,20 @@
+version: 2
+id: G23
+bucket: hotspot
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: wbft-justification-forgery-fix
+intent: "Understand the forgery/duplicate-vote fix in WBFT justification (commit 9978930ba)."
+prompt: "Commit 9978930ba prevented forgery and duplicate votes in WBFT justification. What specific validation was missing before the fix, and which function now enforces it?"
+expected_citations:
+  - file: consensus/wbft/core/roundchange.go
+    start_line: null
+    end_line: null
+    symbol: null
+expected_keywords:
+  - justification
+  - duplicate
+  - forgery
+invariant_refs:
+  - RI-10

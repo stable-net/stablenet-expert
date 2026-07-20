@@ -1,0 +1,21 @@
+version: 2
+id: G04
+bucket: seeded_cks_eval
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: wbft-commit-finalize
+intent: "Trace how handleCommit advances the consensus round and what it verifies before finalizing a block."
+prompt: "Trace the handleCommit() flow in go-stablenet WBFT: what does it verify, how does it collect seals, and when does it call Finalize?"
+expected_citations:
+  - file: consensus/wbft/core/commit.go
+    start_line: null
+    end_line: null
+    symbol: handleCommit
+expected_keywords:
+  - handleCommit
+  - seal
+  - Finalize
+invariant_refs:
+  - RI-6
+  - RI-7

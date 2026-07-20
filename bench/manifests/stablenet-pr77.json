@@ -1,0 +1,41 @@
+{
+  "experiment": "gsn-pr77",
+  "_superseded_by": "stable-0005-abc.json — 이 manifest의 mode_agents(bench-analyzer-*)는 분석-단계 변이라는 구식 A/B/C 정의를 따른다. 정본(docs/bench-abc-mode-definitions.md)은 whole-approach solver(bench-solver-*)이며 stable-0005-abc.json이 동일 태스크의 정본 manifest다. 실행하지 말 것 — 이력 참조용.",
+  "_comment": "PR-77(Anzeon 동적 가스팁 staleness) 단일-태스크 실행. 사용자의 'PR-77 부모에서 문제 제공→에이전트 수정→전문가 fix와 유사도 검토' 테스트와 결합. base_commit=0bf2f4d1b(부모, 버그 실재), go_stablenet_root=go-stablenet-pr-77(이미 부모에 체크아웃), A_cks는 PR-77 전용 cks DB(knowledge-data/pr-77) 사용. oracle.reference_fix=실제 PR-77 fix(유사도 비교 기준). 이 실험은 동시에 (d-1) 1셀 완주 검증을 겸한다.",
+  "modes": [
+    "A_cks",
+    "B_code_only",
+    "C_code_skills"
+  ],
+  "mode_agents": {
+    "A_cks": "analyzer",
+    "B_code_only": "bench-analyzer-codeonly",
+    "C_code_skills": "bench-analyzer-skills"
+  },
+  "shared_agents": {
+    "plan": "planner",
+    "implement": "implementer",
+    "evaluate": "evaluator"
+  },
+  "tasks": [
+    {
+      "id": "STABLE-0005",
+      "ticket": "bench/fixtures/tickets/STABLE-0005.json",
+      "module": "miner-anzeon",
+      "base_commit": "0bf2f4d1b",
+      "oracle": {
+        "chainbench_test": "basic/tx-send",
+        "reference_fix": "98f05c2a0 | bench/fixtures/pr77/expert-fix.diff"
+      }
+    }
+  ],
+  "go_stablenet_root": "../go-stablenet-pr-77",
+  "batch_size": 1,
+  "config": {
+    "max_eval_cycles": 3
+  },
+  "_requires": {
+    "cks_config": "../code-knowledge-system/cks-stablenet.yaml",
+    "note": "경로는 sibling 워크스페이스 루트(coding-agent 부모 디렉토리) 기준 상대경로 — SKILL §2 해석 규칙. cks_config는 gen-cks-config.sh가 생성하는 머신-로컬 파일(gitignored). A_cks 모드는 cks MCP(CKS_MCP_URL의 HTTP 인스턴스)가 그 config로 knowledge-data/pr-77 DB를 서빙 중일 때만 공정 — cks_ops_health의 source_root가 go_stablenet_root와 일치하는지 단언. B/C는 cks 불필요. 실행은 autopilot 세션 + 사용자 승인 필요. 종료 후 throwaway 브랜치/커밋 정리 필수."
+  }
+}

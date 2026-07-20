@@ -1,0 +1,19 @@
+version: 2
+id: G30
+bucket: cherry_pick_boundary
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: quorum-protocol-vs-eth-protocol
+intent: "Distinguish StableNet's quorum protocol from standard geth eth protocol."
+prompt: "In go-stablenet, what is the Quorum protocol (eth/quorum_protocol.go) and how does it extend the standard Ethereum wire protocol? What message types does it add?"
+expected_citations:
+  - file: eth/quorum_protocol.go
+    start_line: null
+    end_line: null
+    symbol: null
+expected_keywords:
+  - quorum protocol
+  - wire protocol
+  - WBFT
+invariant_refs: []

@@ -1,0 +1,19 @@
+version: 2
+id: G05
+bucket: seeded_cks_eval
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: gov-validator-init
+intent: "Describe what initializeValidator does in the governance system contract and what state it sets up."
+prompt: "What does initializeValidator() do in go-stablenet's governance system contract? List the key data structures it initializes."
+expected_citations:
+  - file: systemcontracts/gov_validator.go
+    start_line: 52
+    end_line: 184
+    symbol: initializeValidator
+expected_keywords:
+  - initializeValidator
+  - validator
+invariant_refs:
+  - RI-9

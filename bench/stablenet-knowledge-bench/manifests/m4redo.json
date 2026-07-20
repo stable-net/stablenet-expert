@@ -1,0 +1,11 @@
+{
+  "experiment": "ckg-bench-m4redo",
+  "golden_set": { "source": "golden-set/index.yaml", "ids": [], "buckets": [] },
+  "methods": ["M4_get_for_task"],
+  "driver": "claude_cli",
+  "go_stablenet_root": "../go-stablenet",
+  "sha_pin": "9978930ba",
+  "batch_size": 200,
+  "driver_config": { "claude_bin": "claude", "claude_cli_timeout": 300 },
+  "cks_config": { "health_check": false }
+}

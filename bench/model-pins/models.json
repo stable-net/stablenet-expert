@@ -1,0 +1,18 @@
+{
+  "_doc": "SINGLE SOURCE OF TRUTH for coding-agent model pins. Two tiers; each agent maps to a tier. To upgrade a generation, edit ONE tier value here, then run `python3 bench/model-pins/check.py --apply` to propagate to agent .md frontmatter. bench/lib/capture.py reads this file directly at runtime (no second copy). check.py also verifies bench/prices.json has a price row for each tier model. NOTE: Claude Code agent frontmatter `model:` accepts no runtime indirection (${VAR}/central-config unsupported) and the global CLAUDE_CODE_SUBAGENT_MODEL env var would flatten both tiers to one model — so frontmatter must stay literal and is kept in sync by check.py rather than referencing this file at runtime.",
+  "tiers": {
+    "deep": "claude-opus-4-8",
+    "exec": "claude-sonnet-4-6"
+  },
+  "agents": {
+    "orchestrator": "deep",
+    "analyzer": "deep",
+    "planner": "deep",
+    "bench-analyzer-codeonly": "deep",
+    "bench-analyzer-skills": "deep",
+    "bench-solver-codeonly": "deep",
+    "bench-solver-project-skills": "deep",
+    "implementer": "exec",
+    "evaluator": "exec"
+  }
+}

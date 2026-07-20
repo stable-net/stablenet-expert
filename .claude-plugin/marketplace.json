@@ -1,0 +1,18 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "stablenet-expert",
+  "metadata": {
+    "version": "0.1.0",
+    "description": "AI agent plugins for go-stablenet development — Jira-driven automated development pipeline, with dapp/contract/quality/tooling plugins planned."
+  },
+  "owner": {
+    "name": "mhha"
+  },
+  "plugins": [
+    {
+      "name": "stablenet-core-dev",
+      "source": "./plugins/stablenet-core-dev",
+      "description": "go-stablenet Jira-driven automated development pipeline (Stablenet Knowledge MCP + chainbench MCP) — analyze, plan, implement, evaluate, PR, merge."
+    }
+  ]
+}

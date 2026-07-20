@@ -1,0 +1,20 @@
+version: 2
+id: G01
+bucket: seeded_cks_eval
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: wbft-quorum
+intent: "Identify how QuorumSize is computed for a WBFT validator set and what formula it uses."
+prompt: "In go-stablenet's WBFT consensus, how does QuorumSize() compute the minimum quorum for a validator set? Cite the exact function and file."
+expected_citations:
+  - file: consensus/wbft/validator/default.go
+    start_line: 226
+    end_line: 229
+    symbol: defaultSet.QuorumSize
+expected_keywords:
+  - QuorumSize
+  - "2F+1"
+invariant_refs:
+  - RI-1
+  - RI-4

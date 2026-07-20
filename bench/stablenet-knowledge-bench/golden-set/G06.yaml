@@ -1,0 +1,18 @@
+version: 2
+id: G06
+bucket: seeded_cks_eval
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: state-transition-gasprice
+intent: "Understand how buyGas works in StateTransition and which fields it modifies."
+prompt: "In go-stablenet's state_transition.go, what does StateTransition.buyGas() do? Which balance and gas fields does it update?"
+expected_citations:
+  - file: core/state_transition.go
+    start_line: null
+    end_line: null
+    symbol: StateTransition.buyGas
+expected_keywords:
+  - buyGas
+  - gas
+invariant_refs: []

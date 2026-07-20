@@ -1,0 +1,52 @@
+{
+  "case_id": "txpool-slot-counter",
+  "summary": "A perAccountSlots counter mirrors how many pending slots each account holds, to enforce a per-account cap. It must be decremented on every removal path — including the GlobalSlots capacity-eviction path whose vocabulary never mentions 'account', so semantic search misses it.",
+  "design": {
+    "diff_has_add_sub_helpers": true,
+    "write_site_contract": {
+      "derived_state": "perAccountSlots",
+      "mirrors": "count of pending slots per account",
+      "sites": [
+        {"site": "list.go:Add",             "action": "add",  "reason": "enqueue consumes a slot",                  "covered_by_test": "TestPerAccountSlotsInvariant"},
+        {"site": "list.go:Remove",          "action": "sub",  "reason": "dequeue frees a slot",                     "covered_by_test": "TestPerAccountSlotsInvariant"},
+        {"site": "txpool.go:truncatePending","action": "sub", "reason": "GlobalSlots eviction frees slots — missed path", "covered_by_test": "TestEvictionDecrementsPerAccountSlots"},
+        {"site": "txpool.go:demoteUnexecutables","action": "sub","reason": "demotion drops slots",                  "covered_by_test": "TestPerAccountSlotsInvariant"}
+      ],
+      "invariant_test": "TestPerAccountSlotsInvariant",
+      "adversarial_test": "TestEvictionDecrementsPerAccountSlots"
+    }
+  },
+  "plan": {
+    "prose_steps": [
+      "## Step 1: add perAccountSlots counter + add/sub helpers",
+      "## Step 2: decrement on Remove / truncatePending / demoteUnexecutables",
+      "## Step 3: add invariant + eviction-path adversarial test"
+    ],
+    "contract_steps": [
+      {"id": 1, "description": "add perAccountSlots counter + add/sub helpers"},
+      {"id": 2, "description": "decrement on Remove / truncatePending / demoteUnexecutables"},
+      {"id": 3, "description": "add invariant + eviction-path adversarial test"}
+    ]
+  },
+  "impl": {
+    "maintained_sites": [
+      "list.go:Add",
+      "list.go:Remove",
+      "txpool.go:truncatePending",
+      "txpool.go:demoteUnexecutables"
+    ],
+    "existing_tests": [
+      "TestPerAccountSlotsInvariant",
+      "TestEvictionDecrementsPerAccountSlots"
+    ]
+  },
+  "ground_truth": {
+    "required_sites": [
+      "list.go:Add",
+      "list.go:Remove",
+      "txpool.go:truncatePending",
+      "txpool.go:demoteUnexecutables"
+    ],
+    "note": "Clean baseline; should PASS under both rulesets."
+  }
+}

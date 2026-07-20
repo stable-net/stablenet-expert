@@ -1,0 +1,92 @@
+{
+  "experiment": "gsn-fullpipe-abc-phase3-modules",
+  "_comment": "Phase-3: 모듈 다양화 eval-set. 각 태스크는 실제 go-stablenet PR에 대응하며 base_commit=그 PR의 부모(버그가 실재하는 커밋), oracle=실제 fix. clean(base≈dev) 태스크를 앞에 두어 1차 실행 권장. drift/노이즈 태스크는 _note로 표기. ⚠️ cks 인덱스는 dev(c051d50b)에 빌드됨 — base_commit이 dev에서 멀수록 retrieval drift가 커지므로, 정밀 측정이 필요하면 해당 base_commit에 인덱스 재빌드 고려.",
+  "modes": [
+    "A_stablenet_knowledge_mcp",
+    "B_code_only",
+    "C_code_skills"
+  ],
+  "mode_agents": {
+    "A_stablenet_knowledge_mcp": "analyzer",
+    "B_code_only": "bench-analyzer-codeonly",
+    "C_code_skills": "bench-analyzer-skills"
+  },
+  "shared_agents": {
+    "plan": "planner",
+    "implement": "implementer",
+    "evaluate": "evaluator"
+  },
+  "tasks": [
+    {
+      "id": "STABLE-0004",
+      "ticket": "bench/fixtures/tickets/STABLE-0004.json",
+      "module": "systemcontracts",
+      "base_commit": "c37994e9b",
+      "oracle": {
+        "chainbench_test": "basic/consensus"
+      },
+      "_pr": "#83",
+      "_quality": "clean (base≈dev, 2 files, Go↔Sol 경계 — cks 약점 변별)"
+    },
+    {
+      "id": "STABLE-0005",
+      "ticket": "bench/fixtures/tickets/STABLE-0005.json",
+      "module": "miner-anzeon",
+      "base_commit": "0bf2f4d1b",
+      "oracle": {
+        "chainbench_test": "basic/tx-send"
+      },
+      "_pr": "#77",
+      "_quality": "clean (base≈dev, 2 files, 교차모듈 staleness)"
+    },
+    {
+      "id": "STABLE-0007",
+      "ticket": "bench/fixtures/tickets/STABLE-0007.json",
+      "module": "state-genesis",
+      "base_commit": "8b895799e",
+      "oracle": {
+        "chainbench_test": "basic/consensus"
+      },
+      "_pr": "#73",
+      "_quality": "clean-ish (base≈dev, 8 files 교차모듈 genesis+state+systemcontracts)"
+    },
+    {
+      "id": "STABLE-0009",
+      "ticket": "bench/fixtures/tickets/STABLE-0009.json",
+      "module": "chainconfig",
+      "base_commit": "db7c4b43c",
+      "oracle": {
+        "chainbench_test": "basic/consensus"
+      },
+      "_pr": "#58",
+      "_quality": "moderate drift (~13 PR 전, 4 files, params 대조군)"
+    },
+    {
+      "id": "STABLE-0006",
+      "ticket": "bench/fixtures/tickets/STABLE-0006.json",
+      "module": "params-hardfork",
+      "base_commit": "b23c5a831",
+      "oracle": {
+        "chainbench_test": "basic/consensus"
+      },
+      "_pr": "#68",
+      "_quality": "noisy (대규모 testdata churn; grep-경쟁 대조군)"
+    },
+    {
+      "id": "STABLE-0008",
+      "ticket": "bench/fixtures/tickets/STABLE-0008.json",
+      "module": "fee-policy",
+      "base_commit": "795ab525c",
+      "oracle": {
+        "chainbench_test": "basic/tx-send"
+      },
+      "_pr": "#14",
+      "_quality": "high drift (다중-기능 squash, dev에서 멀어 인덱스 drift 큼 — 범위 한정 평가)"
+    }
+  ],
+  "go_stablenet_root": "../go-stablenet",
+  "batch_size": 1,
+  "config": {
+    "max_eval_cycles": 3
+  }
+}

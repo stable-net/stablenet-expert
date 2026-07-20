@@ -1,0 +1,57 @@
+name: ci
+
+# O-3 (HANDOFF.md): the three deterministic gates that must stay green on main.
+# All Python suites are stdlib `unittest` — no pip install, fully hermetic.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # C1 tool-name drift gate: every mcp__server__tool reference in the agent/
+  # command prompts must be a tool name registered in scripts/contract/agent-mcp.schema.json.
+  tool-name-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: C1 tool-name drift gate
+        run: bash scripts/contract/lint-tool-names.sh
+
+  # Python harness + plugin-script tests (stdlib unittest, no external deps).
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: bench harness tests
+        run: python -m unittest discover -s bench/tests -t .
+      - name: doctor + setup script tests
+        run: |
+          python plugins/stablenet-core-dev/scripts/tests/test_doctor.py
+          python plugins/stablenet-core-dev/scripts/tests/test_setup.py
+
+  # jira-gateway-mcp Go binary: must build and pass its unit tests.
+  go-jira-gateway:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/jira-gateway-mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: packages/jira-gateway-mcp/go.mod
+          cache-dependency-path: packages/jira-gateway-mcp/go.sum
+      - name: build
+        run: go build ./...
+      - name: test
+        run: go test ./...

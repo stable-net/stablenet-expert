@@ -1,0 +1,26 @@
+{
+  "experiment": "gsn-retrieval-abc-phase1",
+  "modes": [
+    "A_stablenet_knowledge_mcp",
+    "B_code_only",
+    "C_code_skills"
+  ],
+  "mode_agents": {
+    "A_stablenet_knowledge_mcp": "analyzer",
+    "B_code_only": "bench-analyzer-codeonly",
+    "C_code_skills": "bench-analyzer-skills"
+  },
+  "shared_agents": {
+    "plan": "planner",
+    "implement": "implementer",
+    "evaluate": "evaluator"
+  },
+  "tasks": [
+    {
+      "id": "STABLE-0001",
+      "ticket": "bench/fixtures/tickets/STABLE-0001.json"
+    }
+  ],
+  "go_stablenet_root": "../go-stablenet",
+  "batch_size": 1
+}

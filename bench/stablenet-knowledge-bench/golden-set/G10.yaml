@@ -1,0 +1,20 @@
+version: 2
+id: G10
+bucket: seeded_cks_eval
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: genesis-syscontract-init
+intent: "Understand how DefaultStableNetGenesisBlock initializes system contracts in the genesis state."
+prompt: "In go-stablenet, what system contracts does DefaultStableNetMainnetGenesisBlock() initialize? How does it set their initial storage?"
+expected_citations:
+  - file: core/genesis.go
+    start_line: null
+    end_line: null
+    symbol: DefaultStableNetMainnetGenesisBlock
+expected_keywords:
+  - DefaultStableNetMainnetGenesisBlock
+  - genesis
+invariant_refs:
+  - RI-2
+  - RI-8

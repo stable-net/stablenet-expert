@@ -1,0 +1,25 @@
+{
+  "experiment": "gsn-stable0005-A-cks",
+  "_doc": "Single-ARM (A_stablenet_knowledge_mcp) run of STABLE-0005 in an isolated worktree, so the cks source_root (go-stablenet/pr/pr-77-problem, the indexed tree) stays pristine and A's throwaway branches/commits cannot leak into the cks/ckg index. Pair with stable-0005-B.json and stable-0005-C.json; combine the three reports for the A/B/C comparison. See docs/bench-abc-mode-definitions.md.",
+  "modes": ["A_stablenet_knowledge_mcp"],
+  "mode_agents": { "A_stablenet_knowledge_mcp": "analyzer" },
+  "shared_agents": { "plan": "planner", "implement": "implementer", "evaluate": "evaluator" },
+  "tasks": [
+    {
+      "id": "STABLE-0005",
+      "ticket": "bench/fixtures/tickets/STABLE-0005.json",
+      "module": "miner-anzeon",
+      "base_commit": "0bf2f4d1b",
+      "oracle": {
+        "chainbench_test": "basic/tx-send",
+        "reference_fix": "bench/fixtures/pr77/expert-fix.diff"
+      },
+      "_pr": "#77",
+      "_quality": "clean (base==indexed head 0bf2f4d1b -> zero index drift; cross-module staleness)"
+    }
+  ],
+  "_go_stablenet_root_note": "Per-arm isolated worktree at the cks-indexed head (0bf2f4d1b), NOT the cks source_root itself. Fairness for A_stablenet_knowledge_mcp is commit-equality (worktree HEAD == cks indexed_head), so retrieval (cks index @ 0bf2f4d1b) and the edit target (this worktree @ 0bf2f4d1b) agree without touching the indexed tree.",
+  "go_stablenet_root": "../go-stablenet/pr/bench-A-cks",
+  "batch_size": 1,
+  "config": { "max_eval_cycles": 3 }
+}

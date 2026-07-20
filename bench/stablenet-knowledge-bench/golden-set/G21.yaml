@@ -1,0 +1,19 @@
+version: 2
+id: G21
+bucket: invariants
+language: en
+difficulty: medium
+sha_pin: "9978930ba"
+topic: txpool-cumulative-balance
+intent: "Verify RI-11: transaction pool validates cumulative balance against fee-delegated costs."
+prompt: "How does go-stablenet's legacy transaction pool (legacypool) account for fee delegation when checking sender balance? Cite the cumulative balance check."
+expected_citations:
+  - file: core/txpool/legacypool/legacypool.go
+    start_line: null
+    end_line: null
+    symbol: null
+expected_keywords:
+  - balance
+  - fee delegation
+invariant_refs:
+  - RI-11

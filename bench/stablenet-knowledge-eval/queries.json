@@ -1,0 +1,40 @@
+{
+  "_meta": {
+    "purpose": "ckg query-search validation testset (alpha/beta/gamma/delta)",
+    "source": ".stablenet-expert/ckg-query-testset.md",
+    "head": "9978930ba",
+    "note": "expected_* are SCORING ground truth only — never fed as input (no oracle leakage). Input to methods = keyword + query."
+  },
+  "queries": [
+    {"id":"Q01","domain":"wbft-validator","keyword":"QuorumSize","query":"WBFT에서 블록을 커밋하기 위한 최소 정족수(supermajority)는 어떻게 계산되는가?","expected_files":["consensus/wbft/validator/default.go"],"expected_symbol":"QuorumSize"},
+    {"id":"Q02","domain":"wbft-validator","keyword":"proposer selection","query":"WBFT 밸리데이터셋에서 라운드마다 제안자(proposer)를 어떻게 선출하는가? round-robin과 sticky 방식의 차이는?","expected_files":["consensus/wbft/validator/default.go","consensus/wbft/validator/validator.go"],"expected_symbol":"roundRobinProposer"},
+    {"id":"Q03","domain":"wbft-validator","keyword":"NewSetByValidators","query":"밸리데이터 주소 목록으로 밸리데이터셋을 생성하고 정렬하는 로직은 어디에 있는가?","expected_files":["consensus/wbft/validator/validator.go"],"expected_symbol":"NewSetByValidators"},
+    {"id":"Q04","domain":"wbft-roundchange","keyword":"newRoundChangeTimer","query":"라운드체인지 타이머는 언제 어떻게 스케줄되며, 동시성(레이스) 보호는 어떻게 하는가?","expected_files":["consensus/wbft/core/core.go"],"expected_symbol":"newRoundChangeTimer"},
+    {"id":"Q05","domain":"wbft-roundchange","keyword":"broadcastRoundChange","query":"노드가 다음 라운드로의 변경을 다른 밸리데이터에게 어떻게 브로드캐스트하는가?","expected_files":["consensus/wbft/core/roundchange.go"],"expected_symbol":"broadcastRoundChange"},
+    {"id":"Q06","domain":"wbft-prepare-commit","keyword":"handlePrepareMsg","query":"PREPARE 메시지를 수신하면 어떤 검증을 수행하고 어떤 정족수 조건을 확인하는가?","expected_files":["consensus/wbft/core/prepare.go"],"expected_symbol":"handlePrepareMsg"},
+    {"id":"Q07","domain":"wbft-prepare-commit","keyword":"commitWBFT","query":"커밋 정족수가 모이면 블록을 확정하는 흐름(commit)은 어떻게 진행되는가?","expected_files":["consensus/wbft/core/commit.go"],"expected_symbol":"commitWBFT"},
+    {"id":"Q08","domain":"wbft-prepare-commit","keyword":"handleCommitMsg","query":"COMMIT 메시지의 서명과 정족수를 어떻게 수집·검증하는가?","expected_files":["consensus/wbft/core/commit.go"],"expected_symbol":"handleCommitMsg"},
+    {"id":"Q09","domain":"wbft-justification","keyword":"justification","query":"라운드체인지 justification 메시지의 위조나 리플레이 공격을 어떻게 방지하는가?","expected_files":["consensus/wbft/core/justification.go"],"expected_symbol":"justification"},
+    {"id":"Q10","domain":"wbft-justification","keyword":"중복 투표 차단","query":"WBFT는 justification 증명에서 동일 밸리데이터의 중복 서명을 어떻게 걸러내는가?","expected_files":["consensus/wbft/core/justification.go"],"expected_symbol":"justification"},
+    {"id":"Q11","domain":"wbft-seal","keyword":"WBFTAggregatedSeal","query":"커밋 서명들을 하나의 집계 seal로 묶는 자료구조와 인코딩은 무엇인가?","expected_files":["core/types/istanbul.go"],"expected_symbol":"WBFTAggregatedSeal"},
+    {"id":"Q12","domain":"wbft-seal","keyword":"commit signers aggregate","query":"백엔드에서 커밋에 참여한 밸리데이터들의 서명을 집계하거나 복원하는 함수는 어디 있는가?","expected_files":["consensus/wbft/backend/engine.go"],"expected_symbol":"GetCommitSignersFromBlock"},
+    {"id":"Q13","domain":"wbft-seal","keyword":"GetCommitSignersFromBlock","query":"확정된 블록에서 실제로 커밋에 서명한 밸리데이터 집합을 어떻게 복원하는가?","expected_files":["consensus/wbft/backend/engine.go"],"expected_symbol":"GetCommitSignersFromBlock"},
+    {"id":"Q14","domain":"wbft-finalize","keyword":"Finalize","query":"WBFT 엔진의 Finalize 단계에서 보상이나 시스템컨트랙트 처리 등 무엇을 수행하는가?","expected_files":["consensus/wbft/engine/engine.go","consensus/wbft/backend/engine.go"],"expected_symbol":"Finalize"},
+    {"id":"Q15","domain":"wbft-finalize","keyword":"FinalizeAndAssemble","query":"블록을 최종화하고 조립(assemble)하는 엔진 메서드는 무엇인가?","expected_files":["consensus/wbft/engine/engine.go"],"expected_symbol":"FinalizeAndAssemble"},
+    {"id":"Q16","domain":"wbft-header","keyword":"WBFTExtra","query":"WBFT 블록 헤더의 extra 필드(밸리데이터·seal)는 어떻게 RLP 인코딩되고 추출되는가?","expected_files":["core/types/istanbul.go"],"expected_symbol":"WBFTExtra"},
+    {"id":"Q17","domain":"gov-validator","keyword":"initializeValidator","query":"제네시스에서 거버넌스 밸리데이터 컨트랙트 상태를 어떻게 초기화하는가?","expected_files":["systemcontracts/gov_validator.go"],"expected_symbol":"initializeValidator"},
+    {"id":"Q18","domain":"gov-validator","keyword":"validator storage slot","query":"밸리데이터 컨트랙트의 스토리지 슬롯 레이아웃은 어떻게 구성되고 기록되는가?","expected_files":["systemcontracts/gov_validator.go","systemcontracts/stateutil.go"],"expected_symbol":"initializeValidator"},
+    {"id":"Q19","domain":"gov-council","keyword":"IsBlacklisted","query":"특정 주소가 블랙리스트에 올라있는지 검사하는 로직은 무엇인가?","expected_files":["systemcontracts/gov_council.go"],"expected_symbol":"IsBlacklisted"},
+    {"id":"Q20","domain":"gov-council","keyword":"initializeGovCouncil","query":"gov_council 컨트랙트를 제네시스에서 초기화할 때 params-only alloc 항목의 잔고 처리는 어떻게 하는가?","expected_files":["systemcontracts/gov_council.go"],"expected_symbol":"initializeGovCouncil"},
+    {"id":"Q21","domain":"gov-council","keyword":"GetAllBlacklisted","query":"전체 블랙리스트 주소 목록과 카운트를 어떻게 조회하는가?","expected_files":["systemcontracts/gov_council.go"],"expected_symbol":"GetAllBlacklisted"},
+    {"id":"Q22","domain":"gov-minter","keyword":"IsMinter","query":"어떤 주소가 코인 민터(minter) 권한을 갖는지 어떻게 판정하는가?","expected_files":["systemcontracts/gov_master_minter.go","systemcontracts/gov_minter.go"],"expected_symbol":"IsMinter"},
+    {"id":"Q23","domain":"gov-minter","keyword":"MintProof allowance","query":"코인 발행 제안(mint proposal)의 증명과 발행 한도(allowance)는 어떻게 관리되는가?","expected_files":["systemcontracts/gov_master_minter.go","systemcontracts/gov_minter.go"],"expected_symbol":"MintProof"},
+    {"id":"Q24","domain":"gov-minter","keyword":"initializeCoinAdapter","query":"거버넌스 코인 어댑터의 초기화 파라미터는 무엇이며 어디서 설정되는가?","expected_files":["systemcontracts/coin_adapter.go"],"expected_symbol":"initializeCoinAdapter"},
+    {"id":"Q25","domain":"native-manager","keyword":"ActiveNativeManagers","query":"네이티브 컨트랙트 매니저들이 어떻게 등록·활성화되고 실행 가능 여부를 판정하는가?","expected_files":["core/vm/native_manager.go"],"expected_symbol":"ActiveNativeManagers"},
+    {"id":"Q26","domain":"native-manager","keyword":"coinManagerBurn","query":"네이티브 코인 매니저의 소각(burn) 경로는 어떻게 동작하는가?","expected_files":["core/vm/native_manager.go"],"expected_symbol":"coinManagerBurn"},
+    {"id":"Q27","domain":"fee-delegation","keyword":"FeeDelegateDynamicFeeTx","query":"수수료 위임(fee delegation) 트랜잭션 타입의 구조와 필드는 무엇인가?","expected_files":["core/types/tx_fee_delegation.go"],"expected_symbol":"FeeDelegateDynamicFeeTx"},
+    {"id":"Q28","domain":"fee-delegation","keyword":"feePayer sigHash","query":"수수료 대납자(feePayer)의 서명 해시(sigHash)는 어떻게 계산되는가?","expected_files":["core/types/tx_fee_delegation.go"],"expected_symbol":"sigHash"},
+    {"id":"Q29","domain":"fee-delegation","keyword":"NewFeeDelegateSigner","query":"txpool에서 수수료 위임 트랜잭션의 서명자와 잔고를 어떻게 검증하는가?","expected_files":["core/txpool/validation.go","core/types/transaction_signing.go"],"expected_symbol":"NewFeeDelegateSigner"},
+    {"id":"Q30","domain":"anzeon-gasprice","keyword":"AnzeonTipEnv","query":"Anzeon 가스팁 환경(AnzeonTipEnv)은 GasTip 변경 시 현재 블록을 어떻게 갱신하는가?","expected_files":["eth/gasprice/anzeon.go"],"expected_symbol":"AnzeonTipEnv"}
+  ]
+}

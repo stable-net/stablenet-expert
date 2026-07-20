@@ -1,0 +1,25 @@
+{
+  "experiment": "gsn-stable0005-B-codeonly",
+  "_doc": "Single-ARM (B_code_only) run of STABLE-0005 in an isolated worktree. B uses bench-solver-codeonly (target code + grep only; no cks, no coding-agent skills); evaluator is a measurement-only referee. Pair with stable-0005-A.json and stable-0005-C.json. See docs/bench-abc-mode-definitions.md.",
+  "modes": ["B_code_only"],
+  "mode_agents": { "B_code_only": "bench-solver-codeonly" },
+  "shared_agents": { "plan": "planner", "implement": "implementer", "evaluate": "evaluator" },
+  "tasks": [
+    {
+      "id": "STABLE-0005",
+      "ticket": "bench/fixtures/tickets/STABLE-0005.json",
+      "module": "miner-anzeon",
+      "base_commit": "0bf2f4d1b",
+      "oracle": {
+        "chainbench_test": "basic/tx-send",
+        "reference_fix": "bench/fixtures/pr77/expert-fix.diff"
+      },
+      "_pr": "#77",
+      "_quality": "clean (base==indexed head 0bf2f4d1b -> zero index drift; cross-module staleness)"
+    }
+  ],
+  "_go_stablenet_root_note": "Per-arm isolated worktree at 0bf2f4d1b. B needs no cks; the worktree only isolates B's edits from the other arms and from the cks source_root.",
+  "go_stablenet_root": "../go-stablenet/pr/bench-B-codeonly",
+  "batch_size": 1,
+  "config": { "max_eval_cycles": 3 }
+}

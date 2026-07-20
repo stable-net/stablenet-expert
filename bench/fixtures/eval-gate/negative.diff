@@ -1,0 +1,45 @@
+diff --git a/core/txpool/legacypool/legacypool.go b/core/txpool/legacypool/legacypool.go
+index 1111111..2222222 100644
+--- a/core/txpool/legacypool/legacypool.go
++++ b/core/txpool/legacypool/legacypool.go
+@@ -180,6 +180,9 @@ type LegacyPool struct {
+ 	pending map[common.Address]*list   // All currently processable transactions
+ 	queue   map[common.Address]*list   // Queued but non-processable transactions
+ 	beats   map[common.Address]time.Time
++
++	// feePayerSpent tracks the cumulative fee-delegation obligation per fee payer.
++	feePayerSpent map[common.Address]*big.Int
+ }
+
+ @@ -640,6 +643,7 @@ func (pool *LegacyPool) add(tx *types.Transaction, local bool) (replaced bool, e
+ 	}
+ 	pool.pending[from] = ...
++	pool.addFeePayerObligation(tx)
+ 	return true, nil
+ }
+
+@@ -710,9 +714,25 @@ func (pool *LegacyPool) removeTx(hash common.Hash, outofbound bool) {
+ 	}
++	pool.subFeePayerObligation(tx)
+ 	delete(pool.all, hash)
+ }
++
++// addFeePayerObligation adds tx's fee-delegation cost to the payer aggregate.
++func (pool *LegacyPool) addFeePayerObligation(tx *types.Transaction) {
++	fp := tx.FeePayer()
++	if fp == nil {
++		return
++	}
++	if pool.feePayerSpent[*fp] == nil {
++		pool.feePayerSpent[*fp] = new(big.Int)
++	}
++	pool.feePayerSpent[*fp].Add(pool.feePayerSpent[*fp], tx.FeePayerCost())
++}
++
++// subFeePayerObligation releases tx's fee-delegation cost from the aggregate.
++func (pool *LegacyPool) subFeePayerObligation(tx *types.Transaction) {
++	fp := tx.FeePayer()
++	if fp != nil && pool.feePayerSpent[*fp] != nil {
++		pool.feePayerSpent[*fp].Sub(pool.feePayerSpent[*fp], tx.FeePayerCost())
++	}
++}

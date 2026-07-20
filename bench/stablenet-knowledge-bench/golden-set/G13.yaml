@@ -1,0 +1,19 @@
+version: 2
+id: G13
+bucket: invariants
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: round-change-timer-safety
+intent: "Verify RI-3: the round-change timer is protected against concurrent reset races."
+prompt: "How does go-stablenet WBFT protect the round-change timer from race conditions? What locking or atomic mechanism prevents concurrent resets?"
+expected_citations:
+  - file: consensus/wbft/core/roundchange.go
+    start_line: null
+    end_line: null
+    symbol: newRoundChangeTimer
+expected_keywords:
+  - timer
+  - mutex
+invariant_refs:
+  - RI-3

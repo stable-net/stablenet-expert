@@ -1,0 +1,20 @@
+version: 2
+id: G29
+bucket: cherry_pick_boundary
+language: en
+difficulty: hard
+sha_pin: "9978930ba"
+topic: tx-fee-delegation-type
+intent: "Distinguish fee delegation transaction type from standard geth transactions."
+prompt: "What is the fee delegation transaction type in go-stablenet (core/types/tx_fee_delegation.go)? How does it differ from a standard EIP-155 transaction, and what extra fields does it carry?"
+expected_citations:
+  - file: core/types/tx_fee_delegation.go
+    start_line: null
+    end_line: null
+    symbol: null
+expected_keywords:
+  - fee delegation
+  - transaction type
+  - payer
+invariant_refs:
+  - RI-5

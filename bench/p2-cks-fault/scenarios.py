@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""scenarios.py — the cks fault corpus.
+"""scenarios.py — the stablenet-knowledge fault corpus.
 
 Each scenario is a (health, calls) run with an expected after-P2 decision. The
 spread covers: healthy control, backend-down controls, and per-call faults at each

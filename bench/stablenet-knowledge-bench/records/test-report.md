@@ -122,7 +122,7 @@ AC#3: PASS
 
 - Two successive runs produce byte-identical `report.json`
 - `validate_golden.py` is called before every benchmark run (in `run.py:_validate_golden_set`) and exits 1 on any golden-set drift, aborting the run before any LLM calls
-- 30/30 questions passed validation in both runs (disk-level checks; cks checks require live cks server, not available in offline mode)
+- 30/30 questions passed validation in both runs (disk-level checks; stablenet-knowledge checks require live stablenet-knowledge server, not available in offline mode)
 
 AC#4: PASS
 

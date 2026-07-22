@@ -32,7 +32,7 @@ _EVAL_STATE = "EVALUATION"
 # *beyond* the task's own unit acceptance — i.e. collateral damage the planner's
 # info regime failed to prevent. Detected from the structured one-liner the
 # evaluator writes into failure_log[].actual_outcome.summary (evaluator.md §9).
-# Lower is better; cks's value-prop is fewer of these (complete info → right
+# Lower is better; stablenet-knowledge's value-prop is fewer of these (complete info → right
 # first fix). This is the only place per-cycle stage info is persisted, so the
 # classifier is a documented heuristic over a *structured* field, not raw logs.
 _SIDE_EFFECT_MARKERS = ("chainbench", "race", "regression", "derived state",

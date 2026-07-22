@@ -1,0 +1,10 @@
+{
+  "name": "core-dev",
+  "version": "0.1.0",
+  "description": "go-stablenet Jira-driven automated development pipeline — the core development plugin of the stablenet-expert marketplace",
+  "author": {
+    "name": "mhha"
+  },
+  "license": "GPL-3.0-or-later",
+  "mcpServers": "./.mcp.json"
+}

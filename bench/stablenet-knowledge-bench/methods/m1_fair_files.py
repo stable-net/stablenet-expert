@@ -19,7 +19,7 @@ Selection algorithm:
 Audit: the context block is prefixed with a comment listing selected files
 so non-oracle selection can be verified later.
 
-cks dependency: none (pure disk I/O + subprocess grep).
+stablenet-knowledge dependency: none (pure disk I/O + subprocess grep).
 """
 
 from __future__ import annotations

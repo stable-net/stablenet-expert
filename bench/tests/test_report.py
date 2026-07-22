@@ -90,7 +90,7 @@ class TestCollectReport(unittest.TestCase):
         whole experiment report — the no-truncation rule."""
         with tempfile.TemporaryDirectory() as d:
             exp = make_experiment(Path(d))
-            state_path = exp / "cells" / "STABLE-0001__A_cks" / "state.json"
+            state_path = exp / "cells" / "STABLE-0001__A_stablenet_knowledge_mcp" / "state.json"
             state = json.loads(state_path.read_text())
             state["states"]["TICKET_INTAKE"]["sensitive_check"] = "CLEAN"
             _write(state_path, state)
@@ -125,9 +125,9 @@ class TestCollectReport(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             exp = Path(d) / "exp"
             _write(exp / "manifest.json", {"experiment": "cyc-exp"})
-            _write(exp / "cells" / "T1__A_cks" / "run-meta.json",
+            _write(exp / "cells" / "T1__A_stablenet_knowledge_mcp" / "run-meta.json",
                    {"task": "T1", "mode": "A_stablenet_knowledge_mcp", "status": "done"})
-            _write(exp / "cells" / "T1__A_cks" / "state.json",
+            _write(exp / "cells" / "T1__A_stablenet_knowledge_mcp" / "state.json",
                    {"current_state": "EVALUATION_PASS", "failure_log": []})
             _write(exp / "cells" / "T1__B_code_only" / "run-meta.json",
                    {"task": "T1", "mode": "B_code_only", "status": "done"})
@@ -143,7 +143,7 @@ class TestCollectReport(unittest.TestCase):
                 ],
             })
             _write(exp / "state.json", {"experiment": "cyc-exp", "cells": [
-                {"task": "T1", "mode": "A_stablenet_knowledge_mcp", "workspace": "cells/T1__A_cks", "status": "done"},
+                {"task": "T1", "mode": "A_stablenet_knowledge_mcp", "workspace": "cells/T1__A_stablenet_knowledge_mcp", "status": "done"},
                 {"task": "T1", "mode": "B_code_only", "workspace": "cells/T1__B_code_only", "status": "done"},
             ]})
             by_mode = {r.mode: r for r in collect_experiment(exp)}

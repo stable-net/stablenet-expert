@@ -1,6 +1,6 @@
 name: ci
 
-# O-3 (HANDOFF.md): the three deterministic gates that must stay green on main.
+# The three deterministic gates that must stay green on main.
 # All Python suites are stdlib `unittest` — no pip install, fully hermetic.
 
 on:
@@ -36,8 +36,8 @@ jobs:
         run: python -m unittest discover -s bench/tests -t .
       - name: doctor + setup script tests
         run: |
-          python plugins/stablenet-core-dev/scripts/tests/test_doctor.py
-          python plugins/stablenet-core-dev/scripts/tests/test_setup.py
+          python plugins/core-dev/scripts/tests/test_doctor.py
+          python plugins/core-dev/scripts/tests/test_setup.py
 
   # jira-gateway-mcp Go binary: must build and pass its unit tests.
   go-jira-gateway:

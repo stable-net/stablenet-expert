@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""policy.py — before-P2 and after-P2 cks in-run retrieval policies.
+"""policy.py — before-P2 and after-P2 stablenet-knowledge in-run retrieval policies.
 
-P2 (stream-6) hardens the analyzer/planner §3.0 cks gate. BEFORE the patch the
+P2 (stream-6) hardens the analyzer/planner §3.0 stablenet-knowledge gate. BEFORE the patch the
 gate was a single start-of-run health check: serviceable → proceed, else BLOCKED.
 A per-call failure DURING the run ("record and continue best-effort", e.g. §3.3b)
 left no decision change and no flag — so an analysis could ship with a missing

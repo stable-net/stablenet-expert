@@ -187,7 +187,7 @@ def main(argv=None) -> int:
     from runner import run as runner_run
     batch_size = args.batch_size or manifest.get("batch_size", 8)
 
-    # Construct cks_client for live drivers; replay does not need cks.
+    # Construct cks_client for live drivers; replay does not need stablenet-knowledge.
     driver_name = manifest.get("driver", "replay")
     cks_tool = None
     cks_ctx = None
@@ -201,7 +201,7 @@ def main(argv=None) -> int:
             # (name / indexed_head / model) from cks.ops.health.
         else:
             print(
-                "cks: STABLENET_KNOWLEDGE_MCP_URL not set — "
+                "stablenet-knowledge: STABLENET_KNOWLEDGE_MCP_URL not set — "
                 "M2/M3/M4 will run with cks_partial"
             )
 

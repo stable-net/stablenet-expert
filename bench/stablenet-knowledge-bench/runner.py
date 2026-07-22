@@ -181,7 +181,7 @@ def run(
     exp_dir : experiment output directory (absolute path)
     continue_run : if True, skip already-completed cells
     batch_size : override manifest batch_size
-    cks_tool : optional cks dispatcher (for M2/M3/M4)
+    cks_tool : optional stablenet-knowledge dispatcher (for M2/M3/M4)
 
     Returns
     -------

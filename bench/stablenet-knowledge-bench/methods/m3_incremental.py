@@ -1,19 +1,19 @@
-"""m3_incremental.py — Method 3: Python-driven incremental cks context assembly.
+"""m3_incremental.py — Method 3: Python-driven incremental stablenet-knowledge context assembly.
 
-Context strategy: a Python tool-broker drives cks lookups incrementally
+Context strategy: a Python tool-broker drives stablenet-knowledge lookups incrementally
 (semantic_search → find_symbol → get_subgraph as needed, max_turns=8),
 assembles the evidence into a context block, then makes a single final
 driver.ask() call with the assembled context.
 
 This is deterministic and reliable: the Claude CLI never needs tool_use
-support.  The Python broker controls which cks tools are called and in what
+support.  The Python broker controls which stablenet-knowledge tools are called and in what
 order, then all gathered evidence is concatenated and injected as context
 for the final answer turn.
 
 info_volume counts injected_tokens as sum of the injected context across
 all turns (the assembly turns contribute to context size).
 
-cks dependency: required for evidence assembly. If cks is unavailable,
+stablenet-knowledge dependency: required for evidence assembly. If stablenet-knowledge is unavailable,
 falls back to empty context and the cell is flagged cks_partial.
 
 max_turns default: 8 (per design — the broker may run up to 8 tool calls
@@ -30,7 +30,7 @@ from methods.m1_raw_files import _SYSTEM_PROMPT_PREAMBLE
 
 _MAX_TURNS_DEFAULT = 8
 
-# The sequence of cks tools the broker tries, in order
+# The sequence of stablenet-knowledge tools the broker tries, in order
 _BROKER_SEQUENCE = [
     "semantic_search",
     "find_symbol",
@@ -43,14 +43,14 @@ def _count_injected(system_prompt: str, user_prompt: str) -> int:
 
 
 class _PythonBroker:
-    """Drives cks lookups from Python and accumulates evidence blocks.
+    """Drives stablenet-knowledge lookups from Python and accumulates evidence blocks.
 
     Parameters
     ----------
     cks_tool : callable or None
-        The cks dispatch callable.  If None all lookups return empty.
+        The stablenet-knowledge dispatch callable.  If None all lookups return empty.
     max_turns : int
-        Maximum number of cks tool calls to make.
+        Maximum number of stablenet-knowledge tool calls to make.
     """
 
     def __init__(self, cks_tool: Optional[Callable], max_turns: int) -> None:
@@ -62,7 +62,7 @@ class _PythonBroker:
     def _do_call(self, tool_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
         if self._cks is None:
             self.partial = True
-            return {"error": "cks not available", "results": []}
+            return {"error": "stablenet-knowledge not available", "results": []}
         try:
             result = self._cks(tool_name, args)
             self._calls.append({"tool": tool_name, "args": args, "ok": True})
@@ -73,7 +73,7 @@ class _PythonBroker:
             return {"error": str(exc), "results": []}
 
     def gather(self, query: str) -> Tuple[str, int]:
-        """Run up to max_turns cks lookups for the query.
+        """Run up to max_turns stablenet-knowledge lookups for the query.
 
         Returns
         -------
@@ -126,7 +126,7 @@ class _PythonBroker:
 
 
 class M3Incremental:
-    """Method 3 — Python-driven incremental cks lookup + single final ask."""
+    """Method 3 — Python-driven incremental stablenet-knowledge lookup + single final ask."""
 
     method_id = "M3_incremental"
 
@@ -146,18 +146,18 @@ class M3Incremental:
         context_block: str = "",
         cks_partial: bool = False,
     ) -> tuple:
-        """Return (system_prompt, user_prompt) with assembled cks context."""
+        """Return (system_prompt, user_prompt) with assembled stablenet-knowledge context."""
         if context_block:
-            ctx = f"// --- CKS INCREMENTAL CONTEXT ---\n{context_block}\n"
+            ctx = f"// --- stablenet-knowledge INCREMENTAL CONTEXT ---\n{context_block}\n"
         else:
-            ctx = "// [No incremental cks context available — cks returned error]\n"
+            ctx = "// [No incremental stablenet-knowledge context available — stablenet-knowledge returned error]\n"
 
         if cks_partial:
             ctx += "// [WARNING: cks_partial — context may be incomplete]\n"
 
         system_prompt = _SYSTEM_PROMPT_PREAMBLE.strip()
         user_prompt = (
-            f"INCREMENTAL CKS CONTEXT:\n{ctx}\n"
+            f"INCREMENTAL stablenet-knowledge CONTEXT:\n{ctx}\n"
             f"QUESTION:\n{question.get('prompt', '')}"
         )
         return system_prompt, user_prompt
@@ -166,7 +166,7 @@ class M3Incremental:
         """Run M3 for a single question."""
         query = question.get("prompt", "")
 
-        # Phase 1: Python broker gathers cks evidence
+        # Phase 1: Python broker gathers stablenet-knowledge evidence
         broker = _PythonBroker(self._cks_tool, self._max_turns)
         context_block, broker_injected = broker.gather(query)
         cks_partial = broker.partial

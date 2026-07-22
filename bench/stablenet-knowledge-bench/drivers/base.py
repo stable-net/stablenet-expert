@@ -116,7 +116,7 @@ class Driver:
             single-shot drivers this is ignored.
         tool_broker : callable, optional
             ``tool_broker(tool_name, arguments) -> result`` for M3 multi-turn
-            cks tool loop.  If None, tool use is disabled.
+            stablenet-knowledge tool loop.  If None, tool use is disabled.
 
         Returns
         -------

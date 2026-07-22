@@ -22,7 +22,7 @@ if [[ ! -f "$SCHEMA" ]]; then
   exit 2
 fi
 
-python3 - "$SCHEMA" "$REPORT_ONLY" "${DIR}/plugins/stablenet-core-dev/agents" "${DIR}/plugins/stablenet-core-dev/commands" <<'PY'
+python3 - "$SCHEMA" "$REPORT_ONLY" "${DIR}/plugins/core-dev/agents" "${DIR}/plugins/core-dev/commands" <<'PY'
 import sys, json, re, os, glob
 
 schema_path = sys.argv[1]
@@ -37,7 +37,7 @@ for prov in schema["providers"].values():
     names.update(prov["tools"].keys())
 
 # Match mcp__<server>__<tool>; the tool segment may contain dots (e.g.
-# mcp__plugin_stablenet-core-dev_stablenet-knowledge__cks_context_get_for_task —
+# mcp__plugin_core-dev_stablenet-knowledge__cks_context_get_for_task —
 # the server label is ours, the registered tool names keep their cks_* prefix).
 token = re.compile(r'mcp__[A-Za-z0-9_-]+__([A-Za-z0-9_.]+)')
 

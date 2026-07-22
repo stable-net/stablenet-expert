@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/types"
+	"github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/types"
 )
 
 // ErrAuthFailed is returned when Jira responds with 401.

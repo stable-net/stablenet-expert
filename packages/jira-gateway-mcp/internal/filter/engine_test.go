@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/types"
+	"github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/types"
 )
 
 // resetEnv unsets any env-injected paths and clears the cache so tests start fresh.

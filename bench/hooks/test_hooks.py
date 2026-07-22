@@ -14,7 +14,7 @@ import sys
 import tempfile
 import time
 
-HOOKS = os.path.join(os.path.dirname(__file__), "..", "..", "plugin", "hooks")
+HOOKS = os.path.join(os.path.dirname(__file__), "..", "..", "plugins", "core-dev", "hooks")
 GIT_GUARD = os.path.abspath(os.path.join(HOOKS, "git-guard.py"))
 ON_STOP = os.path.abspath(os.path.join(HOOKS, "on-stop.py"))
 SESSION = os.path.abspath(os.path.join(HOOKS, "session-context.py"))

@@ -24,7 +24,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]                      # bench/model-pins -> repo root
-AGENTS_DIR = REPO / "plugin" / "agents"
+AGENTS_DIR = REPO / "plugins" / "core-dev" / "agents"
 PRICES = REPO / "bench" / "prices.json"
 MODELS = HERE / "models.json"
 

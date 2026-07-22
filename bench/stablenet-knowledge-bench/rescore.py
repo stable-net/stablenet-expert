@@ -4,7 +4,7 @@
 The expensive LLM responses are already saved per cell (``citations`` +
 ``answer``). This re-runs the deterministic scorers over those stored
 predictions — used to apply scorer fixes (e.g. hallucination symbol
-normalization) to an existing experiment cheaply. Connects to cks via env
+normalization) to an existing experiment cheaply. Connects to stablenet-knowledge via env
 so the hallucination scorer's find_symbol path is exercised for real.
 
 Usage:
@@ -58,7 +58,7 @@ def main(argv=None) -> int:
     root = os.environ.get("GO_STABLENET_ROOT") or os.path.normpath(
         os.path.join(_BENCH_ROOT, "..", "..", "..", "go-stablenet"))
 
-    # cks domain-knowledge corpus: citations to a corpus doc are knowledge-source
+    # stablenet-knowledge domain-knowledge corpus: citations to a corpus doc are knowledge-source
     # references, not fabricated code (see scorers.hallucination).
     corpus = os.environ.get("CKS_DOMAIN_CORPUS_ROOT") or os.path.normpath(
         os.path.join(_BENCH_ROOT, "..", "..", "..", "code-knowledge-system",
@@ -72,11 +72,11 @@ def main(argv=None) -> int:
         if cks_ctx is not None:
             cks_ctx.__enter__()
             cks_tool = cks_ctx
-            print("cks: connected")
+            print("stablenet-knowledge: connected")
         else:
-            print("cks: not available (STABLENET_KNOWLEDGE_MCP_URL unset) — grep fallback only")
+            print("stablenet-knowledge: not available (STABLENET_KNOWLEDGE_MCP_URL unset) — grep fallback only")
     except Exception as exc:
-        print(f"cks: connect failed ({exc}) — grep fallback only")
+        print(f"stablenet-knowledge: connect failed ({exc}) — grep fallback only")
 
     do_h = args.metric in ("hallucination", "all")
     do_c = args.metric in ("correctness", "all")

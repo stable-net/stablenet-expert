@@ -34,8 +34,8 @@ echo "P0 — plan/write-site contract machine-checks"
 run "P0 mutant-corpus score (after>before, no false-pos)" python3 bench/p0-mutants/score.py
 run "P0 harness tests"                                     python3 bench/p0-mutants/tests/test_rules.py
 echo
-echo "P2 — cks in-run retrieval discipline"
-run "P2 cks-fault score (silent-incomplete == 0)"          python3 bench/p2-cks-fault/score.py
+echo "P2 — stablenet-knowledge in-run retrieval discipline"
+run "P2 stablenet-knowledge-fault score (silent-incomplete == 0)"          python3 bench/p2-cks-fault/score.py
 run "P2 harness tests"                                     python3 bench/p2-cks-fault/tests/test_policy.py
 echo
 echo "P3 — single-source model pins"
@@ -50,9 +50,9 @@ run "P1 domain-pack structure check"                       python3 bench/domain-
 run "P1 domain-pack tests"                                 python3 bench/domain-pack/tests/test_check.py
 echo
 echo "setup / doctor (env onboarding + remediation routing)"
-run "setup tests (autonomous guard, repo_root_env)"       python3 plugin/scripts/tests/test_setup.py
-run "doctor tests (fix-table coverage, remediation)"      python3 plugin/scripts/tests/test_doctor.py
-run "resolve-project (domain-pack routing, no fallback)"  python3 plugin/scripts/tests/test_resolve_project.py
+run "setup tests (autonomous guard, repo_root_env)"       python3 plugins/core-dev/scripts/tests/test_setup.py
+run "doctor tests (fix-table coverage, remediation)"      python3 plugins/core-dev/scripts/tests/test_doctor.py
+run "resolve-project (domain-pack routing, no fallback)"  python3 plugins/core-dev/scripts/tests/test_resolve_project.py
 echo
 echo "safety hooks (git-guard / on-stop / session-context)"
 run "hooks deterministic guards"                          python3 bench/hooks/test_hooks.py

@@ -1,13 +1,13 @@
 """m4_get_for_task.py — Method 4: single get_for_task() EvidencePack.
 
-Context strategy: call cks ``get_for_task(query=question.prompt)`` to get
+Context strategy: call stablenet-knowledge ``get_for_task(query=question.prompt)`` to get
 a pre-assembled EvidencePack, then inject the pack content as context in a
 single AI turn.
 
-This is the most semantically targeted method — cks selects the relevant
+This is the most semantically targeted method — stablenet-knowledge selects the relevant
 code rather than the harness or the AI.
 
-cks dependency: required. If cks is unavailable, the cell is marked
+stablenet-knowledge dependency: required. If stablenet-knowledge is unavailable, the cell is marked
 cks_partial (not hard-failed) and the AI is called with empty context so
 the run continues.
 """
@@ -24,9 +24,9 @@ from methods.m1_raw_files import _SYSTEM_PROMPT_PREAMBLE
 def _call_get_for_task(
     cks_tool: Callable, query: str
 ) -> Dict[str, Any]:
-    """Call cks get_for_task; return result or error dict."""
+    """Call stablenet-knowledge get_for_task; return result or error dict."""
     try:
-        # cks get_for_task requires the arg key ``prompt`` (NOT ``query``).
+        # stablenet-knowledge get_for_task requires the arg key ``prompt`` (NOT ``query``).
         # The wrong key returns an EMPTY pack (0 citations), silently crippling
         # M4 — the AI got no evidence and (correctly) said "no context", scoring
         # as a failure. This was a measurement bug, not an AI/retrieval failure.
@@ -66,7 +66,7 @@ class M4GetForTask:
                 f"// --- EVIDENCE PACK (cks.get_for_task) ---\n{evidence_pack}\n"
             )
         else:
-            context_block = "// [No evidence pack available — cks returned error]\n"
+            context_block = "// [No evidence pack available — stablenet-knowledge returned error]\n"
 
         if cks_partial:
             context_block += "// [WARNING: cks_partial — evidence may be incomplete]\n"

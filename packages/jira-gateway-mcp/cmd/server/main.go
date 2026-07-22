@@ -8,7 +8,7 @@
 //
 // Optional:
 //
-//	PATTERNS_PATH         path to packages/shared-patterns/patterns.json (auto-detected otherwise)
+//	PATTERNS_PATH         path to packages/sensitive-guard/patterns.json (auto-detected otherwise)
 //	CUSTOM_PATTERNS_PATH  path to override pattern file
 package main
 
@@ -19,8 +19,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/jira"
-	srv "github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/server"
+	"github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/jira"
+	srv "github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/server"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

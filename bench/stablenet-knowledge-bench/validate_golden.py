@@ -5,11 +5,11 @@ For each question in the golden-set index:
   1. Load the per-question YAML.
   2. If start_line / end_line are set: verify file exists on disk and the lines
      are within the file's actual line count.
-  3. If symbol is set and cks is available: call cks find_symbol(symbol) and
+  3. If symbol is set and stablenet-knowledge is available: call stablenet-knowledge find_symbol(symbol) and
      assert the reported file matches the expected file (tolerant of leading
      path difference); assert line-range overlap if both expected and reported
      ranges are non-null.
-  4. If symbol is set and cks is unavailable: fall back to disk grep and warn.
+  4. If symbol is set and stablenet-knowledge is unavailable: fall back to disk grep and warn.
 
 Exit 0 if all questions pass, 1 if any fail.
 
@@ -17,7 +17,7 @@ Usage:
     python3 validate_golden.py [--index golden-set/index.yaml]
                                [--repo-root /abs/path/to/go-stablenet]
                                [--cks-host http://localhost:PORT]
-                               [--offline]   # skip cks checks entirely
+                               [--offline]   # skip stablenet-knowledge checks entirely
 """
 
 import argparse
@@ -235,9 +235,9 @@ def _check_symbol_via_cks(
     expected_end: Optional[int],
     cks_host: Optional[str],
 ) -> None:
-    """Try cks find_symbol; on failure, fall back to disk grep."""
+    """Try stablenet-knowledge find_symbol; on failure, fall back to disk grep."""
     if cks_host is None:
-        r.warn(f"cks not configured; skipping symbol lookup for '{symbol}'")
+        r.warn(f"stablenet-knowledge not configured; skipping symbol lookup for '{symbol}'")
         return
 
     try:
@@ -250,14 +250,14 @@ def _check_symbol_via_cks(
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read().decode())
     except Exception as exc:
-        r.warn(f"cks find_symbol call failed ({exc}); falling back to disk grep")
+        r.warn(f"stablenet-knowledge find_symbol call failed ({exc}); falling back to disk grep")
         _check_symbol_via_grep(r, symbol, expected_file)
         return
 
     results = data.get("results") or data.get("locations") or []
     if not results:
         r.warn(
-            f"cks find_symbol returned no results for '{symbol}'; "
+            f"stablenet-knowledge find_symbol returned no results for '{symbol}'; "
             f"expected in {expected_file}"
         )
         return
@@ -278,7 +278,7 @@ def _check_symbol_via_cks(
             ):
                 if not _ranges_overlap(expected_start, expected_end, loc_start, loc_end):
                     r.warn(
-                        f"cks find_symbol '{symbol}': reported range "
+                        f"stablenet-knowledge find_symbol '{symbol}': reported range "
                         f"{loc_start}-{loc_end} does not overlap expected "
                         f"{expected_start}-{expected_end} in {expected_file}"
                     )
@@ -287,8 +287,8 @@ def _check_symbol_via_cks(
     if not matched_file:
         reported = [_normalize_file(loc.get("file", "?")) for loc in results[:3]]
         r.fail(
-            f"cks find_symbol '{symbol}': not found in {expected_file}; "
-            f"cks reported {reported}"
+            f"stablenet-knowledge find_symbol '{symbol}': not found in {expected_file}; "
+            f"stablenet-knowledge reported {reported}"
         )
 
 
@@ -319,13 +319,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--cks-host",
         default=None,
         metavar="URL",
-        help="cks MCP server base URL (e.g. http://localhost:3000). Omit to skip live checks.",
+        help="stablenet-knowledge MCP server base URL (e.g. http://localhost:3000). Omit to skip live checks.",
     )
     parser.add_argument(
         "--offline",
         action="store_true",
         default=False,
-        help="Skip all cks checks; only verify files exist on disk.",
+        help="Skip all stablenet-knowledge checks; only verify files exist on disk.",
     )
     args = parser.parse_args(argv)
 

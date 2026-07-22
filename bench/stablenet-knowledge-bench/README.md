@@ -1,6 +1,6 @@
 # CKG Benchmark
 
-Automated evaluation pipeline that measures whether the **cks Code Knowledge
+Automated evaluation pipeline that measures whether the **stablenet-knowledge Code Knowledge
 Graph** improves AI code understanding of go-stablenet.
 
 ---
@@ -33,7 +33,7 @@ Graph** improves AI code understanding of go-stablenet.
 ├── methods/                   # Context-provision method dispatchers
 │   ├── m1_raw_files.py        # M1: raw file contents from anchors
 │   ├── m2_graph_full.py       # M2: get_subgraph (depth=2, max=2000)
-│   ├── m3_incremental.py      # M3: multi-turn cks tool loop
+│   ├── m3_incremental.py      # M3: multi-turn stablenet-knowledge tool loop
 │   └── m4_get_for_task.py     # M4: single get_for_task EvidencePack
 │
 ├── bench_io/                  # Structured-response parsing
@@ -62,7 +62,7 @@ Graph** improves AI code understanding of go-stablenet.
 
 ## 4 Methods × 4 Metrics
 
-| Method | Context strategy | cks dependency |
+| Method | Context strategy | stablenet-knowledge dependency |
 |--------|-----------------|----------------|
 | **M1_raw** | Full file contents from citation anchors + 1 sibling | None (disk I/O) |
 | **M2_graph_full** | `get_subgraph(depth=2, max_total=2000)` for 4 root packages | Required |
@@ -81,7 +81,7 @@ Graph** improves AI code understanding of go-stablenet.
 ## Quick Start
 
 ```bash
-# Run tests offline (no AI, no cks)
+# Run tests offline (no AI, no stablenet-knowledge)
 python3 -m unittest discover -s .stablenet-expert/bench/stablenet-knowledge-bench/tests
 
 # Validate golden-set against repo
@@ -102,7 +102,7 @@ python3 .stablenet-expert/bench/stablenet-knowledge-bench/run.py \
   --manifest .stablenet-expert/bench/stablenet-knowledge-bench/manifests/default.json \
   --continue
 
-# Live run (requires claude CLI + cks MCP server)
+# Live run (requires claude CLI + stablenet-knowledge MCP server)
 python3 .stablenet-expert/bench/stablenet-knowledge-bench/run.py \
   --manifest .stablenet-expert/bench/stablenet-knowledge-bench/manifests/default.json \
   --driver claude_cli
@@ -133,7 +133,7 @@ golden-set was authored. `validate_golden.py` checks file existence and
 line-range bounds against the current checkout; any drift causes a
 pre-flight failure before any LLM call.
 
-For live cks runs (M2/M3/M4), `validate_golden.py --cks-host <url>` also
+For live stablenet-knowledge runs (M2/M3/M4), `validate_golden.py --cks-host <url>` also
 calls `find_symbol()` to verify symbol locations match the CKG's indexed_head.
 
 ---
@@ -165,7 +165,7 @@ miss — use this for unit tests that do not care about LLM output quality.
 This harness is **separate** from the existing bench-orchestration 3-way
 harness (which compares `N_chat / A_raw / A_stablenet_knowledge_mcp` coding task performance).
 It is also separate from the Go `code-knowledge-system/cmd/cks-eval` tool
-(which evaluates cks precision/recall against YAML scenarios).
+(which evaluates stablenet-knowledge precision/recall against YAML scenarios).
 
 - bench-orchestration: coding task completion quality
 - cks-eval: CKG retrieval quality

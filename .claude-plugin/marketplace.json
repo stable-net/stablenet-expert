@@ -10,8 +10,8 @@
   },
   "plugins": [
     {
-      "name": "stablenet-core-dev",
-      "source": "./plugins/stablenet-core-dev",
+      "name": "core-dev",
+      "source": "./plugins/core-dev",
       "description": "go-stablenet Jira-driven automated development pipeline (Stablenet Knowledge MCP + chainbench MCP) — analyze, plan, implement, evaluate, PR, merge."
     }
   ]

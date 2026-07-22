@@ -8,9 +8,9 @@
 - **v8 변경점**: 5번째 방식 **ε(그래프 단독 자동선별)** 추가 — γ와 동일하되 **시드를 ckv 벡터가 아닌 ckg BM25(`search_text`)** 로. ckv 기여분을 격리해 "방식4 그래프단독 vs 방식5 하이브리드"를 측정.
 
 ## 테스트 방법 (어떻게 측정했나)
-하네스(`run_retrieval.py`)가 인덱싱된 go-stablenet `dev`에 대해 cks MCP 서버(`cks-mcp`)를 stdio로 구동. 30문항 × 5방식 × 3회 실행하며 각 셀이 **실제로 조회해 가져온 파일 집합**을 기록. 결정적 채점기가 정답 파일(`expected_files`) 포함 여부를 비교하고, LLM 판정기(`run_judge.py`, Sonnet)가 각 방식이 만든 실제 컨텍스트를 읽어 관련성·설계충분성을 평가 + 파일별 정답/참고/무관을 분류(관련성precision).
+하네스(`run_retrieval.py`)가 인덱싱된 go-stablenet `dev`에 대해 stablenet-knowledge MCP 서버(`stablenet-knowledge-mcp`)를 stdio로 구동. 30문항 × 5방식 × 3회 실행하며 각 셀이 **실제로 조회해 가져온 파일 집합**을 기록. 결정적 채점기가 정답 파일(`expected_files`) 포함 여부를 비교하고, LLM 판정기(`run_judge.py`, Sonnet)가 각 방식이 만든 실제 컨텍스트를 읽어 관련성·설계충분성을 평가 + 파일별 정답/참고/무관을 분류(관련성precision).
 
-**각 방식이 조회하는 것 (실제 cks 도구 호출):**
+**각 방식이 조회하는 것 (실제 stablenet-knowledge 도구 호출):**
 
 | 방식 | 번호 | 시드(recall) | 확장 | 선별 |
 |------|------|------|------|------|

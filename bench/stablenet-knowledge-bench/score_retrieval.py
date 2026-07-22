@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """score_retrieval.py — Step 1: pack-direct retrieval scoring (no LLM).
 
-Measures cks RETRIEVAL quality directly, decoupled from AI generation: for
-each golden question it calls cks ``get_for_task(prompt)`` and scores the
+Measures stablenet-knowledge RETRIEVAL quality directly, decoupled from AI generation: for
+each golden question it calls stablenet-knowledge ``get_for_task(prompt)`` and scores the
 returned EvidencePack ``citations`` against the golden ``expected_citations``
 using the same overlap location scorer the end-to-end benchmark uses.
 
 This answers "does the DB/graph surface the answer?" without the AI in the
 loop — so it isolates retrieval quality from the AI's re-emission/scoring
-losses. Uses only local cks calls; no LLM, fully reproducible.
+losses. Uses only local stablenet-knowledge calls; no LLM, fully reproducible.
 
 Usage:
     python3 score_retrieval.py [--out runs/ckg-bench-live/retrieval-report.md]
@@ -52,7 +52,7 @@ def main(argv=None) -> int:
     from stablenet_knowledge_client import make_stablenet_knowledge_client_from_env
     ctx = make_stablenet_knowledge_client_from_env()
     if ctx is None:
-        print("cks unavailable (STABLENET_KNOWLEDGE_MCP_URL unset)")
+        print("stablenet-knowledge unavailable (STABLENET_KNOWLEDGE_MCP_URL unset)")
         return 1
 
     rows = []
@@ -73,7 +73,7 @@ def main(argv=None) -> int:
 
     n = len(rows)
     lines = []
-    lines.append("# cks 검색 품질 (팩 직접 채점, LLM 미개입)\n")
+    lines.append("# stablenet-knowledge 검색 품질 (팩 직접 채점, LLM 미개입)\n")
     lines.append(f"get_for_task 팩 citations vs 골든 expected_citations · {n}문항\n")
     lines.append(f"- **검색 recall(정답 위치를 팩이 포함): {recall_hit}/{n} = {100*recall_hit/n:.0f}%**")
     lines.append(f"- 평균 precision={sum_p/n:.3f} · recall={sum_r/n:.3f} · f1={sum_f1/n:.3f}\n")

@@ -7,20 +7,19 @@ node itself, and — as the marketplace grows — write and review Solidity cont
 dapp frontends, run quality/test gates, and manage the local toolchain, all from inside Claude
 Code.
 
-Modeled on the [`midnight-expert`](https://midnightntwrk.expert/) marketplace structure: the
-repo root carries no functional content — every plugin under `plugins/` is self-contained and
-independently installable.
+The repo root carries no functional content — every plugin under `plugins/` is self-contained
+and independently installable.
 
 ## At a glance
 
-- **1** plugin published today (`stablenet-core-dev`); 4 more categories planned (see below)
+- **1** plugin published today (`core-dev`); 3 more categories planned (see below)
 - Design rationale: [`docs/adr/ADR-0005-stablenet-expert-marketplace-split.md`](docs/adr/ADR-0005-stablenet-expert-marketplace-split.md)
 
 ## Install
 
 ```bash
 claude plugin marketplace add <stablenet-expert-url>
-claude plugin install --scope user stablenet-core-dev@stablenet-expert
+claude plugin install --scope user core-dev@stablenet-expert
 ```
 
 Or from inside Claude Code: run `/plugin`, choose **Add marketplace**, and browse plugins.
@@ -38,9 +37,9 @@ Or from inside Claude Code: run `/plugin`, choose **Add marketplace**, and brows
   </thead>
   <tbody>
   <tr>
-    <td><strong><a href="plugins/stablenet-core-dev/">stablenet-core-dev</a></strong></td>
+    <td><strong><a href="plugins/core-dev/">core-dev</a></strong></td>
     <td>Jira-driven automated development pipeline for go-stablenet — analyzes a ticket, plans, designs, implements, evaluates (unit+race/lint/security/chainbench), opens a PR, folds in review feedback, and merges.
-    <pre lang="bash">claude plugin install --scope user stablenet-core-dev@stablenet-expert</pre></td>
+    <pre lang="bash">claude plugin install --scope user core-dev@stablenet-expert</pre></td>
   </tr>
   </tbody>
 </table>
@@ -54,18 +53,19 @@ ahead of the work landing.
 | Category | Working name | Scope |
 |---|---|---|
 | Contract Development | `stablenet-contract-dev` | Solidity/EVM smart contract authoring, review, and security audit |
-| DApp Development | `stablenet-dapp-dev` | Client SDK / frontend scaffolding for apps built on go-stablenet |
 | Toolchain & Infrastructure | `stablenet-tooling` | Node/devnet/chainbench install, diagnostics, release notes |
+| Test & QA | `stablenet-qa` | Cross-project test/quality-gate tooling — **not currently planned as a standalone plugin, see caveat below** |
 
-**Test & Code Quality is not a separate plugin.** An earlier draft of ADR-0005 planned to split
-`stablenet-core-dev`'s evaluator (unit+race/lint/security/chainbench checks) into a standalone
+**Test & QA is not a separate plugin today.** An earlier draft of ADR-0005 planned to split
+`core-dev`'s evaluator (unit+race/lint/security/chainbench checks) into a standalone
 `stablenet-cq` plugin so other categories could reuse it. That was reconsidered and reversed
 (ADR-0005 §2.3): the checks are Go/go-stablenet-specific (hardcoded around `go test`/
 `golangci-lint`/`gosec`), so a Solidity-based `stablenet-contract-dev` couldn't actually reuse
 them, and splitting would have added cross-plugin domain-pack/MCP-duplication costs for no real
-reuse benefit. The evaluator stays inside `stablenet-core-dev`. If `stablenet-contract-dev` ever
-needs its own verification plugin, it will be designed for that domain directly, not as a
-generic wrapper around today's evaluator.
+reuse benefit. The evaluator stays inside `core-dev`. `stablenet-qa` is listed above only as a
+**future-reconsideration candidate** — e.g. if `stablenet-contract-dev` eventually needs its own
+verification plugin, it would be designed for that domain directly, not as a generic wrapper
+around today's evaluator, and that design work would revisit this row.
 
 A `stablenet-expert` meta plugin (ecosystem doctor, cross-plugin dependency audit) is also
 planned once there is more than one plugin to audit against.
@@ -77,22 +77,21 @@ stablenet-expert/
 ├── .claude-plugin/marketplace.json   # marketplace manifest
 ├── packages/                         # shared, independently-buildable components
 │   ├── jira-gateway-mcp/             # Go MCP: Jira proxy with sensitive-info filter
-│   └── shared-patterns/patterns.json # sensitive-information policy (SSoT)
+│   └── sensitive-guard/patterns.json # sensitive-information policy (SSoT)
 ├── scripts/contract/                 # agent-facing MCP tool contract (SSoT) + drift lint
 ├── plugins/
-│   └── stablenet-core-dev/           # the Claude Code plugin (see its own README)
-├── docs/                             # SETUP, VISION, ADRs, system contract — repo-internal, not shipped in any plugin
-├── bench/                            # 3-way (cks / code-only / code+skills) comparison harness — dev tooling, not shipped
-└── HANDOFF.md                        # cross-session engineering context
+│   └── core-dev/                     # the Claude Code plugin (see its own README)
+├── docs/                             # SETUP, VISION, OVERVIEW, ADRs, WORKLIST — repo-internal, not shipped in any plugin
+└── bench/                            # 3-way (stablenet-knowledge / code-only / code+skills) comparison harness — dev tooling, not shipped
 ```
 
 ## Documentation
 
 - **[docs/SETUP.md](docs/SETUP.md)** — full build, configure, index, and smoke-test guide
-- **[HANDOFF.md](HANDOFF.md)** — cross-session context: architecture, design decisions, roadmap
+- **[docs/OVERVIEW.md](docs/OVERVIEW.md)** — architecture overview + design decision log
 - **[docs/adr/](docs/adr/)** — architecture decision records, including the marketplace split (ADR-0005)
 - **[scripts/contract/agent-mcp.schema.json](scripts/contract/agent-mcp.schema.json)** — the agent-facing tool contract
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE).
+GNU Affero General Public License v3.0 (AGPL-3.0) — see [LICENSE](LICENSE).

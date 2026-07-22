@@ -28,7 +28,7 @@ go_stablenet_root, sha_pin`; `methods` enum `M1_raw|M2_graph_full|M3_incremental
 ## Step 2 — golden-set
 Per-question YAML `version: 2` extends cks-eval v1 (additive: `id, bucket, language, intent,
 difficulty, sha_pin, expected_keywords, invariant_refs`). `index.yaml` lists questions + bucket counts
-+ shared `sha_pin`. `validate_golden.py` runs cks `find_symbol(symbol)` for each entry against
++ shared `sha_pin`. `validate_golden.py` runs stablenet-knowledge `find_symbol(symbol)` for each entry against
 indexed_head; asserts reported file == entry file and range overlaps `[start_line,end_line]`.
 
 ## Step 3 — drivers
@@ -45,7 +45,7 @@ Shared system prompt forces the strict JSON envelope. M1: full file bodies from
 `expected_citations[].file` ∪ ≤1 sibling. M2: `get_subgraph(symbol=<root-pkg>, depth=2, max_total=2000)`
 for `{consensus/wbft, systemcontracts, core/txpool, core/types}`, serialized compactly. M3: `tool_broker`
 + `max_turns=8`, loop ends on envelope or max_turns. M4: single `get_for_task(query=question.prompt)`.
-All four use the same Driver so token counts are commensurable. cks tool failure → synthetic AskResult
+All four use the same Driver so token counts are commensurable. stablenet-knowledge tool failure → synthetic AskResult
 `response_text="" + cks_error` → cell fails, run continues.
 
 ## Step 5 — envelope/extract
@@ -56,8 +56,8 @@ All four use the same Driver so token counts are commensurable. cks tool failure
 ## Step 6 — scorers
 `location.py`: P/R/F1 overlap matcher (Python port of `code-knowledge-system/internal/eval/metrics.go`).
 `correctness.py`: `recall ≥ 0.5` AND first expected_keyword present AND any expected_keyword present.
-`hallucination.py`: per citation — (1) file exists on disk, (2) if symbol given, cks `find_symbol`
-matches file, (3) line-range plausibility; plus prose `*.go:NN` scan. cks empty → disk `exists()` +
+`hallucination.py`: per citation — (1) file exists on disk, (2) if symbol given, stablenet-knowledge `find_symbol`
+matches file, (3) line-range plausibility; plus prose `*.go:NN` scan. stablenet-knowledge empty → disk `exists()` +
 `grep -n` fallback, record `cks_partial`. `info_volume.py`: `ask.input_tokens`.
 
 ## Step 7 — runner/state
@@ -82,7 +82,7 @@ Per-module `unittest`; e2e replay test asserts report.md has all 4 method rows. 
 ## Side-effect checklist (aggregate)
 - Public interface: only new package; no external coupling. Cross-cutting dataclasses (AskResult,
   ParsedResponse, Citation) each defined once, imported elsewhere.
-- Error paths: every external boundary (cks tool, file IO, AI driver) returns structured failure
+- Error paths: every external boundary (stablenet-knowledge tool, file IO, AI driver) returns structured failure
   (`cks_partial`, `parse_mode=failed`, `cell.status=failed`); runner never sees an uncaught raise.
 - Concurrency: single-process sequential; atomic state.json rename. No shared mutable state.
 - Reproducibility (AC#4): `sha_pin` + `validate_golden_set_against_cks` precheck + replay driver.

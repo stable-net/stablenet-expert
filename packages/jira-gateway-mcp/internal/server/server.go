@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/filter"
-	"github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/jira"
-	"github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/types"
+	"github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/filter"
+	"github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/jira"
+	"github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/types"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

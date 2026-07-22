@@ -6,7 +6,7 @@
 
 > **결정 한 줄:** `coding-agent`를 단일 플러그인 리포에서, midnight-expert와 동일한 구조의
 > `stablenet-expert` 멀티플러그인 마켓플레이스로 확장한다. 기존 파이프라인은
-> **`stablenet-core-dev`**로 이름을 바꿔 이관한다(완료). evaluator의 4단계 검증 로직은
+> **`core-dev`**로 이름을 바꿔 이관한다(완료). evaluator의 4단계 검증 로직은
 > **분리하지 않고 core-dev에 그대로 둔다**(§2.3 — 최초안은 `stablenet-cq` 분리였으나 재검토 후 철회).
 > `stablenet-contract-dev`는 Solidity/EVM 스마트컨트랙트로 범위를 한정한다.
 > **상태:** Accepted — §2.1/2.2/2.4는 `stablenet-expert` 리포로 이관 완료. §2.3은 "분리 안 함"으로
@@ -40,10 +40,10 @@ lint/format, security scan, chainbench 통합)을 하고 있으나, orchestrator
 ```
 stablenet-expert/
 ├── .claude-plugin/marketplace.json   # 6개 plugin 등록
-├── packages/                         # jira-gateway-mcp, shared-patterns 이관
+├── packages/                         # jira-gateway-mcp, sensitive-guard 이관
 ├── scripts/                          # 리포 CI/검증 (contract lint 포함)
 ├── plugins/
-│   ├── stablenet-core-dev/           # coding-agent 이관 ("core 개발")
+│   ├── core-dev/           # coding-agent 이관 ("core 개발")
 │   ├── stablenet-cq/                 # evaluator 분리 신설 ("테스트 & 코드 품질")
 │   ├── stablenet-contract-dev/       # 신설 (Solidity/EVM)
 │   ├── stablenet-dapp-dev/           # 신설 (범위 미정 — §4)
@@ -53,9 +53,9 @@ stablenet-expert/
 └── README.md
 ```
 
-`cks`·`chainbench`는 sibling repo로 유지, `.mcp.json` 경로/URL 참조만 이관.
+`stablenet-knowledge`·`chainbench`는 sibling repo로 유지, `.mcp.json` 경로/URL 참조만 이관.
 
-### 2.2 네이밍 — `stablenet-core-dev`
+### 2.2 네이밍 — `core-dev`
 
 `<도메인>-<역할>` 컨벤션(`compact-cli-dev`, `midnight-dapp-dev` 등)을 따르고 "core 개발" 카테고리와
 1:1 대응. `stablenet-core`(지식 전용 플러그인과 혼동), `stablenet-agent`(Claude Code `agents/`
@@ -90,13 +90,13 @@ stablenet-expert/
    즉 지금 evaluator/cq 로직은 애초에 contract-dev나 dapp-dev가 재사용할 수 있는 게 아니다.
    "분리해서 다른 플러그인이 재사용하게 하자"는 원래 명분이 contract-dev 범위 확정 순간 무너진다.
 
-**최종 결정:** evaluator는 `stablenet-core-dev` 안에 그대로 둔다. `reproduce-first`·
+**최종 결정:** evaluator는 `core-dev` 안에 그대로 둔다. `reproduce-first`·
 `simulation-harness`·`root-cause-lifecycle`·`state-machine` 스킬과 `EVALUATION_FAIL`→bugfix
 재진입 판단(orchestrator)도 당연히 core-dev 잔류(이건 원안에서도 분리 대상이 아니었다 — 버그
 진단 방법론이자 상태머신과 결합된 제어 흐름이라 분리하면 재현(RED→GREEN) 규율이 깨진다).
 
 **대안(미착수, 필요 시 별도 작업):** "Jira 없이 품질체크만 돌리고 싶다"는 원래 니즈는 core-dev
-안에 티켓 없이 evaluator를 직접 구동하는 가벼운 커맨드(예: `/stablenet-core-dev:check`)를
+안에 티켓 없이 evaluator를 직접 구동하는 가벼운 커맨드(예: `/core-dev:check`)를
 추가하는 것으로 크로스플러그인 비용 없이 해결 가능 — 필요해지면 별도 ADR/작업으로.
 
 진짜 별도 `stablenet-cq`(또는 도메인별 검증 플러그인)는 `stablenet-contract-dev`(Solidity)가 실제로
@@ -117,19 +117,19 @@ go-stablenet(geth fork + WBFT)은 EVM 호환이므로, Solidity 스마트컨트�
 - **+**: §2.3을 분리하지 않기로 하면서 domain-pack 접근 경계·MCP 중복·크로스플러그인 drift 게이트
   부재 같은 리스크를 애초에 만들지 않았다. evaluator는 지금처럼 하나의 플러그인 안에서 상태머신·
   재현 스킬과 강결합된 채로 남는다.
-- **−/제약**: "Jira 없이 품질체크"라는 원래 니즈는 아직 미해결 — `/stablenet-core-dev:check` 같은
+- **−/제약**: "Jira 없이 품질체크"라는 원래 니즈는 아직 미해결 — `/core-dev:check` 같은
   가벼운 대안은 설계만 됐고 미구현.
 - **후속**:
   1. `stablenet-dapp-dev`/`stablenet-tooling` 범위는 go-stablenet 실제 클라이언트 SDK/노드
      운영 툴링 대비 미검토 — 별도 조사 필요.
   2. `stablenet-contract-dev`(Solidity)가 실제로 만들어지면, 그 도메인 전용 검증 플러그인이
      필요한지는 그때 별도 ADR로 재검토.
-  3. (선택) `/stablenet-core-dev:check` 커맨드 — 별도 작업으로 필요 시 진행.
+  3. (선택) `/core-dev:check` 커맨드 — 별도 작업으로 필요 시 진행.
 
 ## 4. 실행 상태 (2026-07-20)
 
 - §2.1(리포 구조)·§2.2(네이밍)·§2.4(contract-dev 범위): **완료** — `/Users/wm-it-25_0220/Work/github/stablenet-expert`로
   `git ls-files` 기준 기계적 이관 + 경로/도구명 참조 수정(`mcp__plugin_coding-agent_*` →
-  `mcp__plugin_stablenet-core-dev_*` 포함) + `go build`/`go test`/`lint-tool-names.sh`/파이썬
+  `mcp__plugin_core-dev_*` 포함) + `go build`/`go test`/`lint-tool-names.sh`/파이썬
   유닛테스트로 검증 완료.
 - §2.3(cq 분리): **철회** — 위 재검토 사유로 분리하지 않기로 최종 결정.

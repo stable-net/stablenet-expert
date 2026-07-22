@@ -41,7 +41,7 @@ def _sandbox(tmp: Path, *, with_invariants=True, drop_key=None):
 
 
 def _run(domains, skills):
-    return check.check(domains_dir=domains, skills_dir=skills, check_agents=False)
+    return check.check(domains_dir=domains, skills_dir=skills)
 
 
 class TestSandbox(unittest.TestCase):
@@ -69,7 +69,7 @@ class TestSandbox(unittest.TestCase):
 
 class TestRealRepo(unittest.TestCase):
     def test_repo_domain_pack_structure_ok(self):
-        """The live guarantee: go-stablenet pack + loader + pointers all conform."""
+        """The live guarantee: the go-stablenet pack + loader skill are well-formed."""
         self.assertEqual(check.check(), 0)
 
 

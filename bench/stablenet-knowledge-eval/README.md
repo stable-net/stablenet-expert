@@ -17,7 +17,7 @@ ckg(Code Knowledge Graph)의 쿼리 검색 효과를 4방식(α/β/γ/δ)으로 
 # 1) 검색 + 결정적 채점 (stablenet-knowledge 실행 필요: STABLENET_KNOWLEDGE_MCP_BIN/STABLENET_KNOWLEDGE_CONFIG)
 python3 run_retrieval.py --runs 3
 # 2) LLM 판정
-python3 run_judge.py --model claude-sonnet-4-6 --votes 3
+python3 run_judge.py --model claude-sonnet-5 --votes 3
 ```
 
 ## 관련 인프라(별도 레포)

@@ -5,6 +5,6 @@
   "author": {
     "name": "mhha"
   },
-  "license": "GPL-3.0-or-later",
+  "license": "AGPL-3.0",
   "mcpServers": "./.mcp.json"
 }

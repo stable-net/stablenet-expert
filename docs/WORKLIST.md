@@ -53,10 +53,21 @@ README 기준 현재 4-카테고리 로드맵(`core-dev`=구현 완료 + 아래 
   (일반화 베이스 `knowledge-system`이 아니라).
   검증은 4단계로 진행 중: **(1) 완료** `knowledge-system` 통합 + namespace=`cks`로 기존
   `coding-agent`와 연결, 3-repo 분리 시절과 동일 동작 확인 / **(2) 완료** `stablenet-knowledge-mcp`
-  특화판을 같은 방식으로 `coding-agent`와 연결, 동일 동작 확인 / **(3) 진행 예정** `coding-agent`
-  대신 `stablenet-expert` 플러그인을 `stablenet-knowledge-mcp`에 연결(단, 변수를 하나씩 바꾸기
-  위해 namespace는 여전히 `cks` 유지), 동일 동작 확인 / **(4) (3) 통과 후** namespace를
+  특화판을 같은 방식으로 `coding-agent`와 연결, 동일 동작 확인 / **(3) 서버 측 완료, 플러그인 등록
+  테스트는 남음** `coding-agent` 대신 `stablenet-expert` 플러그인을 `stablenet-knowledge-mcp`에
+  연결(단, 변수를 하나씩 바꾸기 위해 namespace는 여전히 `cks` 유지) / **(4) (3) 통과 후** namespace를
   `stablenet-knowledge`로 바꿔 재연결, `stablenet-expert` 플러그인이 **코드 수정 없이** 동작해야 함.
+
+  **(3) 서버 측 검증 (2026-07-30)**: `mcp.yaml`을 `cks-refactor-1@current` → `cks-refactor-2@current`로
+  전환하고 `system-mcp` 재기동 후, raw MCP 프로토콜(`initialize`→`tools/list`→`tools/call`)로 직접
+  4개 도구를 호출해 확인했다 — `cks.ops.health`(`serviceable=true`, `alignment.ok=true`,
+  `source_root=cks-refactor-2`), `cks.ops.freshness`(`fresh=true`, `indexed_head==current_head`),
+  `cks.context.find_symbol("main")`(`cmd/gstable/main.go` 등 정확한 citation),
+  `cks.context.search_text("NewBlockChain")`(`core/blockchain.go:464` 등 정확한 결과) — 전부 정상.
+  **남은 것**: 이건 서버가 `stablenet-expert`가 붙을 대상(=`stablenet-knowledge-mcp`)에서 실제로
+  잘 동작한다는 확인일 뿐, `stablenet-expert` 플러그인 자체를 Claude Code에 등록해서
+  `mcp__plugin_stablenet-expert_core-dev_stablenet-knowledge__cks_*` 형태로 실제 호출되는지는
+  아직 검증 전(플러그인 등록 후 세션 재시작 필요 — 사용자가 직접 진행하기로 함).
 
   **그랜트 계층 — 완료.** Claude Code 공식 문서 확인 결과 `tools:`/`allowed-tools:`는 서버 단위
   와일드카드(`mcp__plugin_core-dev_<server>__*`)를 지원한다(도구 이름 접두어 단위 부분 매칭은

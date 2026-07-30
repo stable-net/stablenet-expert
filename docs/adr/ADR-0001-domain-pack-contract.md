@@ -1,13 +1,13 @@
 # ADR — Domain-Pack Contract (coding-agent multi-project extension, overlay P1)
 
 문서 성격: **ADR / 설계 결정 (ACCEPTED 2026-06-22 — 설계 합의됨, 코드 변경 0).** 2026-06-19~22
-오버레이 작업의 P1. 짝 문서: [`coding-agent-overlay-improvements-and-eval-2026-06-22.md`](../archive/coding-agent-overlay-improvements-and-eval-2026-06-22.md) Part B(스케치) · [`WORKLIST.md`](../WORKLIST.md) 스트림6.
+오버레이 작업의 P1(작업 이력 문서는 정리됨).
 
 > **상태: ACCEPTED (설계만).** §8 결정 4건 모두 확정. **구현(Phase 1~3)은 교란·대형이라 별도
 > 세션/승인 게이트 유지** — 이 문서 승인이 곧 구현 착수 승인은 아니다. Phase 1은 fcore-baseline
 > 무회귀로 §3 메커니즘 신뢰성을 라이브 확인하며 진행.
 >
-> **구현 상태 갱신 (코드 검증 2026-06-28):** 구현됨. `plugins/stablenet-core-dev/domains/go-stablenet/`에
+> **구현 상태 갱신 (코드 검증 2026-06-28):** 구현됨. `plugins/core-dev/domains/go-stablenet/`에
 > `domain-pack.json`·`context.md`·`invariants.md` 존재 — 위 "설계만/코드 변경 0"은 작성 시점 기준.
 
 > **결정 한 줄:** go-stablenet 전용 콘텐츠를 **선언적 도메인팩**으로 분리하고, 제너릭 에이전트가
@@ -51,11 +51,11 @@ Claude Code frontmatter는 **런타임 간접참조 불가**(`${VAR}`·중앙con
 
 ## 2. Decision 1 — 도메인팩 계약 (`domain-pack.json`)
 
-프로젝트별 `plugins/stablenet-core-dev/domains/<project_id>/` 디렉터리 + 선언적 매니페스트. 코어가 요구하는 **확장점**을
+프로젝트별 `plugins/core-dev/domains/<project_id>/` 디렉터리 + 선언적 매니페스트. 코어가 요구하는 **확장점**을
 계약으로 고정:
 
 ```jsonc
-// plugins/stablenet-core-dev/domains/go-stablenet/domain-pack.json
+// plugins/core-dev/domains/go-stablenet/domain-pack.json
 {
   "project_id": "go-stablenet",
   "ticket_namespace": "STABLE",                  // template-parse / work.md
@@ -91,9 +91,9 @@ P3 제약(frontmatter 정적) 때문에 **정적 frontmatter + 동적 Read**로 
 2. `domain-pack` 로더 스킬(제너릭)이 런타임에 *지시*한다:
    ```
    project_id = state.json.project_id
-   pack = Read(plugins/stablenet-core-dev/domains/{project_id}/domain-pack.json)
-   invariants = Read(plugins/stablenet-core-dev/domains/{project_id}/{pack.invariants})      # L3 백스톱
-   classifier = Read(plugins/stablenet-core-dev/domains/{project_id}/{pack.context_classifier})
+   pack = Read(plugins/core-dev/domains/{project_id}/domain-pack.json)
+   invariants = Read(plugins/core-dev/domains/{project_id}/{pack.invariants})      # L3 백스톱
+   classifier = Read(plugins/core-dev/domains/{project_id}/{pack.context_classifier})
    → 에이전트는 classify_domain / estimate_complexity / invariants-backstop 를
      "활성 팩" 소스로 수행 (기존 stablenet-context.* 호출의 일반화)
    ```
@@ -171,8 +171,8 @@ Project B를 새로 만들지 않는다(없는 것을 위해 부담 X). 대신 *
 
 1. **무회귀 (행위 보존)**: 리팩터 후 go-stablenet 파이프라인이 `fcore-baseline` 대비 동등 —
    overlay-gates 통과 + (타세션) bench 정확성·토큰 노이즈밴드 이내.
-2. **구조적 확장성 증명 (grep, 라이브 불필요)**: 추출 후 코어(`plugin/agents/*.md` + generic 스킬
-   7종)에 "stablenet"·도메인 용어 **0건**. 도메인 콘텐츠는 전부 `plugins/stablenet-core-dev/domains/go-stablenet/`.
+2. **구조적 확장성 증명 (grep, 라이브 불필요)**: 추출 후 코어(`plugins/core-dev/agents/*.md` + generic 스킬
+   7종)에 "stablenet"·도메인 용어 **0건**. 도메인 콘텐츠는 전부 `plugins/core-dev/domains/go-stablenet/`.
    → "코어 편집 없이 새 팩만 추가 가능"이 *부재로* 증명됨(B 없이).
 3. **메커니즘 신뢰성 (§3.1)**: Phase 1 라이브 런에서 로더가 활성 팩을 실제로 해석·적용하는지
    확인(= 무회귀가 곧 신뢰성 증명).
@@ -189,7 +189,7 @@ Project B를 새로 만들지 않는다(없는 것을 위해 부담 X). 대신 *
    stablenet-context가 이미 런타임 데이터-의존 Read/stablenet-knowledge 호출을 지시) → 능력 확실. 신뢰성은
    Phase 1 라이브 무회귀가 검증(안전망). "불가능"이 아니라 "Phase 1에서 확인할 신뢰성".
 2. **첫 추출 범위** — ✅ **invariants + context만** (chainbench 일반화는 Phase 2로 분리).
-3. **`domains/` 위치** — ✅ **`plugins/stablenet-core-dev/domains/`** (CC 마켓플레이스 설치는 플러그인 디렉터리만 복사 →
+3. **`domains/` 위치** — ✅ **`plugins/core-dev/domains/`** (CC 마켓플레이스 설치는 플러그인 디렉터리만 복사 →
    repo-level은 설치 시 안 따라옴).
 4. **Project B** — ✅ **만들지 않음.** Project A(go-stablenet) 무회귀 + 코어 grep-clean으로 검증(§7).
 

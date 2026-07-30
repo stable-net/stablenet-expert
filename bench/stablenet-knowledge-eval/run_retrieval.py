@@ -5,9 +5,9 @@
 LLM은 이 단계에서 호출하지 않는다(검색만). 평가(관련성/충분성)는 judge 단계에서 별도.
 
   α  파일 원문 그대로 (기준선, grep — 우리 시스템 미사용)
-  β  그래프 전체를 한꺼번에 (cks get_subgraph 광역 덤프)
-  γ  필요한 정보를 개별 조회 (cks semantic_search -> find_symbol -> get_subgraph)
-  δ  자동 선별 한 번에 (cks get_for_task)
+  β  그래프 전체를 한꺼번에 (stablenet-knowledge get_subgraph 광역 덤프)
+  γ  필요한 정보를 개별 조회 (stablenet-knowledge semantic_search -> find_symbol -> get_subgraph)
+  δ  자동 선별 한 번에 (stablenet-knowledge get_for_task)
 
 결정적 지표: 위치 정확도(expected_files 포함 여부 recall/precision), 토큰 사용량,
 오류 건수(실존하지 않는 파일 참조 수). 저장: runs/<method>/<id>.txt + results.jsonl
@@ -216,7 +216,7 @@ def score(entry, locs):
 def main():
     import argparse
     ap = argparse.ArgumentParser()
-    ap.add_argument("--runs", type=int, default=1, help="re-query N times to average cks retrieval noise")
+    ap.add_argument("--runs", type=int, default=1, help="re-query N times to average stablenet-knowledge retrieval noise")
     args = ap.parse_args()
     data = json.load(open(os.path.join(HERE, "queries.json")))["queries"]
     from stablenet_knowledge_client import make_stablenet_knowledge_client_from_env

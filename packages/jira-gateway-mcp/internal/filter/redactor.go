@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/types"
+	"github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/types"
 )
 
 // redact replaces matched ranges with config.RedactReplacement (after

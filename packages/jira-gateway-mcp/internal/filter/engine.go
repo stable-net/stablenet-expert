@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/types"
+	"github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/types"
 )
 
 // ScanAndFilter is the engine's single entrypoint. It applies all configured

@@ -81,7 +81,7 @@ reviews/
 .worktrees/
 
 # =========================
-# stablenet-core-dev runtime workspace (renamed from `.coding-agent/` to match
+# core-dev runtime workspace (renamed from `.coding-agent/` to match
 # the marketplace's naming convention; created inside a TARGET repo the
 # pipeline operates on, but may also appear here during local/dev smoke tests)
 # =========================

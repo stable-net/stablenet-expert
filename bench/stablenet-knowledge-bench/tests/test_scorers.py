@@ -165,7 +165,7 @@ class TestHallucinationScorer(unittest.TestCase):
         self.assertEqual(hs.hallucination_count, 0)
 
     def test_real_symbol_in_other_file_not_hallucination(self):
-        # cks confirms the symbol EXISTS (in another file). A wrong-file
+        # stablenet-knowledge confirms the symbol EXISTS (in another file). A wrong-file
         # attribution of a real symbol is a location error, not a fabrication.
         def fake_cks(tool, args):
             return {"symbol": args["name"],
@@ -175,7 +175,7 @@ class TestHallucinationScorer(unittest.TestCase):
         self.assertEqual(hs.hallucination_count, 0)
 
     def test_nonexistent_symbol_is_hallucination(self):
-        # cks returns empty AND grep finds nothing → genuine fabrication.
+        # stablenet-knowledge returns empty AND grep finds nothing → genuine fabrication.
         def fake_cks(tool, args):
             return {"symbol": args["name"], "citations": []}
         cite = Citation(file="validator.go", symbol="totallyMadeUpFunc")

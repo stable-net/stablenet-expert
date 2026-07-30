@@ -2,7 +2,7 @@
 
 > 작업 ID: `LOCAL-20260609_003552` · 브랜치: `feature/ckg-benchmark-harness` (로컬 전용, 미푸시)
 > 생성일: 2026-06-09 · 대상 HEAD(go-stablenet): `9978930ba`
-> 목적: CKG(cks) 그래프가 AI 코드 이해 품질을 개선하는지 **수치로 입증**하기 위한 평가
+> 목적: CKG(stablenet-knowledge) 그래프가 AI 코드 이해 품질을 개선하는지 **수치로 입증**하기 위한 평가
 > 파이프라인의 구축 결과 보고 + 4-way 비교 방법론 스펙 + 시스템 장/단점 분석.
 
 ---
@@ -16,7 +16,7 @@
   PASS(보안 0건), ChainBench는 정당한 SKIP(프로덕션 Go 코드 무변경). 4개 수용 기준 전부 충족.
 - **현재 한계(정직한 상태)**: 지금까지 검증은 오프라인 `replay` 드라이버로 수행 → **수치는
   전부 0(placeholder)**. 즉 "방식 4가 방식 1 대비 정보량을 줄이면서 정확도를 유지한다"는
-  **실효 입증은 아직 안 됨**. 실제 수치는 라이브 실행(`--driver claude_cli` + cks-mcp)이 필요.
+  **실효 입증은 아직 안 됨**. 실제 수치는 라이브 실행(`--driver claude_cli` + stablenet-knowledge-mcp)이 필요.
 - **이 문서의 위치**: 이후 모든 개선의 **비교 기준점(baseline) 스펙**. 라이브 실행 결과는
   이 스펙을 그대로 채워 넣으면 된다.
 
@@ -29,9 +29,9 @@
 | ID | 방식 | AI에게 제공하는 것 | 구현 | 기존 자산 매핑 |
 |----|------|---------------------|------|-----------------|
 | **M1_raw** | 방식 1 (기준선) | 관련 파일 **원문 전체** (정답 파일 ∪ 동일 패키지 1개) | `methods/m1_raw_files.py` | `bench-orchestration` B_code_only 와 유사하나 파일을 미리 일괄 주입 |
-| **M2_graph_full** | 방식 2 | cks **그래프 덤프** (`get_subgraph depth=2, max_total=2000`, 4개 루트 패키지) | `methods/m2_graph_full.py` | 신규 (cks에 "전체 덤프" API 없음 → 모듈 한정) |
-| **M3_incremental** | 방식 3 | cks **개별 조회**를 다회 턴으로(`semantic_search`/`find_symbol`/`get_subgraph`/`find_callers`, max_turns=8) | `methods/m3_incremental.py` | `bench-orchestration` A_stablenet_knowledge_mcp 의 멀티턴 패턴을 Q&A로 적응 |
-| **M4_get_for_task** | 방식 4 | cks가 **자동 선별**한 EvidencePack 1회(`get_for_task(query)`) | `methods/m4_get_for_task.py` | cks `cmd/cks-eval` + `internal/eval` 의 P/R/F1 평가와 직결 |
+| **M2_graph_full** | 방식 2 | stablenet-knowledge **그래프 덤프** (`get_subgraph depth=2, max_total=2000`, 4개 루트 패키지) | `methods/m2_graph_full.py` | 신규 (stablenet-knowledge에 "전체 덤프" API 없음 → 모듈 한정) |
+| **M3_incremental** | 방식 3 | stablenet-knowledge **개별 조회**를 다회 턴으로(`semantic_search`/`find_symbol`/`get_subgraph`/`find_callers`, max_turns=8) | `methods/m3_incremental.py` | `bench-orchestration` A_stablenet_knowledge_mcp 의 멀티턴 패턴을 Q&A로 적응 |
+| **M4_get_for_task** | 방식 4 | stablenet-knowledge가 **자동 선별**한 EvidencePack 1회(`get_for_task(query)`) | `methods/m4_get_for_task.py` | stablenet-knowledge `cmd/cks-eval` + `internal/eval` 의 P/R/F1 평가와 직결 |
 
 > 4개 방식 모두 **동일한 Driver**(AI 호출 계층)를 거치므로 입력 토큰량이 상호 비교 가능.
 
@@ -39,12 +39,12 @@
 
 | 지표 | 정의 | 구현 | 오라클(정답 판정 근거) |
 |------|------|------|------------------------|
-| **위치 정확도** | AI가 언급한 파일·코드 위치가 정답과 일치하는 비율 (Precision/Recall/F1, overlap 매칭) | `scorers/location.py` (cks `internal/eval/metrics.go` 포팅) | 골든셋 `expected_citations` |
+| **위치 정확도** | AI가 언급한 파일·코드 위치가 정답과 일치하는 비율 (Precision/Recall/F1, overlap 매칭) | `scorers/location.py` (stablenet-knowledge `internal/eval/metrics.go` 포팅) | 골든셋 `expected_citations` |
 | **정답률** | 질문에 올바르게 답한 비율 | `scorers/correctness.py` (recall ≥ 0.5 **AND** 핵심 키워드 포함) | `expected_keywords` + recall |
-| **오류 건수** | 존재하지 않는 파일·함수를 만들어낸 횟수(hallucination) | `scorers/hallucination.py` | **live cks `find_symbol`** + 디스크 `exists()`/`grep` 폴백 |
+| **오류 건수** | 존재하지 않는 파일·함수를 만들어낸 횟수(hallucination) | `scorers/hallucination.py` | **live stablenet-knowledge `find_symbol`** + 디스크 `exists()`/`grep` 폴백 |
 | **정보량** | AI에 입력된 코드 정보의 양(입력 토큰) | `scorers/info_volume.py` | M1/M2/M4 단일샷, M3 멀티턴 합산 |
 
-> **핵심 novelty**: 오류 건수(hallucination) 판정에 **살아있는 cks를 오라클로** 사용한다.
+> **핵심 novelty**: 오류 건수(hallucination) 판정에 **살아있는 stablenet-knowledge를 오라클로** 사용한다.
 > cks-eval(`expected_citations` 대조만)에도, coding-agent bench(엔드투엔드 성공 여부)에도 없던 계층.
 
 ### 1.3 골든셋 30문항 구성
@@ -132,13 +132,13 @@ RI-9×3, RI-10×2, RI-11×3 → **RI-1..RI-11 전부 ≥2회 커버**.
 ### 3.3 시스템 장/단점 (벤치마크 설계 관점)
 
 **장점 (이 하니스가 잘 잡아내도록 설계된 것)**
-- cks 자동 선별(M4)이 토큰 대비 정확도에서 우월하면 **정량적 ROI**가 드러난다.
-- hallucination을 **live cks로 교차검증** → "그럴듯한 거짓 인용"을 기계적으로 적발.
+- stablenet-knowledge 자동 선별(M4)이 토큰 대비 정확도에서 우월하면 **정량적 ROI**가 드러난다.
+- hallucination을 **live stablenet-knowledge로 교차검증** → "그럴듯한 거짓 인용"을 기계적으로 적발.
 - 골든셋이 **불변식 RI-1..11 + 최근 버그 핫스팟**에 정렬 → 합의 안전성에 직결된 질문 위주.
 - `validate_golden.py` 드리프트 가드 → 코드 변경 시 재실행만으로 품질 저하 즉시 감지(회귀 탐지기).
 
 **단점 / 리스크 (해석 시 유의)**
-- **오라클 의존성**: hallucination 판정이 cks 정확도에 의존 → cks가 실존 심볼을 놓치면 정답
+- **오라클 의존성**: hallucination 판정이 stablenet-knowledge 정확도에 의존 → stablenet-knowledge가 실존 심볼을 놓치면 정답
   인용이 오탐될 수 있음(완화: 디스크 `exists()`+`grep` 폴백, `cks_partial` 플래그 기록).
 - **정답률의 근사성**: correctness = recall+키워드 휴리스틱 → 의미적 정답을 100% 보장하진 않음.
 - **비용**: 풀런 = 30×4 = **120 LLM 호출**. 라이브는 opt-in, CI는 replay로 결정적.
@@ -149,7 +149,7 @@ RI-9×3, RI-10×2, RI-11×3 → **RI-1..RI-11 전부 ≥2회 커버**.
 
 ## 4. 라이브 실행 방법 (실제 수치 생성)
 
-전제: ① cks-mcp 가동 + `cks.ops.health` = ok, ② Claude CLI 사용 가능, ③ go-stablenet HEAD == cks `indexed_head`.
+전제: ① stablenet-knowledge-mcp 가동 + `cks.ops.health` = ok, ② Claude CLI 사용 가능, ③ go-stablenet HEAD == stablenet-knowledge `indexed_head`.
 
 ```bash
 # 1) 드리프트/헬스 확인 (자동: run.py 가 매 실행 전 validate_golden 호출)
@@ -188,7 +188,7 @@ python3 .stablenet-expert/bench/ckg-bench/run.py \
   코드 변경 시 회귀 탐지가 가능한 baseline **스펙**이 확보됨.
 - **미완(의도적)**: 실제 비교 수치 = 라이브 실행 필요(사용자 결정에 따라 본 단계 보류).
 - **다음 단계 후보**:
-  1. cks-mcp + Claude CLI 환경에서 §4 라이브 풀런 → §3.1/§3.2 수치 확정.
+  1. stablenet-knowledge-mcp + Claude CLI 환경에서 §4 라이브 풀런 → §3.1/§3.2 수치 확정.
   2. 결과를 정기 회귀(코드 변경 PR마다)로 묶기.
   3. 골든셋 30→확장, 난이도/언어(ko) 밸런싱.
   4. (선택) `/coding-agent:ckg-bench` 슬래시 래퍼.

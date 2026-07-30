@@ -95,7 +95,7 @@ class TestCallUnwrapping(unittest.TestCase):
 
     def test_transport_error_passes_through(self):
         # _post itself failed (HTTP/URL error) → surfaced as an error dict.
-        c = self._client({"error": "cks HTTP error: connection refused"})
+        c = self._client({"error": "stablenet-knowledge HTTP error: connection refused"})
         result = c._call("cks.context.find_symbol", {"name": "X"})
         self.assertIn("error", result)
         self.assertIn("connection refused", result["error"])
@@ -107,7 +107,7 @@ class TestPublicCallable(unittest.TestCase):
         c._connected = True
         result = c("nonexistent_tool", {})
         self.assertIn("error", result)
-        self.assertIn("unknown cks tool", result["error"])
+        self.assertIn("unknown stablenet-knowledge tool", result["error"])
 
     def test_not_connected_returns_error(self):
         c = StablenetKnowledgeClient("http://test/mcp")  # _connected defaults False

@@ -9,7 +9,7 @@
   "M1_fair"
  ],
  "driver": "claude_cli",
- "go_stablenet_root": "/Users/kevin/work/github/0xmhha/auto-coding/test/go-stablenet",
+ "go_stablenet_root": "../go-stablenet",
  "sha_pin": "0bf2f4d1b",
  "batch_size": 200,
  "output_dir": "",

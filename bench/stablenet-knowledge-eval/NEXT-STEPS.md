@@ -4,7 +4,7 @@
 > ε 그래프단독(방식4) 30%/6%. ckv 벡터 기여분 +67pp/+80pp 확정.
 > 하네스: `run_retrieval.py`(검색·결정적 채점) + `run_judge.py`(LLM 판정) +
 > `aggregate_v5.py`(집계). 인덱스: go-stablenet `dev`(`c051d50b`), `make gstable` 스코프.
-> cks 바이너리: `code-knowledge-system/bin/cks-mcp` (exclude_tests·expand·OR 수정 반영).
+> stablenet-knowledge 바이너리: `code-knowledge-system/bin/stablenet-knowledge-mcp` (exclude_tests·expand·OR 수정 반영).
 
 세 작업은 독립적이며 우선순위 순서대로 정리한다.
 
@@ -90,7 +90,7 @@ recall 파라미터에 좌우된다. 현재는 기본값으로만 측정했다. 
 - `ci/regression_check.py` + `baseline.json` + 사용법(README). 선택: GitHub Actions 잡.
 
 ### 의존성 / 규모
-- cks 바이너리·인덱스 빌드가 CI에서 재현 가능해야 함(ckv는 ollama/bge-m3 필요 →
+- stablenet-knowledge 바이너리·인덱스 빌드가 CI에서 재현 가능해야 함(ckv는 ollama/bge-m3 필요 →
   결정적 1차 게이트는 ckv 없이도 가능한 항목 위주로 우선 구성).
 
 ---

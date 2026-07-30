@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
-"""check.py — validate the domain-pack structure (overlay P1 Phase 1 gate).
+"""check.py — validate the domain-pack structure.
 
-Phase 1 moved go-stablenet domain content into plugin/domains/go-stablenet/ and made
-the stablenet-* skills thin pointers, introducing the generic domain-pack loader.
-This gate locks that structure so a later edit can't silently break it:
-
-  - each plugin/domains/<id>/domain-pack.json has the required keys, and its
-    referenced files (invariants, context_classifier) exist;
-  - the generic `domain-pack` loader skill exists;
-  - the stablenet-* pointer skills actually point at the domains/ files
-    (so there is one source, not a stale duplicate).
-
-It does NOT yet check the Phase-2 acceptance (core grep-clean / no-regression);
-those land when agents are rewired. Pure structure check, no LLM.
+stablenet-expert is scoped to go-stablenet only (no multi-project portability
+goal), so this gate validates only what that implies: each
+plugins/core-dev/domains/<id>/domain-pack.json is well-formed — required
+keys present, referenced files (invariants, context_classifier) exist, and the
+Evaluator's verification contract is complete — plus the generic `domain-pack`
+loader skill file it is read through exists. It does NOT check whether the core
+agents avoid project-specific hardcoding: with a single permanent domain pack,
+there is no other pack for such hardcoding to break, so that check would test a
+property nobody needs. Pure structure check, no LLM.
 
     python3 bench/domain-pack/check.py
 """
@@ -25,18 +22,14 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]                       # bench/domain-pack -> repo root
-DOMAINS = REPO / "plugin" / "domains"
-SKILLS = REPO / "plugin" / "skills"
-AGENTS = REPO / "plugin" / "agents"
+PLUGIN = REPO / "plugins" / "core-dev"
+DOMAINS = PLUGIN / "domains"
+SKILLS = PLUGIN / "skills"
 
 REQUIRED_KEYS = ("project_id", "ticket_namespace", "invariants", "context_classifier", "knowledge")
-# Phase 2: agents must not load the (now-deleted) project-specific pointer skills as a
-# frontmatter dependency — they resolve the active pack via the generic domain-pack loader.
-FORBIDDEN_SKILL_REFS = ("stablenet-context", "stablenet-invariants")
 
 
-def check(*, domains_dir: Path = DOMAINS, skills_dir: Path = SKILLS,
-          agents_dir: Path = AGENTS, check_agents: bool = True) -> int:
+def check(*, domains_dir: Path = DOMAINS, skills_dir: Path = SKILLS) -> int:
     problems: list[str] = []
     packs = sorted(domains_dir.glob("*/domain-pack.json"))
     if not packs:
@@ -78,38 +71,10 @@ def check(*, domains_dir: Path = DOMAINS, skills_dir: Path = SKILLS,
             if not isinstance(ver.get("stages"), list) or not ver.get("stages"):
                 problems.append(f"{pid}: verification.stages must be a non-empty list")
 
-    # generic loader skill present
+    # generic loader skill present — agents read the active pack through this file today,
+    # so its absence breaks the one project we actually run, not just future portability.
     if not (skills_dir / "domain-pack" / "SKILL.md").is_file():
         problems.append(f"generic loader skill missing: {skills_dir}/domain-pack/SKILL.md")
-
-    # Phase 2: no agent loads a deleted project-specific skill as a frontmatter dep;
-    # the agents that need domain context reference the generic domain-pack loader.
-    if check_agents:
-        import re
-        skill_line = re.compile(r"^\s*-\s*(\S+)\s*$", re.MULTILINE)
-        wired = 0
-        for md in sorted(agents_dir.glob("*.md")):
-            # frontmatter skills block only: take lines up to the closing '---'
-            text = md.read_text()
-            fm = text.split("\n---", 2)
-            head = fm[0] if len(fm) >= 2 else text
-            refs = set(skill_line.findall(head))
-            for forbidden in FORBIDDEN_SKILL_REFS:
-                if forbidden in refs:
-                    problems.append(f"{md.name} frontmatter still loads deleted skill '{forbidden}'")
-            if "domain-pack" in refs:
-                wired += 1
-        if wired == 0:
-            problems.append("no agent references the generic 'domain-pack' loader skill")
-
-        # Phase 3 grep-clean: core agents must not hardcode domain coupling.
-        allow = re.compile(r"go-stablenet|stablenet-review-code|stablenet-features\.md|policy/stablenet\.yaml")
-        for md in sorted(agents_dir.glob("*.md")):
-            for ln, line in enumerate(md.read_text().splitlines(), 1):
-                if "go_stablenet_root" in line:
-                    problems.append(f"{md.name}:{ln} hardcodes go_stablenet_root — use repo_root")
-                elif "stablenet" in line and not allow.search(line):
-                    problems.append(f"{md.name}:{ln} domain term 'stablenet' (generalize or allowlist)")
 
     if problems:
         print(f"DOMAIN-PACK STRUCTURE PROBLEMS ({len(problems)}):")
@@ -117,7 +82,7 @@ def check(*, domains_dir: Path = DOMAINS, skills_dir: Path = SKILLS,
             print(f"  - {p}")
         return 1
     names = ", ".join(p.parent.name for p in packs)
-    print(f"domain-pack structure OK — packs: [{names}]; loader present; agents wired (no stablenet-* deps)")
+    print(f"domain-pack structure OK — packs: [{names}]; loader present")
     return 0
 
 

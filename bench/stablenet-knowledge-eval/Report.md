@@ -15,7 +15,7 @@
 
 ## How the test was run (methodology)
 
-The harness (`run_retrieval.py`) drives the live cks MCP server (`cks-mcp`
+The harness (`run_retrieval.py`) drives the live stablenet-knowledge MCP server (`stablenet-knowledge-mcp`
 binary) over stdio against the indexed go-stablenet `dev` tree. For each of the
 30 questions it runs all 5 methods, 3 times, and records the surfaced file set
 per cell. The deterministic scorer (`score()`) compares surfaced files to the
@@ -26,7 +26,7 @@ relevance-precision. The input to every method is the **natural-language
 question only** (e.g. "제네시스에서 거버넌스 밸리데이터 컨트랙트 상태를 어떻게
 초기화하는가?"); the gold identifier is never given to β/γ/δ/ε.
 
-What each method queries (the actual cks tool calls):
+What each method queries (the actual stablenet-knowledge tool calls):
 
 | Method | 방식 | Seed (recall) | Expansion | Selection |
 |--------|------|---------------|-----------|-----------|

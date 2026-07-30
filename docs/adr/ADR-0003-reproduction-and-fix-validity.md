@@ -1,8 +1,8 @@
 # ADR — Reproduction vs Fix-Validity 분리 + 2-티어 재현 (bugfix 검증 강화)
 
 문서 성격: **ADR / 설계 결정 (ACCEPTED 2026-06-23 — 구현·머지 완료).** 구현: PR #18
-(squash → main `a39221d`, plugin v0.1.25). 짝 문서: [`WORKLIST.md`](../WORKLIST.md) ·
-스킬 [`plugin/skills/reproduce-first/SKILL.md`](../../plugin/skills/reproduce-first/SKILL.md).
+(squash → main `a39221d`, plugin v0.1.25). 짝 문서:
+스킬 [`plugins/core-dev/skills/reproduce-first/SKILL.md`](../../plugins/core-dev/skills/reproduce-first/SKILL.md).
 
 > **상태: ACCEPTED (구현 반영됨).** 명세(.md/.json) 변경으로 파이프라인 동작을 바꾼다. **라이브
 > 무회귀(실제 버그픽스 1건으로 e2e 티어 재현 + "GREEN인데 형제경로 미커버" 케이스의 §4.8 FAIL)는

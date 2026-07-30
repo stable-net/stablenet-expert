@@ -33,9 +33,9 @@ _FALLBACK_AGENT_MODEL: dict[str, str] = {
     "analyzer": "claude-opus-4-8", "bench-analyzer-codeonly": "claude-opus-4-8",
     "bench-analyzer-skills": "claude-opus-4-8", "bench-solver-codeonly": "claude-opus-4-8",
     "bench-solver-project-skills": "claude-opus-4-8",
-    "implementer": "claude-sonnet-4-6", "evaluator": "claude-sonnet-4-6",
+    "implementer": "claude-sonnet-5", "evaluator": "claude-sonnet-5",
 }
-_FALLBACK_MODEL = "claude-sonnet-4-6"
+_FALLBACK_MODEL = "claude-sonnet-5"
 
 
 def _load_agent_model() -> dict[str, str]:

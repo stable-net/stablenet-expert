@@ -1,11 +1,11 @@
 # ADR — doctor→setup remediation routing + single-source fix table (P-A + P-B)
 
 문서 성격: **ADR / 설계 결정 (ACCEPTED 2026-06-26 — fix-table는 doctor.py 내 데이터로 합의).** 짝:
-[`scripts/doctor.py`](../../plugin/scripts/doctor.py) · [`commands/doctor.md`](../../plugin/commands/doctor.md) ·
-[`scripts/setup.py`](../../plugin/scripts/setup.py) · 선행 [`setup-doctor-adr-2026-06-23.md`](./ADR-0002-setup-and-doctor.md).
+[`scripts/doctor.py`](../../plugins/core-dev/scripts/doctor.py) · [`commands/doctor.md`](../../plugins/core-dev/commands/doctor.md) ·
+[`scripts/setup.py`](../../plugins/core-dev/scripts/setup.py) · 선행 [`setup-doctor-adr-2026-06-23.md`](./ADR-0002-setup-and-doctor.md).
 참조 사례: midnight-expert 마켓플레이스(`references/midnight-expert`)의 2단 doctor + `fix-table.md`.
 
-> **결정 한 줄:** doctor가 감지하는 **모든** 결함을 빠짐없이 정확한 다음 행동(주로 `/stablenet-core-dev:setup`)으로
+> **결정 한 줄:** doctor가 감지하는 **모든** 결함을 빠짐없이 정확한 다음 행동(주로 `/core-dev:setup`)으로
 > 라우팅한다. 그 매핑을 doctor.py 안의 **단일 데이터 테이블(REMEDIATION)** 로 두고, issue를 구조화하여
 > render에 **Remediation 섹션 + 한 줄 요약**을 추가한다. 진단은 결정론(Python) 유지, 수정은 **데이터로 분리**.
 > 범위는 P-A(라우팅)+P-B(fix-table)까지. **setup이 바이너리를 설치하는 P-C는 이 ADR 범위 밖**(별도 합의).
@@ -17,7 +17,7 @@
 선행 ADR(setup-doctor)로 doctor=read-only 진단, setup=write가 분리됐다. 그러나 실사용에서 갭:
 
 - doctor의 수정 안내가 **부분적·산문적**이다. `commands/doctor.md §3`이 일부 케이스(`repo_root_env` unset,
-  permissions 미등록)만 `/stablenet-core-dev:setup`으로 라우팅하고, `doctor.py`가 낼 수 있는 다른 결함
+  permissions 미등록)만 `/core-dev:setup`으로 라우팅하고, `doctor.py`가 낼 수 있는 다른 결함
   (`STABLENET_KNOWLEDGE_CONFIG` 파일 없음, MCP not-serviceable, source_root 불일치, index stale, chainbench/jira 미연결)에는
   "다음에 뭘 하라"가 **체계적으로 붙지 않는다**.
 - 결함→수정 매핑이 **한 곳에 없다**(doctor.md 산문 + docs/SETUP.md 산재). 새 체크를 추가하면 안내가 누락되기 쉽다.
@@ -60,7 +60,7 @@ auto-fix 분류를 차용:
 
 ### 2.3 기계 검증 (게이트)
 
-`bench/`(또는 `plugin/scripts/tests/test_doctor.py`)에 **커버리지 게이트**:
+`bench/`(또는 `plugins/core-dev/scripts/tests/test_doctor.py`)에 **커버리지 게이트**:
 - doctor.py가 emit할 수 있는 모든 `kind`가 `REMEDIATION`에 항목을 가진다(orphan issue 0).
 - `--json` 출력의 각 issue에 비어있지 않은 `fix.command`(또는 external 안내)가 붙는다.
 - `klass`는 허용된 4값 중 하나.

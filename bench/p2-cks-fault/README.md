@@ -1,13 +1,13 @@
-# p2-cks-fault — does the stream-6 P2 cks-hardening stop silent incompletes?
+# p2-cks-fault — does the stream-6 P2 stablenet-knowledge-hardening stop silent incompletes?
 
 P2 (see `docs/coding-agent-overlay-improvements-and-eval-2026-06-22.md`) hardens the
-analyzer/planner §3.0 cks gate. The pre-P2 gate was a single start-of-run health
+analyzer/planner §3.0 stablenet-knowledge gate. The pre-P2 gate was a single start-of-run health
 check: serviceable → proceed, else BLOCKED. A per-call failure *during* the run was
 handled as "record and continue best-effort" — so an analysis could ship missing a
 `get_for_task` / `find_callers` / `impact_analysis` with no flag and no decision
 change: a **silent incomplete** that then ships a bad fix. P2 adds (analyzer §3.0b):
 
-- **retry** a dropped/timed-out cks call up to 2× before counting it failed,
+- **retry** a dropped/timed-out stablenet-knowledge call up to 2× before counting it failed,
 - **tier** the failed primitive — PRIMARY (`get_for_task`), COMPLETENESS
   (`find_callers`/`impact_analysis`/`concurrency_impact`), ENHANCEMENT (the rest),
 - **decide, never silent**: PRIMARY loss → BLOCKED; COMPLETENESS loss →
@@ -25,7 +25,7 @@ incompletes. Mirrors `bench/p0-mutants/` and the `bench/README.md` two-layer spl
    implementation of the before/after §3.0 decision logic; `scenarios.py` is the
    fault corpus; `score.py` reports silent-incomplete before vs after + an
    over-block guard. This is the headline number.
-2. **Agent-in-the-loop fidelity (live, documented below).** A flaky cks proxy +
+2. **Agent-in-the-loop fidelity (live, documented below).** A flaky stablenet-knowledge proxy +
    the PR-77 oracle, to confirm the real analyzer agent honors §3.0b.
 
 ## Files
@@ -65,10 +65,10 @@ correctly *not* counted as a silent incomplete (those are optional refinements).
 ## Agent-in-the-loop (fidelity layer — live, not run here)
 
 The deterministic layer proves the *policy* is sound. To prove the *analyzer agent*
-follows §3.0b, inject faults into a live cks and measure root-cause accuracy against
+follows §3.0b, inject faults into a live stablenet-knowledge and measure root-cause accuracy against
 a known oracle:
 
-1. Front the cks MCP with a **flaky proxy** that drops/delays a configurable fraction
+1. Front the stablenet-knowledge MCP with a **flaky proxy** that drops/delays a configurable fraction
    of calls (and can target specific primitives, e.g. only `find_callers`).
 2. Run the analyzer alone on the **PR-77 fair-input ticket** (oracle:
    `anzeon.go:54 SetCurrentBlock`, see `bench/fixtures/pr77/` and `test-data/pr-77/`)

@@ -89,12 +89,12 @@
     },
     "cks_config": {
       "type": "object",
-      "description": "cks MCP server configuration for methods M2/M3/M4.",
+      "description": "stablenet-knowledge MCP server configuration for methods M2/M3/M4.",
       "additionalProperties": true,
       "properties": {
         "health_check": {
           "type": "boolean",
-          "description": "Abort run if cks health check fails (for methods that require cks).",
+          "description": "Abort run if stablenet-knowledge health check fails (for methods that require stablenet-knowledge).",
           "default": true
         }
       }

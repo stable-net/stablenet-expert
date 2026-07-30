@@ -8,8 +8,8 @@ a real symbol (that is a location error, already penalized by loc_f1).
 For each citation in the AI response, it is a hallucination if ANY holds:
   1. The cited file does not exist on disk.
   2. A symbol is given and it exists NOWHERE in the codebase. Existence is
-     checked via cks ``find_symbol`` (arg key ``name``, bare identifier; matches
-     under the ``citations`` key). If cks is unavailable, fall back to a
+     checked via stablenet-knowledge ``find_symbol`` (arg key ``name``, bare identifier; matches
+     under the ``citations`` key). If stablenet-knowledge is unavailable, fall back to a
      whole-repo ``grep -rnw`` over the build dirs and record ``cks_partial``.
   3. The line range is out of the cited file's actual bounds.
 
@@ -35,7 +35,7 @@ _IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 def _normalize_symbol(symbol: str) -> str:
     """Reduce a citation symbol to the bare identifier used in source.
 
-    AI/cks citations use logical ``receiver.Method`` / ``pkg.Func`` dotted
+    AI/stablenet-knowledge citations use logical ``receiver.Method`` / ``pkg.Func`` dotted
     forms (e.g. ``defaultSet.QuorumSize``, ``core.newRoundChangeTimer``) and
     may include pointer/receiver decoration or call parens. The Go source,
     however, only contains the bare identifier (``func (v *defaultSet)
@@ -139,12 +139,12 @@ _BUILD_DIRS = ["consensus", "core", "systemcontracts", "eth", "params", "cmd"]
 
 
 def _cks_symbol_exists(cks_tool: Callable, symbol: str) -> tuple:
-    """Return (exists_anywhere: bool, partial: bool) via cks find_symbol.
+    """Return (exists_anywhere: bool, partial: bool) via stablenet-knowledge find_symbol.
 
     Per the ticket's hallucination definition ("made up a nonexistent
     file/function name"), we only care whether the symbol EXISTS in the
     codebase at all — not whether it is in the cited file (that is a
-    location error, already captured by loc_f1). cks ``find_symbol`` expects
+    location error, already captured by loc_f1). stablenet-knowledge ``find_symbol`` expects
     the arg key ``name`` and a bare identifier, so the dotted citation symbol
     is normalized first. Matches are returned under the ``citations`` key.
     """
@@ -166,15 +166,15 @@ def _cks_symbol_exists(cks_tool: Callable, symbol: str) -> tuple:
             cites = []
         if cites:
             return True, False           # symbol exists somewhere → not fabricated
-        return False, False              # cks responded, symbol exists nowhere
+        return False, False              # stablenet-knowledge responded, symbol exists nowhere
     except Exception:
-        return False, True               # cks error → partial, fall back to grep
+        return False, True               # stablenet-knowledge error → partial, fall back to grep
 
 
 def _grep_repo(symbol: str, go_stablenet_root: str) -> bool:
     """Best-effort whole-repo existence check for the bare identifier.
 
-    Used only when cks is unavailable (partial). Searches the build source
+    Used only when stablenet-knowledge is unavailable (partial). Searches the build source
     dirs for the normalized identifier as a whole word.
     """
     name = _normalize_symbol(symbol)
@@ -195,9 +195,9 @@ def _grep_repo(symbol: str, go_stablenet_root: str) -> bool:
 
 
 def _is_domain_doc(cite_file: str, corpus_root: str) -> bool:
-    """True if the cited file is a cks domain-knowledge corpus document.
+    """True if the cited file is a stablenet-knowledge domain-knowledge corpus document.
 
-    The cks context injects domain-knowledge entries (e.g.
+    The stablenet-knowledge context injects domain-knowledge entries (e.g.
     ``A1.wbft_core.quorum_calc.md``); a model citing one is referencing the
     knowledge source it drew a fact from, not fabricating code. Those files
     are absent from the go-stablenet tree by design, so verify them against
@@ -223,7 +223,7 @@ def _verify_citation(
 
     # Check 1: file exists on disk
     if not os.path.isfile(abs_path):
-        # A citation to a cks domain-knowledge document is a knowledge-source
+        # A citation to a stablenet-knowledge domain-knowledge document is a knowledge-source
         # reference, not fabricated code — it is not in the go-stablenet tree
         # by design. Verify it against the corpus before flagging. A wrong doc
         # still forfeits location credit (loc_f1); it is just not a fabrication.
@@ -231,7 +231,7 @@ def _verify_citation(
             return CitationVerdict(
                 citation=citation,
                 is_hallucination=False,
-                reason="cks domain-knowledge doc (not code)",
+                reason="stablenet-knowledge domain-knowledge doc (not code)",
             )
         return CitationVerdict(
             citation=citation,
@@ -252,38 +252,38 @@ def _verify_citation(
         if cks_tool is not None:
             exists, partial = _cks_symbol_exists(cks_tool, citation.symbol)
             if exists:
-                cks_partial = False                       # cks verified it exists
+                cks_partial = False                       # stablenet-knowledge verified it exists
             elif partial:
-                # cks unavailable → whole-repo grep fallback (cited file + rest)
+                # stablenet-knowledge unavailable → whole-repo grep fallback (cited file + rest)
                 cks_partial = True
                 if not (_grep_symbol(citation.symbol, abs_path) or _grep_repo(citation.symbol, go_stablenet_root)):
                     return CitationVerdict(
                         citation=citation,
                         is_hallucination=True,
-                        reason=f"symbol '{name}' not found in repo (grep fallback; cks unavailable)",
+                        reason=f"symbol '{name}' not found in repo (grep fallback; stablenet-knowledge unavailable)",
                         cks_partial=True,
                     )
             else:
-                # cks responded empty. cks may not index every language (e.g.
+                # stablenet-knowledge responded empty. stablenet-knowledge may not index every language (e.g.
                 # Solidity) — cross-check with a whole-repo grep before calling
                 # it a fabrication. Only flag if grep ALSO finds nothing.
                 if _grep_repo(citation.symbol, go_stablenet_root):
-                    cks_partial = False  # exists (cks missed it, grep found it)
+                    cks_partial = False  # exists (stablenet-knowledge missed it, grep found it)
                 else:
                     return CitationVerdict(
                         citation=citation,
                         is_hallucination=True,
-                        reason=f"symbol '{name}' does not exist anywhere in the codebase (cks + grep)",
+                        reason=f"symbol '{name}' does not exist anywhere in the codebase (stablenet-knowledge + grep)",
                         cks_partial=False,
                     )
         else:
-            # No cks — whole-repo grep existence check
+            # No stablenet-knowledge — whole-repo grep existence check
             cks_partial = True
             if not (_grep_symbol(citation.symbol, abs_path) or _grep_repo(citation.symbol, go_stablenet_root)):
                 return CitationVerdict(
                     citation=citation,
                     is_hallucination=True,
-                    reason=f"symbol '{name}' not found in repo (grep; cks unavailable)",
+                    reason=f"symbol '{name}' not found in repo (grep; stablenet-knowledge unavailable)",
                     cks_partial=True,
                 )
 
@@ -307,8 +307,8 @@ def score_hallucination(
     ----------
     citations : list of Citation from the parsed AI response
     go_stablenet_root : absolute path to the go-stablenet repo
-    cks_tool : optional cks dispatcher callable
-    domain_corpus_root : optional path to the cks domain-knowledge corpus;
+    cks_tool : optional stablenet-knowledge dispatcher callable
+    domain_corpus_root : optional path to the stablenet-knowledge domain-knowledge corpus;
         citations to a corpus doc (not in the go-stablenet tree) are
         knowledge-source references, not fabricated code.
     """

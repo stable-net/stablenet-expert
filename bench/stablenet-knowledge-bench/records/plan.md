@@ -15,7 +15,7 @@ No go-stablenet production code is modified. All paths below are relative to rep
   `sha_pin`, `difficulty`, `invariant_refs`, `language`, `bucket`, `expected_keywords`.
 - Composition: 10 from cks-eval (SN01–SN10) + 11 RI-1..RI-11 invariant probes + 6 hotspot probes + 3 cherry-pick boundary probes.
 - Dependencies: [Step 1]
-- Verification: `validate_golden.py` resolves every entry via cks `find_symbol` against indexed_head and asserts file+overlap; 30/30 must pass.
+- Verification: `validate_golden.py` resolves every entry via stablenet-knowledge `find_symbol` against indexed_head and asserts file+overlap; 30/30 must pass.
 
 ## Step 3: AI Driver protocol + 2 impls
 - New files: `drivers/{__init__.py, base.py, claude_cli.py, replay.py}`
@@ -29,7 +29,7 @@ No go-stablenet production code is modified. All paths below are relative to rep
 - M1: full file contents from anchors (+1 sibling). M2: `get_subgraph(depth=2,max_total=2000)` over 4 root pkgs.
   M3: multi-turn tool-broker loop (max_turns=8). M4: single `get_for_task(query)` → EvidencePack.
 - Dependencies: [Step 3]
-- Verification: each method run against G01 returns a structured response + non-zero input-token count; M2/M3/M4 require live cks (cks-health precheck).
+- Verification: each method run against G01 returns a structured response + non-zero input-token count; M2/M3/M4 require live stablenet-knowledge (stablenet-knowledge-health precheck).
 
 ## Step 5: Structured-response envelope + extractor
 - New files: `io/{envelope.py, extract.py}`
@@ -39,8 +39,8 @@ No go-stablenet production code is modified. All paths below are relative to rep
 
 ## Step 6: Four metric scorers
 - New files: `scorers/{location.py, correctness.py, hallucination.py, info_volume.py}`
-- location: P/R/F1 overlap matcher ported from cks `internal/eval/metrics.go`.
-  correctness: recall≥threshold AND keyword check. hallucination: per-citation cks `find_symbol` + disk fallback.
+- location: P/R/F1 overlap matcher ported from stablenet-knowledge `internal/eval/metrics.go`.
+  correctness: recall≥threshold AND keyword check. hallucination: per-citation stablenet-knowledge `find_symbol` + disk fallback.
   info_volume: input tokens per cell.
 - Dependencies: [Step 5]
 - Verification: `test_scorers.py` — synthetic responses incl. a fabricated `nonexistent_function` citation scoring as 1 hallucination.
@@ -74,13 +74,13 @@ No go-stablenet production code is modified. All paths below are relative to rep
 
 ## Verification Plan
 - Unit tests per step (stdlib `unittest`). Integration: 2-question × 4-method replay run (deterministic, CI).
-- Live smoke: 1-question × 4-method `claude_cli` run + cks-health precheck (manual, gated on indexed_head==HEAD).
+- Live smoke: 1-question × 4-method `claude_cli` run + stablenet-knowledge-health precheck (manual, gated on indexed_head==HEAD).
 - `go build` / `go test -race` / ChainBench: **not applicable** — no Go production changes (record skip explicitly per RI-13).
 - AC mapping: AC#1→Step 9; AC#2→Step 8; AC#3→Step 8 delta table; AC#4→Step 9 rerun + Step 2 drift re-resolution.
 
 ## Risks
 - Live AI cost: 120 LLM calls/full run → replay driver for CI; live run opt-in via `--driver claude_cli`; M3 max_turns bounded.
-- cks-mcp availability for M2/M3/M4: precheck via `cks.ops.health`; abort cell cleanly on backend down.
+- stablenet-knowledge-mcp availability for M2/M3/M4: precheck via `cks.ops.health`; abort cell cleanly on backend down.
 - Golden-set drift: `validate_golden.py` fails fast before any benchmark run.
 - Method 2 prompt size: `max_total=2000`/seed + 100k-token ceiling; oversize → cell failed.
-- Hallucination scoring depends on cks correctness: fall back to disk `exists()` + `grep -n` when find_symbol empty; record both signals.
+- Hallucination scoring depends on stablenet-knowledge correctness: fall back to disk `exists()` + `grep -n` when find_symbol empty; record both signals.

@@ -1,0 +1,61 @@
+{
+  "_doc": "Domain pack for go-stablenet — the reference instance of the domain-pack contract (ADR docs/adr/ADR-0001-domain-pack-contract.md). Phase 2a wires identity + invariants + context_classifier into the agents. Phase 2b (this) promotes the former `_phase2` block to the live `verification` contract: the Evaluator sources repo root + build/test commands from here. The stage LOOP (verification.stages) is data-driven in Phase 2b-β. Resolved at runtime via the generic `domain-pack` loader skill keyed by state.project_id.",
+  "project_id": "go-stablenet",
+  "ticket_namespace": "STABLE",
+  "detect": {
+    "_doc": "Runtime routing: scripts/resolve-project.py matches these INTRINSIC repo signals (git remote origin URL + go.mod module path — nothing planted in the target repo) to auto-select this pack when a session runs in a matching clone. Patterns are regex (substring on regex error). Adding a new project = a new domains/<id>/ with its own detect — no code change. No match anywhere = unknown/BLOCKED, never a silent default.",
+    "git_remote": ["go-stablenet"],
+    "go_module": ["go-stablenet"],
+    "priority": 10
+  },
+  "knowledge": {
+    "stablenet_knowledge_config_env": "STABLENET_KNOWLEDGE_CONFIG",
+    "_note": "domain knowledge lives in this project's stablenet-knowledge index (guidance.* / policy/stablenet.yaml / domain entries); the pack carries only the search-independent backstop + path classifier"
+  },
+  "invariants": "invariants.md",
+  "context_classifier": "context.md",
+  "simulation": "simulation.md",
+  "tools": {
+    "_doc": "Project-specific runtime scripts shipped under domains/<id>/tools/ and run via {runner} ${CLAUDE_PLUGIN_ROOT}/domains/<id>/tools/<path>. Skills/commands stay project-agnostic: they resolve the active pack (resolve-project.py) then invoke these by id. `when` is advisory routing (which stage may call it). The interpreter is invoked directly (python3/bash), so no exec bit is required.",
+    "entries": [
+      {
+        "id": "preflight",
+        "path": "preflight.sh",
+        "runner": "bash",
+        "when": "before-build",
+        "desc": "Verify the build toolchain for this project is present (go, make, and the pack's binary_cmd target) before the Implementer/Evaluator build — fail early with a clear message instead of deep in a build."
+      }
+    ]
+  },
+
+  "verification": {
+    "_doc": "Build/test contract the Evaluator consumes (Phase 2b). Commands are run in repo_root; templates use {pkgs}/{cover_out} placeholders the Evaluator fills. `stages` drives the §3 loop (kind: builtin:* | mcp:*) — data-driven dispatch lands in Phase 2b-β. NOTE: a stage's MCP tool (e.g. chainbench) must still be granted in the Evaluator frontmatter — MCP grants are static (not pack-driven).",
+    "repo_root_env": "GO_STABLENET_ROOT",
+    "build": {
+      "_doc": "binary_cmd builds the node binary the chain runs (via the project Makefile), at `artifact`. cmd is a compile-all sanity gate only.",
+      "cmd": "go build ./...",
+      "binary_cmd": "make gstable",
+      "artifact": "build/bin/gstable"
+    },
+    "unit_test": {
+      "runner": "go",
+      "_scope_doc": "focused_tmpl is the per-bug-cycle default (Evaluator §4.2): it runs ONLY the test functions the fix itself added/changed (go test -run, fast — NOT whole changed-package suites, which can run tens of minutes for heavy trees like miner/core). SPEED: the per-cycle templates (focused_tmpl / focused_race_tmpl / focused_coverage_tmpl) carry `-short` so tests honouring testing.Short() skip their slow paths on the fast per-cycle gate. The FINAL regression gate is deliberately NOT `-short` (must exercise slow paths). For an e2e-tier bug the acceptance oracle is the chainbench repro (§7.5c), not a unit suite; for a simulation-tier bug the reproduction unit test is among the fix's own tests. affected_tmpl runs ONCE as the final regression gate (Evaluator §8.0) over the change's AFFECTED CLOSURE — changed packages plus their reverse-dependency importers — only when every other gate is green; NOT `-short`. single_tmpl is the reproduction-oracle runner and is deliberately NOT `-short` (the acceptance oracle must always run in full). targeted_tmpl (whole changed packages) is available but is NOT the per-cycle default; full (whole-repo ./...) is manual only (a ./... run wastes time on packages the fix cannot affect, e.g. a pre-existing accounts/abi/bind 600s timeout, core ~7min).",
+      "full": "go test ./... -count=1 -timeout=600s",
+      "targeted_tmpl": "go test {pkgs} -count=1 -timeout=300s",
+      "affected_tmpl": "go test {pkgs} -count=1 -timeout=420s",
+      "coverage_tmpl": "go test {pkgs} -coverprofile={cover_out} -covermode=atomic",
+      "cover_report_tmpl": "go tool cover -func={cover_out}",
+      "race_tmpl": "go test -race {pkgs} -count=1 -timeout=300s",
+      "focused_tmpl": "go test -short -run '{names}' {pkgs} -count=1 -timeout=300s",
+      "focused_coverage_tmpl": "go test -short -run '{names}' {pkgs} -coverprofile={cover_out} -covermode=atomic",
+      "focused_race_tmpl": "go test -short -race -run '{names}' {pkgs} -count=1 -timeout=300s",
+      "single_tmpl": "go test -run '{name}' ./{pkg}/..."
+    },
+    "stages": [
+      { "id": "unit",  "kind": "builtin:unit_race" },
+      { "id": "lint",  "kind": "builtin:lint" },
+      { "id": "sec",   "kind": "builtin:gosec" },
+      { "id": "integ", "kind": "mcp:chainbench", "profile": "default", "oracle_enum": ["basic/tx-send", "basic/consensus"], "run_when": "prod_go_changed", "_run_when_doc": "Evaluator skips this stage when the diff has no non-test .go change (docs/test/tooling-only) — the node binary behavior is unchanged, so integration e2e is not informative. Override is forced when an e2e reproduction oracle needs a running chain. Omit run_when to always run." }
+    ]
+  }
+}

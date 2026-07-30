@@ -1,6 +1,6 @@
 """m2_graph_full.py — Method 2: full graph dump via get_subgraph.
 
-Context strategy: call cks ``get_subgraph(symbol=<root_pkg>, depth=2,
+Context strategy: call stablenet-knowledge ``get_subgraph(symbol=<root_pkg>, depth=2,
 max_total=2000)`` for each of the four canonical root packages, then
 serialize the resulting subgraphs compactly and inject them as context.
 
@@ -10,10 +10,10 @@ Root packages (hard-coded, matching related-code.json):
   - core/txpool
   - core/types
 
-Token budget: max_total=2000 nodes per seed (cks enforces); if the
+Token budget: max_total=2000 nodes per seed (stablenet-knowledge enforces); if the
 serialized context exceeds 100k chars, the cell is marked failed.
 
-cks dependency: required. If cks returns an error, the driver is called
+stablenet-knowledge dependency: required. If stablenet-knowledge returns an error, the driver is called
 with a synthetic empty context and cell is flagged cks_partial.
 """
 
@@ -43,7 +43,7 @@ _MAX_CONTEXT_CHARS = 300_000
 def _call_get_subgraph(
     cks_tool: Callable, symbol: str, depth: int = 2, max_total: int = 2000
 ) -> Dict[str, Any]:
-    """Call cks get_subgraph; return the result dict or an error dict."""
+    """Call stablenet-knowledge get_subgraph; return the result dict or an error dict."""
     try:
         result = cks_tool("get_subgraph", {
             "symbol": symbol,
@@ -95,7 +95,7 @@ class M2GraphFull:
             context_block += f"// --- SUBGRAPH: {pkg} ---\n{sg}\n\n"
 
         if cks_partial:
-            context_block += "// [WARNING: some subgraphs unavailable — cks returned error]\n"
+            context_block += "// [WARNING: some subgraphs unavailable — stablenet-knowledge returned error]\n"
 
         system_prompt = _SYSTEM_PROMPT_PREAMBLE.strip()
         user_prompt = (

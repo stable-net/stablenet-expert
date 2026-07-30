@@ -97,6 +97,7 @@ DEFAULT_PRICES: dict[str, ModelPrice] = {
     "claude-opus-4-7": ModelPrice(Decimal("15"), Decimal("75"), Decimal("18.75"), Decimal("1.50")),
     "claude-opus-4-8": ModelPrice(Decimal("15"), Decimal("75"), Decimal("18.75"), Decimal("1.50")),
     "claude-sonnet-4-6": ModelPrice(Decimal("3"), Decimal("15"), Decimal("3.75"), Decimal("0.30")),
+    "claude-sonnet-5": ModelPrice(Decimal("3"), Decimal("15"), Decimal("3.75"), Decimal("0.30")),
     "claude-haiku-4-5": ModelPrice(Decimal("1"), Decimal("5"), Decimal("1.25"), Decimal("0.10")),
 }
 

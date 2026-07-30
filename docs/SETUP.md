@@ -1,12 +1,12 @@
 # Setup Guide
 
 This document gets you from "I just cloned the repo" to "I can run
-`/stablenet-core-dev:work STABLE-1234` on go-stablenet". Follow the sections in
+`/core-dev:work STABLE-1234` on go-stablenet". Follow the sections in
 order; each one ends with a quick verification command so you know it worked.
 
 If something fails, skip to [§9 Troubleshooting](#9-troubleshooting).
 
-> **R1' architecture.** The stablenet-core-dev plugin is the orchestrator/consumer. It talks
+> **R1' architecture.** The core-dev plugin is the orchestrator/consumer. It talks
 > to three MCP servers: `jira-gateway` (in this repo), `stablenet-knowledge`
 > (code-knowledge-system, a sibling repo that composes ckv semantic + ckg graph
 > retrieval), and `chainbench` (a sibling repo, the deterministic test runner).
@@ -44,7 +44,7 @@ A note on optionality:
 
 ## 2. Clone the repositories
 
-stablenet-core-dev depends on two sibling repos resolved by path at runtime
+core-dev depends on two sibling repos resolved by path at runtime
 (not vendored): `code-knowledge-system` (stablenet-knowledge) and `chainbench`.
 
 ```bash
@@ -59,7 +59,7 @@ The stablenet-expert layout you should see:
 ```
 stablenet-expert/
 ├── plugins/
-│   └── stablenet-core-dev/  # Claude Code plugin (commands, agents, skills, hooks)
+│   └── core-dev/  # Claude Code plugin (commands, agents, skills, hooks)
 │       └── .mcp.json        # MCP server registration (jira-gateway, stablenet-knowledge, chainbench)
 ├── scripts/
 │   └── contract/
@@ -67,12 +67,12 @@ stablenet-expert/
 │       └── lint-tool-names.sh      # drift gate: prompt tool names must be in the schema
 ├── packages/
 │   ├── jira-gateway-mcp/    # Sensitive-filter proxy in front of Jira REST API
-│   └── shared-patterns/
+│   └── sensitive-guard/
 │       └── patterns.json    # Sensitive-information policy (jira-gateway)
 └── docs/                    # Specs and plans
 ```
 
-The stablenet-knowledge shim that used to live at `packages/cks-mcp/` is gone —
+The stablenet-knowledge shim that used to live at `packages/stablenet-knowledge-mcp/` is gone —
 stablenet-knowledge is the sibling `code-knowledge-system` repo now.
 
 ---
@@ -117,7 +117,7 @@ directly) execs `${CHAINBENCH_DIR}/mcp-server/dist/index.js`.
 ## 4. Configure environment variables
 
 The plugin reads its secrets and server locations from environment variables
-forwarded into the MCP servers via `plugins/stablenet-core-dev/.mcp.json`. Set them once in your
+forwarded into the MCP servers via `plugins/core-dev/.mcp.json`. Set them once in your
 shell profile so Claude Code's child processes inherit them.
 
 ### 4.1 Jira (required)
@@ -201,32 +201,32 @@ network with `profile: "default"` — `default.yaml` IS the go-stablenet
 
 ## 5. Install the plugin in Claude Code
 
-The plugin lives at `stablenet-expert/plugins/stablenet-core-dev/`. Point Claude Code
+The plugin lives at `stablenet-expert/plugins/core-dev/`. Point Claude Code
 at it via your user-level config, or add the `stablenet-expert` marketplace and
-install `stablenet-core-dev` from it.
+install `core-dev` from it.
 
 ### 5.1 Direct path install (recommended for local development)
 
 ```jsonc
 {
   "plugins": {
-    "stablenet-core-dev": {
-      "path": "/absolute/path/to/stablenet-expert/plugins/stablenet-core-dev"
+    "core-dev": {
+      "path": "/absolute/path/to/stablenet-expert/plugins/core-dev"
     }
   }
 }
 ```
 
-Claude Code's plugin loader discovers `plugins/stablenet-core-dev/.claude-plugin/plugin.json`,
-`plugins/stablenet-core-dev/commands/*.md`, `plugins/stablenet-core-dev/agents/*.md`,
-`plugins/stablenet-core-dev/skills/{name}/SKILL.md`,
-`plugins/stablenet-core-dev/hooks/hooks.json`, and `plugins/stablenet-core-dev/.mcp.json`.
+Claude Code's plugin loader discovers `plugins/core-dev/.claude-plugin/plugin.json`,
+`plugins/core-dev/commands/*.md`, `plugins/core-dev/agents/*.md`,
+`plugins/core-dev/skills/{name}/SKILL.md`,
+`plugins/core-dev/hooks/hooks.json`, and `plugins/core-dev/.mcp.json`.
 
 ### 5.2 Verify Claude Code picks it up
 
-Restart Claude Code and run `/help`; you should see `/stablenet-core-dev:work`,
-`/stablenet-core-dev:analyze`, `/stablenet-core-dev:review`, `/stablenet-core-dev:status`,
-`/stablenet-core-dev:merge`.
+Restart Claude Code and run `/help`; you should see `/core-dev:work`,
+`/core-dev:analyze`, `/core-dev:review`, `/core-dev:status`,
+`/core-dev:merge`.
 
 Open the MCP status panel; **`jira-gateway`, `stablenet-knowledge`, and `chainbench`** should
 all show as connected. If a server fails to start, check the launching
@@ -309,7 +309,7 @@ EOF
 Then in Claude Code:
 
 ```
-/stablenet-core-dev:work TEST-1 --local /tmp/test-ticket.json
+/core-dev:work TEST-1 --local /tmp/test-ticket.json
 ```
 
 You should see the Orchestrator pick up `TEST-1`, the Planner produce an
@@ -318,12 +318,12 @@ modify (or when it asks you to confirm).
 
 ### 7.1b Free-text autonomous entry — `/analyze` (no Jira)
 
-`/stablenet-core-dev:analyze` runs the same planner→implementer→evaluator pipeline from a
+`/core-dev:analyze` runs the same planner→implementer→evaluator pipeline from a
 plain requirement string — no Jira ticket, no `--local` JSON. It synthesizes a
 `ticket.json` internally and runs with `requirement_source: "local"`.
 
 ```
-/stablenet-core-dev:analyze "consensus Finalize 의 nil pointer 패닉을 graceful skip 으로 고쳐줘"
+/core-dev:analyze "consensus Finalize 의 nil pointer 패닉을 graceful skip 으로 고쳐줘"
 ```
 
 Autonomy (set automatically for `/analyze`; see state.config.autonomy):
@@ -331,11 +331,11 @@ Autonomy (set automatically for `/analyze`; see state.config.autonomy):
   branch/rebase conflicts, and design-revision/eval-cycle limits all auto-resolve
   (escalate → simplified retry → graceful `BLOCKED-summary.md`, never a silent halt).
 - **auto_merge=false (default)** — autonomy stops at PR creation; the squash-merge to
-  `main` stays the manual `/stablenet-core-dev:merge`. Pass `--auto-merge` to let the pipeline
+  `main` stays the manual `/core-dev:merge`. Pass `--auto-merge` to let the pipeline
   merge/tag/push autonomously — its §3 safety preconditions (APPROVED / CI green /
   MERGEABLE) and destructive-git guards are **never** bypassed.
 
-For hands-off tool use, run `/stablenet-core-dev:setup --autonomous` first: it registers a
+For hands-off tool use, run `/core-dev:setup --autonomous` first: it registers a
 granular `permissions.allow` covering the pipeline's whole write path (Write/Edit,
 go/make build, feature-branch git, `gh pr create`) plus a `permissions.deny` for
 secret files — merge/tag stay prompted, and the git-guard hook's deny rules still
@@ -349,8 +349,8 @@ that allowlist.
 ### 7.2 Status check
 
 ```
-/stablenet-core-dev:status
-/stablenet-core-dev:status TEST-1
+/core-dev:status
+/core-dev:status TEST-1
 ```
 
 ### 7.3 Cleanup
@@ -366,15 +366,15 @@ rm -rf .stablenet-expert/tickets/TEST-1_*
 Once the smoke test passes:
 
 1. Pick an actual Jira ticket. Try a small bugfix first.
-2. Run `/stablenet-core-dev:work STABLE-XXXX` without `--local`.
+2. Run `/core-dev:work STABLE-XXXX` without `--local`.
 3. Watch the Orchestrator advance through ANALYSIS → PLANNING → DESIGN →
    IMPLEMENTATION → EVALUATION. The Implementer builds the modified binary at
    `build/bin/gstable`; the Evaluator hands that path to chainbench.
 4. When the Evaluator reaches Stage 4 (ChainBench), it fails loudly if your
    chainbench MCP isn't wired up — a configuration problem, not a pipeline bug.
 5. After EVALUATION_PASS, the Orchestrator creates a PR.
-6. If reviewers leave comments, run `/stablenet-core-dev:review <PR-URL>`.
-7. When ready, run `/stablenet-core-dev:merge STABLE-XXXX` — the only command that
+6. If reviewers leave comments, run `/core-dev:review <PR-URL>`.
+7. When ready, run `/core-dev:merge STABLE-XXXX` — the only command that
    touches `main`; it refuses unless the PR is approved, checks are green, and
    it's mergeable.
 
@@ -402,7 +402,7 @@ Once the smoke test passes:
 
 The pipeline refuses to advance when an artifact is missing or incomplete (by
 design). The error lists the missing files. Fix the artifact (or delete a stale
-workspace) and re-run `/stablenet-core-dev:work`.
+workspace) and re-run `/core-dev:work`.
 
 ### 9.4 `cks.ops.health reports degraded`
 
@@ -414,7 +414,7 @@ retrieval quality is just lower until the embedder is back.
 
 The merge command checks: (1) PR approved, (2) all status checks succeeded,
 (3) GitHub reports `mergeable: MERGEABLE`. If CHANGES_REQUESTED, run
-`/stablenet-core-dev:review <PR-URL>`. If CONFLICTING, resolve on the branch and push.
+`/core-dev:review <PR-URL>`. If CONFLICTING, resolve on the branch and push.
 
 ### 9.6 `Evaluator Stage 4: ChainBench MCP interface mismatch`
 
@@ -427,13 +427,13 @@ detects the mismatch before running so it doesn't leak processes.
 
 ### 9.7 `jira-gateway: patterns.json not found`
 
-The jira-gateway filter engine looks for `packages/shared-patterns/patterns.json`
-via `PATTERNS_PATH`, then relative paths, then `./packages/shared-patterns/patterns.json`.
+The jira-gateway filter engine looks for `packages/sensitive-guard/patterns.json`
+via `PATTERNS_PATH`, then relative paths, then `./packages/sensitive-guard/patterns.json`.
 It fails closed (returns `BLOCKED`) rather than passing data unscanned. Set it
 explicitly:
 
 ```bash
-export PATTERNS_PATH="/absolute/path/to/stablenet-expert/packages/shared-patterns/patterns.json"
+export PATTERNS_PATH="/absolute/path/to/stablenet-expert/packages/sensitive-guard/patterns.json"
 ```
 
 stablenet-knowledge sanitization is separate — it is driven by `sanitize.rules_path` in
@@ -443,7 +443,7 @@ stablenet-knowledge sanitization is separate — it is driven by `sanitize.rules
 
 The hooks are best-effort logging; they never block the pipeline. If you don't
 see entries in `{workspace}/logs/impl.log`, check the hook scripts have the
-executable bit (`ls -l plugins/stablenet-core-dev/hooks/*.sh`) and that `${CLAUDE_PLUGIN_ROOT}`
+executable bit (`ls -l plugins/core-dev/hooks/*.sh`) and that `${CLAUDE_PLUGIN_ROOT}`
 resolves in your Claude Code build.
 
 ---
@@ -451,8 +451,6 @@ resolves in your Claude Code build.
 ## 10. What to look at next
 
 - `scripts/contract/agent-mcp.schema.json` — the C1 SSoT for every agent-facing tool
-- `docs/system-contract.md` — the keystone system contract (per-project refactor
-  specs/plans are archived under `docs/archive/r1-refactor/`)
 - `packages/jira-gateway-mcp/README.md` — jira-gateway server documentation
 - the sibling `code-knowledge-system` and `chainbench` repos — stablenet-knowledge and
   chainbench server documentation

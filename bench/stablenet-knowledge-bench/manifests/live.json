@@ -23,5 +23,5 @@
  "cks_config": {
   "health_check": false
  },
- "domain_corpus_root": "/Users/kevin/work/github/0xmhha/auto-coding/code-knowledge-system/generated/domain-corpus/go-stablenet/entries"
+ "domain_corpus_root": "../code-knowledge-system/generated/domain-corpus/go-stablenet/entries"
 }

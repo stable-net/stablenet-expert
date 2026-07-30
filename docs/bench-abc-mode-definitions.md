@@ -15,9 +15,9 @@
 | 기호 | 의미 | 머신별 실제값이 사는 곳 |
 |---|---|---|
 | `<coding-agent>` | coding-agent **플러그인** repo 루트 | 플러그인 설치 경로 |
-| `<target>` | **벤치 대상 코드베이스(go-stablenet)의 워킹트리.** cks가 인덱싱한 트리와 **반드시 동일**해야 함 | 매니페스트 `go_stablenet_root` (= cks `source_root`) |
+| `<target>` | **벤치 대상 코드베이스(go-stablenet)의 워킹트리.** stablenet-knowledge가 인덱싱한 트리와 **반드시 동일**해야 함 | 매니페스트 `go_stablenet_root` (= stablenet-knowledge `source_root`) |
 | `<target>/.claude/` | **대상 프로젝트 자신의** Claude Code 자산(commands + docs). `<coding-agent>` 플러그인과 **별개** | 대상 repo 안 |
-| cks | code-knowledge-system MCP (ckg 그래프 + ckv 벡터 조합 검색) | MCP 등록(설정) |
+| stablenet-knowledge | code-knowledge-system MCP (ckg 그래프 + ckv 벡터 조합 검색) | MCP 등록(설정) |
 
 > 핵심 구분: **`<coding-agent>`의 스킬**(예: `stablenet-context`, `root-cause-lifecycle`)과
 > **`<target>/.claude`의 스킬**(예: `stablenet-review-code` 커맨드, `wbft-consensus.md` 등 docs)은
@@ -27,11 +27,11 @@
 
 ## 1. 세 모드의 정의
 
-### A — coding-agent + cks  *(production regime)*
+### A — coding-agent + stablenet-knowledge  *(production regime)*
 - **무엇**: `<coding-agent>` 전체 파이프라인(analyzer → planner → implementer → evaluator + state machine)을
-  돌리되, 분석을 **cks**(semantic + graph + domain 검색)로 구동한다.
-- **정보원**: `<target>` 코드 + **cks 검색** + `<coding-agent>` 스킬/오케스트레이션.
-- **한 줄**: "우리 시스템(coding-agent)을 cks와 함께 풀로 쓴다." = 실제 `/work`와 동일한 운영 형태.
+  돌리되, 분석을 **stablenet-knowledge**(semantic + graph + domain 검색)로 구동한다.
+- **정보원**: `<target>` 코드 + **stablenet-knowledge 검색** + `<coding-agent>` 스킬/오케스트레이션.
+- **한 줄**: "우리 시스템(coding-agent)을 stablenet-knowledge와 함께 풀로 쓴다." = 실제 `/work`와 동일한 운영 형태.
 
 ### B — bare LLM + 코드 + grep  *(floor baseline)*
 - **무엇**: `<coding-agent>` 플러그인 ❌, `<target>/.claude` 프로젝트 스킬 ❌. **아무 스킬·오케스트레이션 없이**
@@ -40,10 +40,10 @@
 - **한 줄**: "맨몸 LLM이 코드와 grep만으로 푼다." = 비교의 바닥선.
 
 ### C — 프로젝트 네이티브 스킬만  *(project-shipped knowledge baseline)*
-- **무엇**: `<coding-agent>` 플러그인 ❌, cks ❌. 대신 **대상 프로젝트 자신의 `<target>/.claude` 스킬**
+- **무엇**: `<coding-agent>` 플러그인 ❌, stablenet-knowledge ❌. 대신 **대상 프로젝트 자신의 `<target>/.claude` 스킬**
   (commands + docs)만 사용하고 `<target>` 프로젝트 코드와 함께 티켓을 해결한다.
 - **정보원**: `<target>` 코드 + **`<target>/.claude`**(예: `stablenet-*` 커맨드, `wbft-consensus.md`·
-  `system-contract-flow.md`·`code-convention.md` 등 docs). cks·coding-agent 스킬은 **불가**.
+  `system-contract-flow.md`·`code-convention.md` 등 docs). stablenet-knowledge·coding-agent 스킬은 **불가**.
 - **한 줄**: "coding-agent 없이, 프로젝트가 자체 제공하는 지식만으로 푼다."
 
 ---
@@ -53,7 +53,7 @@
 | 축 | A | B | C |
 |---|---|---|---|
 | coding-agent 파이프라인 | ✅ 사용 | ❌ 미사용 | ❌ 미사용 |
-| cks 검색 | ✅ | ❌ | ❌ |
+| stablenet-knowledge 검색 | ✅ | ❌ | ❌ |
 | `<coding-agent>` 스킬 | ✅ | ❌ | ❌ |
 | `<target>/.claude` 프로젝트 스킬 | (간접; A는 coding-agent 경로) | ❌ | ✅ **유일 사용** |
 | `<target>` 코드 + grep/read | ✅ | ✅ | ✅ |
@@ -67,9 +67,9 @@
 ## 3. 공정성 규칙 (regime 누수 금지)
 
 1. **동일 입력**: 세 모드 모두 같은 **증상-only 티켓**(메커니즘·정확한 위치 비공개) + 같은 `base_commit` + 같은 모델.
-2. **A만 cks**: B·C는 cks MCP 도구에 접근 불가.
+2. **A만 stablenet-knowledge**: B·C는 stablenet-knowledge MCP 도구에 접근 불가.
 3. **B는 최소**: `<coding-agent>` 스킬도, `<target>/.claude`도 보지 못한다. 코드 + grep/read/edit/bash만.
-4. **C는 프로젝트 네이티브만**: `<coding-agent>` 스킬·cks 불가. `<target>/.claude` + 코드만.
+4. **C는 프로젝트 네이티브만**: `<coding-agent>` 스킬·stablenet-knowledge 불가. `<target>/.claude` + 코드만.
 5. **도구 부재로 보장**: "쓰지 마"라는 프롬프트 의존이 아니라, 해당 regime에서 **도구/스킬을 실제로 제공하지 않음**으로 격리.
 6. **동일 평가**: 정확성은 정답 오라클(재현 테스트 GREEN + `expert-fix.diff` 유사도)로 모드 불문 동일 측정.
 7. **누락 금지**: 실패한 모드도 리포트에 포함(정확성=실패로 집계).
@@ -88,7 +88,7 @@
 
 ## 5. 하네스 재설계 함의 (✅ 2026-06-22 구현 완료)
 
-> 아래 1~5는 모두 반영됨: `plugin/agents/bench-solver-{codeonly,project-skills}.md` 신설,
+> 아래 1~5는 모두 반영됨: `plugins/core-dev/agents/bench-solver-{codeonly,project-skills}.md` 신설,
 > `bench-orchestration/SKILL.md` §0 정의 교체 + §4.4 A/(B·C) 분기, `bench/manifests/stable-0005-abc.json`
 > 타깃루트 통일, 구식 `bench-analyzer-{codeonly,skills}.md` deprecation 배너. 모델 핀 `claude-opus-4-8`.
 
@@ -96,8 +96,8 @@
    분석만 하고 **공유 planner/implementer/evaluator**(= coding-agent)로 넘겼다. 새 정의에서 B·C는
    **coding-agent를 통째로 배제**하므로, 공유 하류 파이프라인을 쓰면 안 된다 → **whole-approach 실행체**로 교체.
 2. **C의 스킬 출처 변경**: 기존 C는 `<coding-agent>` 이해스킬을 썼다. 새 C는 **`<target>/.claude`** 를 써야 한다.
-3. **타깃 루트 통일**: 매니페스트 `go_stablenet_root` 가 cks `source_root` 와 **달랐다**(별도 클론 vs 인덱싱된 트리).
-   A의 cks 검색과 실제 수정 대상이 어긋나지 않도록 **둘을 동일 트리로 통일**(인덱싱된 트리 = 수정 트리).
+3. **타깃 루트 통일**: 매니페스트 `go_stablenet_root` 가 stablenet-knowledge `source_root` 와 **달랐다**(별도 클론 vs 인덱싱된 트리).
+   A의 stablenet-knowledge 검색과 실제 수정 대상이 어긋나지 않도록 **둘을 동일 트리로 통일**(인덱싱된 트리 = 수정 트리).
 4. **SKILL 프로토콜 §4.4 분기**: A는 현행 4-스테이지 디스패치, B·C는 단일 whole-approach 실행 + 동일 평가(evaluator는
    정확성 측정을 위해 공유하되 *해결 과정*에는 개입 금지 — 측정 전용)로 재작성.
 5. **모델 고정 유지**: 세 모드 동일 모델(비교는 regime만 격리).
@@ -116,6 +116,5 @@ opus-4-8 단독**이다. 즉 *구현 단계 모델*이 A(sonnet) vs B/C(opus)로
 
 ## 6. Supersede 기록
 
-- 이전 정의(`plugin/skills/bench-orchestration/SKILL.md` §0, `bench-analyzer-{codeonly,skills}.md`):
+- 이전 정의(`plugins/core-dev/skills/bench-orchestration/SKILL.md` §0, `bench-analyzer-{codeonly,skills}.md`):
   B/C가 coding-agent 파이프라인 *내부*의 분석-단계 변이였고 C=coding-agent 이해스킬. → **본 문서가 대체.**
-- 통합뷰 `WORKLIST.md` 스트림1의 A/B/C 표기도 본 정의에 맞춰 갱신 대상.

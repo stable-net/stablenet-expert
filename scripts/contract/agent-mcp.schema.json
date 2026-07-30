@@ -1,27 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/0xmhha/stablenet-expert/scripts/contract/agent-mcp.schema.json",
+  "$id": "https://github.com/stable-net/stablenet-expert/scripts/contract/agent-mcp.schema.json",
   "title": "R1' Agent-facing MCP Contract (C1 SSoT)",
-  "description": "Single source of truth for every tool the stablenet-core-dev plugin calls. Providers: stablenet-knowledge (our .mcp.json alias for the code-knowledge-system MCP; registered tools keep their cks_* names), chainbench, jira-gateway. ckv/ckg are dev-only and intentionally NOT in this contract. Each provider's conformance test validates its registered tools against this file; scripts/contract/lint-tool-names.sh asserts every mcp__server__tool reference in the agent/command prompts is a tool name listed here.",
-  "definitions": {
-    "Citation": {
-      "type": "object",
-      "properties": {
-        "file": { "type": "string" },
-        "start_line": { "type": "integer" },
-        "end_line": { "type": "integer" }
-      },
-      "required": ["file"]
-    },
-    "PRRef": {
-      "type": "object",
-      "properties": {
-        "number": { "type": "integer" },
-        "title": { "type": "string" },
-        "merged_at": { "type": "string" }
-      }
-    }
-  },
+  "description": "Single source of truth for every tool the core-dev plugin calls. Providers: stablenet-knowledge (our .mcp.json alias for the code-knowledge-system MCP; registered tools keep their cks_* names), chainbench, jira-gateway. ckv/ckg are dev-only and intentionally NOT in this contract. Each provider's conformance test validates its registered tools against this file; scripts/contract/lint-tool-names.sh asserts every mcp__server__tool reference in the agent/command prompts is a tool name listed here.",
   "providers": {
     "stablenet-knowledge": {
       "server": "stablenet-knowledge",
@@ -86,6 +67,26 @@
           "owner": "stablenet-knowledge",
           "description": "Per-package AST-convention summaries (codebase idioms: error handling, locking, naming) under a package prefix.",
           "input": { "properties": { "package_prefix": { "type": "string" } } }
+        },
+        "cks_context_find_branches": {
+          "owner": "stablenet-knowledge",
+          "description": "Map a free-text symptom to ranked when->then@at failure-condition candidates from the flow corpus. Natural-language entry point into flows -- use before get_flow when all you have is a symptom.",
+          "input": { "properties": { "symptom_text": { "type": "string" }, "k": { "type": "number" } }, "required": ["symptom_text"] }
+        },
+        "cks_context_get_flow": {
+          "owner": "stablenet-knowledge",
+          "description": "Curated flow as a topological step sequence (cycle-safe): symbol, citation, calls/reads/writes/emits, branches, invariants per step. Select by flow_id / entry_point / invariant_id -- curated IDs, not code symbols.",
+          "input": { "properties": { "flow_id": { "type": "string" }, "entry_point": { "type": "string" }, "invariant_id": { "type": "string" }, "max_steps": { "type": "number" } } }
+        },
+        "cks_context_expand_flow": {
+          "owner": "stablenet-knowledge",
+          "description": "Steps adjacent to a flow step: direction 'up' traverses producers, 'down' traverses consumers. Trace a value's produce->store->consume lifecycle one hop at a time when the whole flow is too large.",
+          "input": { "properties": { "step_id": { "type": "string" }, "direction": { "type": "string" }, "hops": { "type": "number" }, "limit": { "type": "number" } }, "required": ["step_id"] }
+        },
+        "cks_context_get_invariant_enforcement": {
+          "owner": "stablenet-knowledge",
+          "description": "Enumerate every site that enforces a curated invariant. Check a planned change against domain rules before implementing.",
+          "input": { "properties": { "inv_id": { "type": "string" }, "max": { "type": "number" } }, "required": ["inv_id"] }
         },
         "cks_ops_health": {
           "owner": "stablenet-knowledge",
@@ -253,7 +254,7 @@
         }
       }
     },
-    "jira": {
+    "jira-gateway": {
       "server": "jira-gateway",
       "namespace": "jira_",
       "tools": {

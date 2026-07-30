@@ -1,6 +1,6 @@
 {
   "experiment": "gsn-fullpipe-abc-phase3-modules",
-  "_comment": "Phase-3: 모듈 다양화 eval-set. 각 태스크는 실제 go-stablenet PR에 대응하며 base_commit=그 PR의 부모(버그가 실재하는 커밋), oracle=실제 fix. clean(base≈dev) 태스크를 앞에 두어 1차 실행 권장. drift/노이즈 태스크는 _note로 표기. ⚠️ cks 인덱스는 dev(c051d50b)에 빌드됨 — base_commit이 dev에서 멀수록 retrieval drift가 커지므로, 정밀 측정이 필요하면 해당 base_commit에 인덱스 재빌드 고려.",
+  "_comment": "Phase-3: 모듈 다양화 eval-set. 각 태스크는 실제 go-stablenet PR에 대응하며 base_commit=그 PR의 부모(버그가 실재하는 커밋), oracle=실제 fix. clean(base≈dev) 태스크를 앞에 두어 1차 실행 권장. drift/노이즈 태스크는 _note로 표기. ⚠️ stablenet-knowledge 인덱스는 dev(c051d50b)에 빌드됨 — base_commit이 dev에서 멀수록 retrieval drift가 커지므로, 정밀 측정이 필요하면 해당 base_commit에 인덱스 재빌드 고려.",
   "modes": [
     "A_stablenet_knowledge_mcp",
     "B_code_only",
@@ -26,7 +26,7 @@
         "chainbench_test": "basic/consensus"
       },
       "_pr": "#83",
-      "_quality": "clean (base≈dev, 2 files, Go↔Sol 경계 — cks 약점 변별)"
+      "_quality": "clean (base≈dev, 2 files, Go↔Sol 경계 — stablenet-knowledge 약점 변별)"
     },
     {
       "id": "STABLE-0005",

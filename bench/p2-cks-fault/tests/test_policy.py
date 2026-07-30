@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the P2 cks-fault harness.
+"""Tests for the P2 stablenet-knowledge-fault harness.
 
 Run:  python3 bench/p2-cks-fault/tests/test_policy.py
 """

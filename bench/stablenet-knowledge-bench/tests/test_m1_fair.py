@@ -9,7 +9,7 @@ Tests verify:
 5. Context block always contains the audit header comment.
 6. M1_fair is present in METHOD_REGISTRY.
 
-None of these tests require a live cks server or a live AI backend.
+None of these tests require a live stablenet-knowledge server or a live AI backend.
 """
 
 from __future__ import annotations

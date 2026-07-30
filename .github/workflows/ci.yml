@@ -1,6 +1,6 @@
 name: ci
 
-# O-3 (HANDOFF.md): the three deterministic gates that must stay green on main.
+# The three deterministic gates that must stay green on main.
 # All Python suites are stdlib `unittest` — no pip install, fully hermetic.
 
 on:
@@ -25,6 +25,9 @@ jobs:
         run: bash scripts/contract/lint-tool-names.sh
 
   # Python harness + plugin-script tests (stdlib unittest, no external deps).
+  # Discovers plugins/*/scripts/tests automatically — a new plugin's tests run
+  # without touching this file, and (unlike the old two-file allowlist) every
+  # test in the directory runs, not just the ones someone remembered to list.
   python-tests:
     runs-on: ubuntu-latest
     steps:
@@ -34,24 +37,30 @@ jobs:
           python-version: "3.12"
       - name: bench harness tests
         run: python -m unittest discover -s bench/tests -t .
-      - name: doctor + setup script tests
+      - name: plugin script tests
         run: |
-          python plugins/stablenet-core-dev/scripts/tests/test_doctor.py
-          python plugins/stablenet-core-dev/scripts/tests/test_setup.py
+          set -e
+          for d in plugins/*/scripts/tests; do
+            [ -d "$d" ] || continue
+            echo "=== $d ==="
+            python -m unittest discover -s "$d"
+          done
 
-  # jira-gateway-mcp Go binary: must build and pass its unit tests.
-  go-jira-gateway:
+  # Go packages under packages/ (jira-gateway-mcp today, more may join later —
+  # each must be a go.work member). Discovered by go.mod, not hardcoded by name.
+  go-packages:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/jira-gateway-mcp
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: packages/jira-gateway-mcp/go.mod
-          cache-dependency-path: packages/jira-gateway-mcp/go.sum
-      - name: build
-        run: go build ./...
-      - name: test
-        run: go test ./...
+          go-version-file: go.work
+          cache-dependency-path: packages/*/go.sum
+      - name: build + test each package
+        run: |
+          set -e
+          for gomod in packages/*/go.mod; do
+            dir="$(dirname "$gomod")"
+            echo "=== $dir ==="
+            (cd "$dir" && go build ./... && go test ./...)
+          done

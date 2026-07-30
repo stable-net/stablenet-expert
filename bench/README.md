@@ -20,7 +20,7 @@ grep?") with data: final-code correctness, tokens, cost, latency, safety.
 ## Two halves
 
 1. **Automation (plugin-native, in the Claude Code session).** The
-   `/stablenet-core-dev:bench` command + the `bench-orchestration` skill drive the
+   `/core-dev:bench` command + the `bench-orchestration` skill drive the
    experiment: for each (task, mode) cell they dispatch the mode's planner →
    shared implementer → shared evaluator, capture each sub-agent's I/O via the
    transcript hook, and checkpoint. It runs a **bounded batch per invocation**
@@ -34,9 +34,9 @@ grep?") with data: final-code correctness, tokens, cost, latency, safety.
 
 ```
 # new experiment (runs the first batch)
-/stablenet-core-dev:bench bench/manifests/example.json
+/core-dev:bench bench/manifests/example.json
 # continue (token-limit-aware)
-/stablenet-core-dev:bench <experiment-id> --continue
+/core-dev:bench <experiment-id> --continue
 ```
 
 The skill calls the measurement tool after each batch:

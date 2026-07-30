@@ -1,4 +1,4 @@
-module github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp
+module github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp
 
 go 1.25.0
 

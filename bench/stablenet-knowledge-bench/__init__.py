@@ -1,4 +1,4 @@
-# CKG Benchmark harness — measures whether the cks Code Knowledge Graph
+# CKG Benchmark harness — measures whether the stablenet-knowledge Code Knowledge Graph
 # improves AI code understanding across 4 context-provision methods.
 #
 # Package: .stablenet-expert/bench/stablenet-knowledge-bench

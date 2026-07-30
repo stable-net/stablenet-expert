@@ -10,11 +10,11 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/types"
+	"github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/types"
 )
 
-// resolvePatternsPath returns the path to packages/shared-patterns/patterns.json.
-// Resolution order: PATTERNS_PATH env > project-root probe > cwd/packages/shared-patterns.
+// resolvePatternsPath returns the path to packages/sensitive-guard/patterns.json.
+// Resolution order: PATTERNS_PATH env > project-root probe > cwd/packages/sensitive-guard.
 func resolvePatternsPath() (string, error) {
 	if env := os.Getenv("PATTERNS_PATH"); env != "" {
 		return filepath.Clean(env), nil
@@ -24,9 +24,9 @@ func resolvePatternsPath() (string, error) {
 	_, file, _, ok := runtime.Caller(0)
 	if ok {
 		// internal/filter → 4 levels up reaches stablenet-expert/
-		// stablenet-expert/packages/shared-patterns/patterns.json
+		// stablenet-expert/packages/sensitive-guard/patterns.json
 		candidate := filepath.Clean(
-			filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "packages", "shared-patterns", "patterns.json"),
+			filepath.Join(filepath.Dir(file), "..", "..", "..", "..", "packages", "sensitive-guard", "patterns.json"),
 		)
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate, nil
@@ -34,7 +34,7 @@ func resolvePatternsPath() (string, error) {
 	}
 
 	if cwd, err := os.Getwd(); err == nil {
-		candidate := filepath.Join(cwd, "packages", "shared-patterns", "patterns.json")
+		candidate := filepath.Join(cwd, "packages", "sensitive-guard", "patterns.json")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate, nil
 		}
@@ -138,7 +138,7 @@ func ResetCache() {
 	cacheErr = nil
 }
 
-// Load reads patterns from shared/patterns.json + optional custom overrides,
+// Load reads patterns from packages/sensitive-guard/patterns.json + optional custom overrides,
 // compiles regex patterns once, and caches the result.
 func Load() (*LoadedPatterns, error) {
 	cacheMu.Lock()

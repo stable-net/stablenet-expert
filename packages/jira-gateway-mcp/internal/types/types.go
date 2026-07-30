@@ -57,7 +57,7 @@ type PatternsConfig struct {
 	MaxScanSizeBytes  int    `json:"max_scan_size_bytes"`
 }
 
-// PatternsFile is the root JSON document loaded from shared/patterns.json.
+// PatternsFile is the root JSON document loaded from packages/sensitive-guard/patterns.json.
 type PatternsFile struct {
 	Version  string         `json:"version"`
 	Patterns []Pattern      `json:"patterns"`

@@ -6,7 +6,7 @@ same directory. This provides dense, exact context without any graph
 traversal — the baseline for comparison.
 
 Token budget: no hard cap; large files are included in full.
-cks dependency: none (pure disk I/O).
+stablenet-knowledge dependency: none (pure disk I/O).
 """
 
 from __future__ import annotations

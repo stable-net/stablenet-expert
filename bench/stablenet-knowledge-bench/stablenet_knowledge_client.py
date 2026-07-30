@@ -1,11 +1,11 @@
-"""stablenet_knowledge_client.py — MCP **HTTP** client for the Code Knowledge System (cks).
+"""stablenet_knowledge_client.py — MCP **HTTP** client for the Code Knowledge System (stablenet-knowledge).
 
-Connects to a running cks-mcp Streamable-HTTP server (started out of band, e.g.
+Connects to a running stablenet-knowledge-mcp Streamable-HTTP server (started out of band, e.g.
 by code-knowledge-system/scripts/serve-cks-http.sh) and exposes a single
 callable matching the ``cks_tool(tool_name, args_dict) -> dict`` contract that
 methods/scorers expect.
 
-Why HTTP (not a spawned stdio subprocess): the bench MUST measure the SAME cks
+Why HTTP (not a spawned stdio subprocess): the bench MUST measure the SAME stablenet-knowledge
 instance/index that everything else uses. Spawning a private stdio subprocess
 with its own config risked pointing the bench at a different dataset than the
 live server — silently contaminating results. Connecting by URL to the one
@@ -68,12 +68,12 @@ _DEFAULT_TIMEOUT = 30  # seconds per tool call
 
 
 class StablenetKnowledgeClient:
-    """MCP Streamable-HTTP client for a running cks-mcp server.
+    """MCP Streamable-HTTP client for a running stablenet-knowledge-mcp server.
 
     Parameters
     ----------
     url : str
-        The cks-mcp MCP endpoint, e.g. ``http://127.0.0.1:8080/mcp``.
+        The stablenet-knowledge-mcp MCP endpoint, e.g. ``http://127.0.0.1:8080/mcp``.
     timeout : int
         Per-call timeout in seconds. Default 30.
     """
@@ -118,7 +118,7 @@ class StablenetKnowledgeClient:
         })
         if "error" in init:
             # Leave _connected False; __call__ will report the connection error.
-            print(f"cks: connect failed at {self._url}: {init['error']}", file=sys.stderr)
+            print(f"stablenet-knowledge: connect failed at {self._url}: {init['error']}", file=sys.stderr)
             return
         # notifications/initialized carries no id and expects no body.
         self._post({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
@@ -131,7 +131,7 @@ class StablenetKnowledgeClient:
             self.identity = health
             ckv = (health.get("backends") or {}).get("ckv") or {}
             print(
-                "cks: connected {url} name={name} indexed_head={head} "
+                "stablenet-knowledge: connected {url} name={name} indexed_head={head} "
                 "model={model} serviceable={svc}".format(
                     url=self._url,
                     name=health.get("name", "?"),
@@ -166,15 +166,15 @@ class StablenetKnowledgeClient:
                     self._session_id = sid
                 body = resp.read().decode("utf-8", errors="replace")
         except urllib.error.URLError as exc:
-            return {"error": f"cks HTTP error: {exc}"}
+            return {"error": f"stablenet-knowledge HTTP error: {exc}"}
         except Exception as exc:  # noqa: BLE001 — never raise to callers
-            return {"error": f"cks request error: {exc}"}
+            return {"error": f"stablenet-knowledge request error: {exc}"}
 
         if not expect_result:
             return {}
         obj = _first_jsonrpc_object(body)
         if obj is None:
-            return {"error": "cks returned no JSON-RPC object", "raw": body[:200]}
+            return {"error": "stablenet-knowledge returned no JSON-RPC object", "raw": body[:200]}
         return obj
 
     def _call(self, full_tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
@@ -188,8 +188,8 @@ class StablenetKnowledgeClient:
         if "error" in resp and "result" not in resp:
             err = resp["error"]
             if isinstance(err, dict):
-                return {"error": f"cks RPC error: {err.get('message', err)}"}
-            return {"error": str(err) if not str(err).startswith("cks ") else err}
+                return {"error": f"stablenet-knowledge RPC error: {err.get('message', err)}"}
+            return {"error": str(err) if not str(err).startswith("stablenet-knowledge ") else err}
 
         result = resp.get("result", {})
         structured = result.get("structuredContent")
@@ -202,24 +202,24 @@ class StablenetKnowledgeClient:
                 return json.loads(text)
             except (json.JSONDecodeError, TypeError):
                 return {"text": text}
-        return {"error": "cks returned no content"}
+        return {"error": "stablenet-knowledge returned no content"}
 
     # ------------------------------------------------------------------
     # Public callable interface
     # ------------------------------------------------------------------
 
     def __call__(self, tool_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
-        """Call a cks tool by short or full name. Never raises."""
+        """Call a stablenet-knowledge tool by short or full name. Never raises."""
         full_name = _TOOL_NAME_MAP.get(tool_name)
         if full_name is None:
-            return {"error": f"unknown cks tool: {tool_name!r}"}
+            return {"error": f"unknown stablenet-knowledge tool: {tool_name!r}"}
         if not self._connected:
-            return {"error": "cks not connected"}
+            return {"error": "stablenet-knowledge not connected"}
         with self._lock:
             try:
                 return self._call(full_name, args)
             except Exception as exc:  # noqa: BLE001
-                return {"error": f"cks client unexpected error: {exc}"}
+                return {"error": f"stablenet-knowledge client unexpected error: {exc}"}
 
 
 def _first_jsonrpc_object(body: str) -> Optional[Dict[str, Any]]:

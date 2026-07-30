@@ -1,7 +1,7 @@
 # jira-gateway-mcp
 
 Jira Gateway MCP server (Go) with sensitive information filtering for the
-`stablenet-core-dev` plugin (part of the `stablenet-expert` marketplace).
+`core-dev` plugin (part of the `stablenet-expert` marketplace).
 
 This server is a thin proxy between the LLM agent and Jira Cloud REST API v3.
 It applies pattern-based and entropy-based sensitive information filtering on
@@ -78,7 +78,7 @@ export JIRA_USER_EMAIL=...
 ```
 
 The server speaks the MCP protocol over stdio; it is intended to be launched
-by Claude Code via the plugin's `plugin/.mcp.json` registration rather than
+by Claude Code via the plugin's `.mcp.json` registration rather than
 run interactively.
 
 ## Environment variables
@@ -88,5 +88,5 @@ run interactively.
 | `JIRA_BASE_URL` | ✓ | Jira Cloud base URL (no trailing slash) |
 | `JIRA_API_TOKEN` | ✓ | Jira API token |
 | `JIRA_USER_EMAIL` | ✓ | Email associated with the token |
-| `PATTERNS_PATH` | | Path to `packages/shared-patterns/patterns.json` (auto-detected otherwise) |
+| `PATTERNS_PATH` | | Path to `packages/sensitive-guard/patterns.json` (auto-detected otherwise) |
 | `CUSTOM_PATTERNS_PATH` | | Path to override pattern file |

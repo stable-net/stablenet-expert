@@ -3,7 +3,7 @@ package filter
 import (
 	"testing"
 
-	"github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/types"
+	"github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/types"
 )
 
 var highEntropyPattern = types.Pattern{

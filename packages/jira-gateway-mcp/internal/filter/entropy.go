@@ -5,7 +5,7 @@ import (
 	"math"
 	"regexp"
 
-	"github.com/0xmhha/stablenet-expert/packages/jira-gateway-mcp/internal/types"
+	"github.com/stable-net/stablenet-expert/packages/jira-gateway-mcp/internal/types"
 )
 
 // shannonEntropy returns the Shannon entropy of s in bits per character.

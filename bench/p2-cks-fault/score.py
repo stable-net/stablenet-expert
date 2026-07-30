@@ -3,7 +3,7 @@
 
 Runs the fault corpus through the before-P2 and after-P2 retrieval policies and
 reports the property that matters: **silent-incomplete runs** (proceeding CLEAN
-while core cks evidence is actually missing). P2 must drive that to zero without
+while core stablenet-knowledge evidence is actually missing). P2 must drive that to zero without
 over-blocking the runs a retry can recover.
 
     python3 bench/p2-cks-fault/score.py [--json]
@@ -61,7 +61,7 @@ def run() -> dict:
 
 def to_markdown(result: dict) -> str:
     s = result["summary"]
-    lines = ["# P2 cks-fault corpus — before vs after retrieval policy", "",
+    lines = ["# P2 stablenet-knowledge-fault corpus — before vs after retrieval policy", "",
              f"- scenarios: **{s['scenarios']}**",
              f"- silent-incomplete (CLEAN while core evidence missing): "
              f"**before {s['before_silent_incomplete']} → after {s['after_silent_incomplete']}**",
@@ -79,7 +79,7 @@ def to_markdown(result: dict) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="P2 cks-fault deterministic scorer")
+    ap = argparse.ArgumentParser(description="P2 stablenet-knowledge-fault deterministic scorer")
     ap.add_argument("--out", default=str(HERE / "report"))
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)

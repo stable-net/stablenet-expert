@@ -42,6 +42,10 @@ echo "P3 — single-source model pins"
 run "P3 model-pins check (no drift)"                       python3 bench/model-pins/check.py
 run "P3 model-pins tests"                                  python3 bench/model-pins/tests/test_check.py
 echo
+echo "P6 — single-source MCP tool-name namespace"
+run "P6 mcp-namespace check (no drift)"                    python3 scripts/contract/sync-mcp-namespace.py
+run "P6 mcp-namespace tests"                               python3 scripts/contract/tests/test_sync_mcp_namespace.py
+echo
 echo "P5 — scoped evaluator cleanup"
 run "P5 cleanup-scope verify (foreign survives)"           bash bench/p5-cleanup-scope/verify.sh
 echo

@@ -1,6 +1,6 @@
 ---
 name: implementer
-model: claude-sonnet-4-6
+model: claude-sonnet-5
 description: |
   Code implementation from plan + design documents. Branch isolation,
   per-step split commits, checkpoint recovery, and a single make-based binary

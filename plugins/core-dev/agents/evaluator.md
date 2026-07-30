@@ -1,6 +1,6 @@
 ---
 name: evaluator
-model: claude-sonnet-4-6
+model: claude-sonnet-5
 description: |
   4-stage verification pipeline for go-stablenet implementation branches:
   unit test (+ -race), lint & format, security scan, ChainBench integration.
@@ -10,14 +10,7 @@ tools:
   - Write
   - Edit
   - Bash
-  - mcp__plugin_core-dev_chainbench__chainbench_init
-  - mcp__plugin_core-dev_chainbench__chainbench_start
-  - mcp__plugin_core-dev_chainbench__chainbench_status
-  - mcp__plugin_core-dev_chainbench__chainbench_test_run
-  - mcp__plugin_core-dev_chainbench__chainbench_report
-  - mcp__plugin_core-dev_chainbench__chainbench_failure_context
-  - mcp__plugin_core-dev_chainbench__chainbench_log_search
-  - mcp__plugin_core-dev_chainbench__chainbench_stop
+  - mcp__plugin_core-dev_chainbench__*
 skills:
   - state-machine
   - domain-pack

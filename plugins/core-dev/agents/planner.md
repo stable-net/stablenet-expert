@@ -12,19 +12,7 @@ tools:
   - Write
   - Edit
   - Bash
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_context_semantic_search
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_context_search_text
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_context_find_symbol
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_context_get_subgraph
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_context_find_callers
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_context_find_callees
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_context_impact_analysis
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_context_concurrency_impact
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_context_change_history
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_context_get_for_task
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_ops_health
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_ops_freshness
-  - mcp__plugin_core-dev_stablenet-knowledge__cks_ops_index
+  - mcp__plugin_core-dev_stablenet-knowledge__*
 skills:
   - state-machine
   - template-parse

@@ -1,0 +1,26 @@
+{
+  "_doc": "SINGLE SOURCE OF TRUTH for the stablenet-knowledge MCP server's active tool-name prefix. The external MCP server (stablenet-knowledge-mcp, built on the generalized knowledge-system base) exposes its tools under a prefix decided by how it's configured at runtime (a 'namespace' setting on the server) — NOT hardcoded in this repo, and not fixed forever. Right now the server runs with namespace=cks, so every tool is exposed as cks_<base_name>. If the server is reconfigured to namespace=stablenet-knowledge, tools become stablenet_knowledge_<base_name> instead (underscore-joined function-name form, not the hyphenated config value). To migrate: edit tool_prefix here, then run `python3 scripts/contract/sync-mcp-namespace.py --apply` to rewrite scripts/contract/agent-mcp.schema.json's tool keys and every plugins/*/**/*.{md,py} reference (ToolSearch select strings, pseudocode calls, doc mentions) in one pass. See docs/WORKLIST.md §B for the 4-stage external verification this is gated behind, and ADR-0008 for the multi-plugin scaffolding context this SSoT lives in.",
+  "server": "stablenet-knowledge",
+  "tool_prefix": "cks",
+  "base_tool_names": [
+    "context_get_for_task",
+    "context_semantic_search",
+    "context_search_text",
+    "context_find_symbol",
+    "context_find_callers",
+    "context_find_callees",
+    "context_get_subgraph",
+    "context_impact_analysis",
+    "context_concurrency_impact",
+    "context_change_history",
+    "context_find_invariants",
+    "context_get_conventions",
+    "context_find_branches",
+    "context_get_flow",
+    "context_expand_flow",
+    "context_get_invariant_enforcement",
+    "ops_health",
+    "ops_freshness",
+    "ops_index"
+  ]
+}

@@ -11,13 +11,16 @@
 | [ADR-0002](ADR-0002-setup-and-doctor.md) | `/coding-agent:setup` 확장 + `/coding-agent:doctor` | Accepted (2026-06-23) | 구현됨 — `plugins/core-dev/commands/{setup,doctor}.md`, PR #22·#23 머지 (v0.1.30) |
 | [ADR-0003](ADR-0003-reproduction-and-fix-validity.md) | Reproduction vs Fix-Validity 분리 + 2-티어 재현 | Accepted (2026-06-23) | 구현·머지 — PR #18 (v0.1.25). 라이브 무회귀 잔여(§6) |
 | [ADR-0004](ADR-0004-doctor-remediation-routing.md) | doctor→setup remediation routing + single-source fix table | Accepted (2026-06-26) | 구현됨 — PR #31·#33, `plugins/core-dev/scripts/doctor.py` REMEDIATION 테이블 |
-| [ADR-0005](ADR-0005-stablenet-expert-marketplace-split.md) | stablenet-expert 마켓플레이스 분리 + core-dev/cq 경계 | Accepted (2026-07-20) | 구현됨 — `stablenet-expert` 리포로 이관 완료(§2.1/2.2/2.4). §2.3(cq 분리)은 재검토 후 철회 |
+| [ADR-0005](ADR-0005-stablenet-expert-marketplace-split.md) | stablenet-expert 마켓플레이스 분리 + core-dev/cq 경계 | Accepted (2026-07-20) | 구현됨 — `stablenet-expert` 리포로 이관 완료(§2.1/2.2/2.4). §2.3(cq 분리)은 재검토 후 철회. §5 dapp 로드맵 제외 반영 (4-카테고리로 축소) |
 | [ADR-0006](ADR-0006-proxy-mcp-gateway-security-model.md) | Proxy MCP Gateway 보안 모델 (양방향 민감정보 필터링) | Accepted (historical, 2026-07-21 추출) | 구현됨 — `packages/jira-gateway-mcp/internal/filter/`, `pr-sanitize` skill |
 | [ADR-0007](ADR-0007-bc-hybrid-harness-architecture.md) | B+C 하이브리드 하네스 아키텍처 (문서 기반 상태 머신 + 격리 멀티에이전트) | Accepted (historical, 2026-07-21 추출) | 구현됨 — `state-machine` skill, `orchestrator/planner/implementer/evaluator` agents |
+| [ADR-0008](ADR-0008-new-plugin-scaffolding-contract.md) | 신규 플러그인 스캐폴딩 계약 + `packages/` vs `plugins/<name>/` 경계 | Accepted (2026-07-29) | 부분 구현 — lint/CI 자동 탐색은 반영됨, 체크리스트·경계 기준은 플러그인 #2 착수 전까지 미검증 |
 
 의존 관계: ADR-0001 ← ADR-0002 ← ADR-0004 (도메인팩 → setup/doctor → remediation 라우팅).
 ADR-0005는 ADR-0001(도메인팩)을 전제로 한다. ADR-0006·ADR-0007은 독립이며, `HANDOFF.md`(2026-06-05
-스냅샷, 삭제됨)에 있던 설계 근거 중 재사용 가치가 있는 부분을 승격한 것이다.
+스냅샷, 삭제됨)에 있던 설계 근거 중 재사용 가치가 있는 부분을 승격한 것이다. ADR-0008은 ADR-0005를
+전제로 하며(마켓플레이스 분리가 먼저 결정돼야 "새 플러그인 만드는 법"이 의미가 있음), WORKLIST §B의
+멀티플러그인 확장성 항목들을 해소한다.
 ADR-0003은 독립이며, 검증 절차는 [`../reproduction-verification-runbook-2026-06-23.md`](../reproduction-verification-runbook-2026-06-23.md).
 
 > 비고: 이 ADR들은 각각 단일 토픽을 둘러싼 **응집된 결정 묶음**(보통 결정 4건)으로 작성돼 있어,

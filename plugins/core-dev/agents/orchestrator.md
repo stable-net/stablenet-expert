@@ -11,10 +11,7 @@ tools:
   - Write
   - Edit
   - Bash
-  - mcp__plugin_core-dev_jira-gateway__jira_read_ticket
-  - mcp__plugin_core-dev_jira-gateway__jira_read_comments
-  - mcp__plugin_core-dev_jira-gateway__jira_add_comment
-  - mcp__plugin_core-dev_jira-gateway__jira_update_status
+  - mcp__plugin_core-dev_jira-gateway__*
 skills:
   - state-machine
 ---

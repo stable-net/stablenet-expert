@@ -1,5 +1,5 @@
 ---
-description: Squash-merge an approved PR, transition Jira to Complete, and clean up the local branch.
+description: 승인된 PR을 squash merge하고, Jira를 Complete로 전이하고, 로컬 브랜치를 정리한다.
 argument-hint: "<JIRA-ID, e.g., STABLE-1234>"
 ---
 

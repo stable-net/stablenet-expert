@@ -53,9 +53,9 @@ README 기준 현재 4-카테고리 로드맵(`core-dev`=구현 완료 + 아래 
   (일반화 베이스 `knowledge-system`이 아니라).
   검증은 4단계로 진행 중: **(1) 완료** `knowledge-system` 통합 + namespace=`cks`로 기존
   `coding-agent`와 연결, 3-repo 분리 시절과 동일 동작 확인 / **(2) 완료** `stablenet-knowledge-mcp`
-  특화판을 같은 방식으로 `coding-agent`와 연결, 동일 동작 확인 / **(3) 서버 측 완료, 플러그인 등록
-  테스트는 남음** `coding-agent` 대신 `stablenet-expert` 플러그인을 `stablenet-knowledge-mcp`에
-  연결(단, 변수를 하나씩 바꾸기 위해 namespace는 여전히 `cks` 유지) / **(4) (3) 통과 후** namespace를
+  특화판을 같은 방식으로 `coding-agent`와 연결, 동일 동작 확인 / **(3) 완료** `coding-agent` 대신
+  `stablenet-expert` 플러그인을 `stablenet-knowledge-mcp`에 연결(단, 변수를 하나씩 바꾸기 위해
+  namespace는 여전히 `cks` 유지), 동일 동작 확인 / **(4) 다음** namespace를
   `stablenet-knowledge`로 바꿔 재연결, `stablenet-expert` 플러그인이 **코드 수정 없이** 동작해야 함.
 
   **(3) 서버 측 검증 (2026-07-30)**: `mcp.yaml`을 `cks-refactor-1@current` → `cks-refactor-2@current`로
@@ -64,10 +64,21 @@ README 기준 현재 4-카테고리 로드맵(`core-dev`=구현 완료 + 아래 
   `source_root=cks-refactor-2`), `cks.ops.freshness`(`fresh=true`, `indexed_head==current_head`),
   `cks.context.find_symbol("main")`(`cmd/gstable/main.go` 등 정확한 citation),
   `cks.context.search_text("NewBlockChain")`(`core/blockchain.go:464` 등 정확한 결과) — 전부 정상.
-  **남은 것**: 이건 서버가 `stablenet-expert`가 붙을 대상(=`stablenet-knowledge-mcp`)에서 실제로
-  잘 동작한다는 확인일 뿐, `stablenet-expert` 플러그인 자체를 Claude Code에 등록해서
-  `mcp__plugin_stablenet-expert_core-dev_stablenet-knowledge__cks_*` 형태로 실제 호출되는지는
-  아직 검증 전(플러그인 등록 후 세션 재시작 필요 — 사용자가 직접 진행하기로 함).
+
+  **(3) 플러그인 등록 + end-to-end 확인 (2026-07-30/31, 완료)**: `settings.json`에 `stablenet-expert`
+  마켓플레이스 등록 + `core-dev@stablenet-expert` 활성화 후 세션 재시작 — 플러그인 노출까지는 확인됨.
+  `mcp__plugin_core-dev_stablenet-knowledge__cks_ops_health`/`cks_context_find_symbol("main")`을 실제
+  플러그인 경로로 호출해 `cks-refactor-2` 기준 정상 응답(serviceable/alignment ok, `cmd/gstable/main.go`
+  citation)까지 받아 end-to-end 확인 완료.
+
+  **발견한 이슈 — 동일 서버 이중 등록 충돌**: `coding-agent`와 `core-dev`를 동시에 활성화하면, 두
+  플러그인이 정확히 같은 MCP 서버(같은 `JIRA_GATEWAY_BIN` 경로, 같은 `stablenet-knowledge-mcp` URL)를
+  각자 다른 서버 이름으로 등록하는 셈이 되어 **한쪽만 연결되고 다른 쪽은 세션 내내 연결 실패**한다(에이전트
+  타입까지 통째로 안 뜸). 프로젝트 로컬 `.claude/settings.local.json`에
+  `"enabledPlugins": {"coding-agent@coding-agent": false}`를 넣어 이 프로젝트 디렉터리에서만
+  `coding-agent`를 끄자 `core-dev`가 즉시 정상 연결됨 — 원인이 확정됐다. 장기적으로 `coding-agent`에서
+  `core-dev`(`stablenet-expert`)로 완전히 이관 완료되면 `coding-agent` 플러그인 자체를 끄면 되므로
+  실사용에 지장은 없으나, **과도기(두 플러그인 병행 사용)에는 항상 하나만 켜야 한다**는 걸 여기 기록해둔다.
 
   **그랜트 계층 — 완료.** Claude Code 공식 문서 확인 결과 `tools:`/`allowed-tools:`는 서버 단위
   와일드카드(`mcp__plugin_core-dev_<server>__*`)를 지원한다(도구 이름 접두어 단위 부분 매칭은
@@ -113,14 +124,3 @@ README 기준 현재 4-카테고리 로드맵(`core-dev`=구현 완료 + 아래 
   전이라 `stablenet-knowledge-mcp`의 실제 빌드 절차·바이너리명·config 파일명이 `code-knowledge-system`과
   동일한지 확인 안 됨 — (3) 검증 완료 후 실제 절차를 확인하며 같이 고칠 것(지금 섣불리 문자열만
   바꾸면 또 다른 부정확한 문서가 된다).
-
-## C. `core-dev` 플러그인 정비 (즉시 착수 가능, 마이너)
-
-### 커맨드 레벨 메타데이터
-
-- [ ] **`commands/merge.md` 본문(227줄)이 여전히 영어 — `description` 필드만 한글로 통일함.**
-  실제로 열어보니 처음 WORKLIST에 적었던 것보다 범위가 컸다: `description` 하나가 아니라 헤딩·
-  의사코드 주석까지 본문 전체가 영어이고, 다른 8개 커맨드(`work.md` 등)는 본문까지 한글이다.
-  `main`을 건드리는 유일한 커맨드라 안전 문구("never bypass branch protections", "HARD safety
-  gate" 등) 번역 시 의미 변화 위험이 있어 사용자 결정으로 `description`만 우선 한글화하고 본문
-  번역은 보류함(2026-07-29). 본문 번역을 진행하려면 안전 문구 위주로 번역 후 사용자 직접 검토 필요.

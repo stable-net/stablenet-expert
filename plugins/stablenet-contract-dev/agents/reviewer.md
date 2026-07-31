@@ -17,6 +17,7 @@ description: >-
   category=gas, loads solidity-gas-optimization instead.
 skills: stablenet-contract-dev:systemcontracts-structure, stablenet-contract-dev:solidity-patterns, stablenet-contract-dev:solidity-gas-optimization
 tools: Read, Grep, Glob, Skill
+disallowedTools: Write, Edit
 model: sonnet
 ---
 

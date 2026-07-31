@@ -39,7 +39,8 @@
 | [ADR-0007](adr/ADR-0007-bc-hybrid-harness-architecture.md) | B+C 하이브리드 하네스 아키텍처 | Accepted · 구현됨 (HANDOFF.md에서 추출) |
 | [ADR-0008](adr/ADR-0008-new-plugin-scaffolding-contract.md) | 신규 플러그인 스캐폴딩 계약 + packages/plugins 경계 | Accepted · 부분 구현 (체크리스트는 플러그인 #2 착수 전까지 미검증) |
 | [ADR-0009](adr/ADR-0009-contract-dev-plugin-design.md) | contract-dev 플러그인 설계 (1단계: go-stablenet 내장 systemcontracts/) | Accepted · 설계만 (스캐폴딩 미착수) |
-| [ADR-0010](adr/ADR-0010-stablenet-expert-meta-plugin-design.md) | stablenet-expert 메타 플러그인 설계 (1단계: doctor만) | Accepted · 설계만 (스캐폴딩 미착수) |
+| [ADR-0010](adr/ADR-0010-stablenet-expert-meta-plugin-design.md) | stablenet-expert 메타 플러그인 설계 (1단계: doctor만) | Accepted · 구현됨 (PR #12, 라이브 검증 완료) |
+| [ADR-0011](adr/ADR-0011-stablenet-expert-doctor-interactive-setup.md) | stablenet-expert:doctor 2단계 (대화형 수정 + 플러그인별 setup 위임) | Accepted · 설계만 (구현 미착수) |
 
 ## Tier 3 — 상태 / 잔여작업
 

@@ -1,13 +1,13 @@
 ---
-name: stablenet-contract-dev:review-contract
-description: Review systemcontracts/ Solidity code for pattern/convention adherence and gas efficiency, using parallel category reviewers. Security is NOT covered here — use /stablenet-contract-dev:audit-contract for that.
+name: contract-dev:review-contract
+description: Review systemcontracts/ Solidity code for pattern/convention adherence and gas efficiency, using parallel category reviewers. Security is NOT covered here — use /contract-dev:audit-contract for that.
 allowed-tools: Bash, Agent, Read, Glob, Grep, ToolSearch
 argument-hint: "[path/to/contract.sol or directory, defaults to systemcontracts/solidity]"
 ---
 
 Review Solidity code in `systemcontracts/` across two categories — patterns/conventions and gas —
 using parallel `reviewer` agent dispatches. This command does not cover security; run
-`/stablenet-contract-dev:audit-contract` for an adversarial security pass.
+`/contract-dev:audit-contract` for an adversarial security pass.
 
 ## Step 1: Identify files
 
@@ -53,5 +53,5 @@ If either reviewer reports zero findings, say so plainly rather than omitting th
 ## Step 4: Suggest next steps
 
 If the diff touches governance-action routing, storage variables, or anything signature-related,
-tell the user explicitly to also run `/stablenet-contract-dev:audit-contract` — this command's
+tell the user explicitly to also run `/contract-dev:audit-contract` — this command's
 reviewers do not do adversarial security analysis.

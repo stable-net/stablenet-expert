@@ -1,11 +1,11 @@
-# stablenet-contract-dev
+# contract-dev
 
 A Claude Code plugin for writing, reviewing, and auditing the Solidity smart contracts embedded
 in **go-stablenet**'s `systemcontracts/` — governance (`GovValidator`/`GovMinter`/
 `GovMasterMinter`/`GovCouncil`), the native-coin adapter, and the shared libraries/interfaces they
 depend on.
 
-`stablenet-contract-dev` is the **Contract Development** plugin of the
+`contract-dev` is the **Contract Development** plugin of the
 [`stablenet-expert`](../../README.md) marketplace — the counterpart of `compact-core` in
 [midnight-expert](../../../references/midnight-expert), scoped to Solidity/EVM instead of Compact
 (see [ADR-0005 §2.4](../../docs/adr/ADR-0005-stablenet-expert-marketplace-split.md)).
@@ -15,7 +15,7 @@ depend on.
 This plugin currently covers **only** `systemcontracts/` inside the go-stablenet repo — not
 general Solidity/EVM development against arbitrary Foundry/Hardhat projects. That's a deliberate,
 phased scope decision; see
-[ADR-0009](../../docs/adr/ADR-0009-stablenet-contract-dev-plugin-design.md) for why, and for what
+[ADR-0009](../../docs/adr/ADR-0009-contract-dev-plugin-design.md) for why, and for what
 a later general-EVM stage would need to add.
 
 **This repo doesn't use Foundry or Hardhat.** `systemcontracts/` has its own toolchain: a custom
@@ -36,9 +36,9 @@ included). See ADR-0009 §2.3 for the full account.
 
 | Command | What it does |
 |---|---|
-| `/stablenet-contract-dev:test-contract [pattern]` | Compile (`go run ./systemcontracts/compile`) and run the real Go test suite (`go test ./systemcontracts/test/...`), optionally scoped to one test. |
-| `/stablenet-contract-dev:review-contract [path]` | Parallel patterns + gas review (no security). |
-| `/stablenet-contract-dev:audit-contract [path]` | Adversarial security review, with Critical/High findings mechanically confirmed by actually running a `go test` against the claim. |
+| `/contract-dev:test-contract [pattern]` | Compile (`go run ./systemcontracts/compile`) and run the real Go test suite (`go test ./systemcontracts/test/...`), optionally scoped to one test. |
+| `/contract-dev:review-contract [path]` | Parallel patterns + gas review (no security). |
+| `/contract-dev:audit-contract [path]` | Adversarial security review, with Critical/High findings mechanically confirmed by actually running a `go test` against the claim. |
 
 ## Agents
 
@@ -61,5 +61,5 @@ included). See ADR-0009 §2.3 for the full account.
 ## Install
 
 ```bash
-claude plugin install --scope user stablenet-contract-dev@stablenet-expert
+claude plugin install --scope user contract-dev@stablenet-expert
 ```

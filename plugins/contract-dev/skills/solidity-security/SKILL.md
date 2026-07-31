@@ -1,12 +1,12 @@
 ---
-name: stablenet-contract-dev:solidity-security
-description: This skill should be used when performing a security review or audit of Solidity smart contract code, or when reasoning about a contract's threat model. Covers reentrancy, access control, signature/replay attacks (EIP-712/EIP-2612/EIP-3009), upgradeable-storage collisions, unchecked external calls, denial-of-service via unbounded iteration, and governance/proposal-system-specific pitfalls (the pattern used throughout go-stablenet's systemcontracts/). Defines the Verification Requests protocol used by the security-reviewer agent. Load stablenet-contract-dev:systemcontracts-structure first for the repo-specific storage-slot and governance-action conventions this skill assumes.
+name: contract-dev:solidity-security
+description: This skill should be used when performing a security review or audit of Solidity smart contract code, or when reasoning about a contract's threat model. Covers reentrancy, access control, signature/replay attacks (EIP-712/EIP-2612/EIP-3009), upgradeable-storage collisions, unchecked external calls, denial-of-service via unbounded iteration, and governance/proposal-system-specific pitfalls (the pattern used throughout go-stablenet's systemcontracts/). Defines the Verification Requests protocol used by the security-reviewer agent. Load contract-dev:systemcontracts-structure first for the repo-specific storage-slot and governance-action conventions this skill assumes.
 version: 0.1.0
 ---
 
 # Solidity Security Threat Model
 
-This is the "how to think like an attacker" layer for `stablenet-contract-dev`. It assumes the
+This is the "how to think like an attacker" layer for `contract-dev`. It assumes the
 repo conventions from `systemcontracts-structure` (storage-slot discipline, governance
 action-type routing) and adds the general Solidity/EVM threat model on top.
 
@@ -79,7 +79,7 @@ confirm them:
   can run manually via `go test -run` against a scratch test file.
 
 The `security-reviewer` agent (see `agents/security-reviewer.md`) cannot run these itself — it
-emits Verification Requests, and the `/stablenet-contract-dev:audit-contract` command runs them
+emits Verification Requests, and the `/contract-dev:audit-contract` command runs them
 via `test-contract.md`'s test harness and reports which findings were mechanically confirmed vs.
 still theoretical.
 

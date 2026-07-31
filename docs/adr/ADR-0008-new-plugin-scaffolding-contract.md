@@ -22,7 +22,7 @@
    `core-dev`의 파일 구조를 하나하나 역공학해서 "새 플러그인엔 뭐가 필요한가"를 알아내야 한다.
 2. **`packages/` 재사용 기준 부재**: ADR-0005는 `jira-gateway-mcp`·`sensitive-guard`가 `packages/`로
    옮겨진다고만 적었지 *왜* 공유 대상인지, *다음* 플러그인도 그 기준을 따라야 하는지는 정하지 않았다.
-   구체적으로: `stablenet-contract-dev`가 Jira 연동이 필요해지면 `packages/jira-gateway-mcp`를 재사용해야
+   구체적으로: `contract-dev`가 Jira 연동이 필요해지면 `packages/jira-gateway-mcp`를 재사용해야
    하는가?
 
 lint/CI가 `core-dev`에 하드코딩돼 있던 문제(예전 WORKLIST 항목)는 이미 `lint-tool-names.sh`를
@@ -61,13 +61,13 @@ lint/CI가 `core-dev`에 하드코딩돼 있던 문제(예전 WORKLIST 항목)�
 이미 `packages/`에 있는 두 사례로 기준을 역산하면:
 - **`jira-gateway-mcp`**: Jira 프록시 + 민감정보 필터. 플러그인 특정 로직이 전혀 없다(어떤 티켓
   시스템 연동 플러그인이든 그대로 쓸 수 있음) — 처음부터 공유 후보였다.
-  **적용**: `stablenet-contract-dev`가 Jira 연동이 필요해지면 재사용한다(새로 만들지 않는다) — 이게
+  **적용**: `contract-dev`가 Jira 연동이 필요해지면 재사용한다(새로 만들지 않는다) — 이게
   이 경계 기준의 첫 검증 사례가 될 것.
 - **`sensitive-guard`**(patterns.json): 민감정보 탐지 정책. 마찬가지로 플러그인 비의존적(무엇을
   가리는지의 문제이지 어떤 파이프라인인지의 문제가 아님).
 
 대조 사례: `core-dev`의 evaluator(Go 문법 하드코딩)는 **로컬로 남았다** — Solidity용
-`stablenet-contract-dev`가 실제로 생겨도 그대로 재사용할 수 없기 때문(ADR-0005 §2.3). 이게
+`contract-dev`가 실제로 생겨도 그대로 재사용할 수 없기 때문(ADR-0005 §2.3). 이게
 "공유해도 실제로 안 맞는" 경우의 대조 사례다.
 
 ## 3. Consequences (결과)

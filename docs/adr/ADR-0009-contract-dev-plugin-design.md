@@ -1,4 +1,4 @@
-# ADR-0009 — `stablenet-contract-dev` 플러그인 설계 (1단계: go-stablenet 내장 systemcontracts/)
+# ADR-0009 — `contract-dev` 플러그인 설계 (1단계: go-stablenet 내장 systemcontracts/)
 
 문서 성격: **ADR / 설계 결정 (Accepted 2026-07-31).**
 짝 문서: [ADR-0005](ADR-0005-stablenet-expert-marketplace-split.md) §2.3/§2.4(범위·evaluator 재사용
@@ -6,7 +6,7 @@
 참조 사례 [`references/midnight-expert`](../../../references/midnight-expert)의 `compact-core` 플러그인
 (ADR-0005가 명시한 "대응물").
 
-> **결정 한 줄:** `stablenet-contract-dev`는 **단계적으로** 만든다 — 1단계(이 ADR)는 go-stablenet
+> **결정 한 줄:** `contract-dev`는 **단계적으로** 만든다 — 1단계(이 ADR)는 go-stablenet
 > 리포에 이미 내장된 `systemcontracts/`(Solidity, 자체 Go 컴파일러 래퍼 + Go 테스트로 빌드/검증됨)
 > 유지보수에 한정하고, `core-dev`의 Jira 파이프라인(orchestrator/planner/implementer/evaluator)은
 > 채택하지 **않는다** — `compact-core`처럼 skills + 리뷰/감사 에이전트로만 구성한다. 일반
@@ -17,13 +17,13 @@
 
 ## 1. Context (왜)
 
-`docs/WORKLIST.md` §A는 `stablenet-contract-dev`(Solidity/EVM 스마트컨트랙트 작성·리뷰·보안 감사)의
+`docs/WORKLIST.md` §A는 `contract-dev`(Solidity/EVM 스마트컨트랙트 작성·리뷰·보안 감사)의
 다음 액션으로 "Solidity 툴체인(Foundry/Hardhat 등) 기준 자체 domain-pack류 구조 설계 ADR 작성"을
 지정했다. 이 ADR은 그 착수 지점이다.
 
 ### 1.1 범위 재확인 (ADR-0005 §2.4)
 
-`stablenet-contract-dev`는 go-stablenet(geth fork + WBFT)이 EVM 호환이라는 전제 위에서 **Solidity
+`contract-dev`는 go-stablenet(geth fork + WBFT)이 EVM 호환이라는 전제 위에서 **Solidity
 스마트컨트랙트 작성/리뷰/보안감사**로 한정된다(`compact-core`의 대응물). WBFT·런타임 등 체인 코어
 개발은 명시적으로 범위 밖.
 
@@ -84,13 +84,13 @@ skills(정적 지식) + 리뷰/감사 에이전트(명령으로 디스패치) �
 
 ### 2.3 MCP 서버 — 신설하지 않는다 (핵심 결정, 이번 세션에서 실증된 이유)
 
-`stablenet-contract-dev`는 **자체 `.mcp.json`을 갖지 않는다.** `stablenet-knowledge` 인덱스가
+`contract-dev`는 **자체 `.mcp.json`을 갖지 않는다.** `stablenet-knowledge` 인덱스가
 이미 `systemcontracts/`를 포함하고 있으니 재사용하고 싶은 유혹이 있지만, 하면 안 된다:
 
 - **실증된 충돌**: WORKLIST §B 검증(2026-07-30/31)에서, `coding-agent`와 `core-dev` 두 플러그인이
   **같은 MCP 서버(같은 URL/바이너리)를 각자 다른 서버 이름으로 등록**하자 동시 활성화 시 한쪽 연결이
   세션 내내 실패하는 걸 실제로 재현했다(원인: Claude Code가 연결 아이덴티티를 플러그인+서버이름이
-  아니라 실제 연결 대상 기준으로 다루는 것으로 보임). `stablenet-contract-dev`가 core-dev와 동일한
+  아니라 실제 연결 대상 기준으로 다루는 것으로 보임). `contract-dev`가 core-dev와 동일한
   `stablenet-knowledge-mcp` URL을 자기 `.mcp.json`에 또 등록하면, **정확히 같은 문제를 재현한다** —
   그리고 이번엔 회피할 방법이 없다: go-stablenet Go 개발(core-dev)과 그 안의 Solidity 컨트랙트 작업
   (contract-dev)을 같은 세션에서 동시에 쓰는 게 오히려 **정상적인 흔한 사용 패턴**이라, "둘 중 하나만
@@ -118,7 +118,7 @@ skills(정적 지식) + 리뷰/감사 에이전트(명령으로 디스패치) �
 ### 2.5 플러그인 구조 (ADR-0008 §2.1 체크리스트 적용)
 
 ```
-plugins/stablenet-contract-dev/
+plugins/contract-dev/
 ├── .claude-plugin/
 │   └── plugin.json          # name/version(0.1.0)/description/author/license(AGPL-3.0)/mcpServers 없음
 ├── agents/
@@ -149,7 +149,7 @@ plugins/stablenet-contract-dev/
 - **+**: `core-dev`의 Jira 파이프라인·domain-pack·MCP 서버 복잡도를 전혀 가져오지 않아 1단계를
   빠르게 만들 수 있다 — `compact-core`가 이미 같은 스코프에서 검증한 형태를 그대로 따르므로 설계
   리스크가 낮다.
-- **+**: 이중 MCP 등록 충돌(§2.3)을 사전에 피해서, `core-dev`와 `stablenet-contract-dev`를 동시에
+- **+**: 이중 MCP 등록 충돌(§2.3)을 사전에 피해서, `core-dev`와 `contract-dev`를 동시에
   켜두고 쓰는 정상적인 사용 패턴이 막히지 않는다.
 - **−/제약**: `Grep`/`Glob`/`Read` 기반 탐색은 `stablenet-knowledge`의 그래프/시맨틱 검색보다 약하다
   — `systemcontracts/`(파일 24개)처럼 작은 대상에선 문제없지만, 나중에 대상이 커지면 재검토 필요.

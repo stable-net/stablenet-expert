@@ -15,7 +15,7 @@
 | [ADR-0006](ADR-0006-proxy-mcp-gateway-security-model.md) | Proxy MCP Gateway 보안 모델 (양방향 민감정보 필터링) | Accepted (historical, 2026-07-21 추출) | 구현됨 — `packages/jira-gateway-mcp/internal/filter/`, `pr-sanitize` skill |
 | [ADR-0007](ADR-0007-bc-hybrid-harness-architecture.md) | B+C 하이브리드 하네스 아키텍처 (문서 기반 상태 머신 + 격리 멀티에이전트) | Accepted (historical, 2026-07-21 추출) | 구현됨 — `state-machine` skill, `orchestrator/planner/implementer/evaluator` agents |
 | [ADR-0008](ADR-0008-new-plugin-scaffolding-contract.md) | 신규 플러그인 스캐폴딩 계약 + `packages/` vs `plugins/<name>/` 경계 | Accepted (2026-07-29) | 부분 구현 — lint/CI 자동 탐색은 반영됨, 체크리스트·경계 기준은 플러그인 #2 착수 전까지 미검증 |
-| [ADR-0009](ADR-0009-stablenet-contract-dev-plugin-design.md) | `stablenet-contract-dev` 플러그인 설계 (1단계: go-stablenet 내장 systemcontracts/) | Accepted (2026-07-31) | 설계만 — `compact-core`형 구조(MCP 서버 없음, skills+리뷰/감사 에이전트) 결정, 실제 스캐폴딩은 별도 작업 |
+| [ADR-0009](ADR-0009-contract-dev-plugin-design.md) | `contract-dev` 플러그인 설계 (1단계: go-stablenet 내장 systemcontracts/) | Accepted (2026-07-31) | 설계만 — `compact-core`형 구조(MCP 서버 없음, skills+리뷰/감사 에이전트) 결정, 실제 스캐폴딩은 별도 작업 |
 
 의존 관계: ADR-0001 ← ADR-0002 ← ADR-0004 (도메인팩 → setup/doctor → remediation 라우팅).
 ADR-0005는 ADR-0001(도메인팩)을 전제로 한다. ADR-0006·ADR-0007은 독립이며, `HANDOFF.md`(2026-06-05

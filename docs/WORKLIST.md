@@ -4,21 +4,20 @@
 > 삭제한다(이력 보존이 목적이 아니다 — 그건 git log가 한다). 새 항목은 발견 즉시 추가한다.
 >
 > 최근 정리: 2026-07-31. §B는 namespace 4단계 검증까지 끝나서 사실상 해소됐고, 남은 유일한 항목
-> (`docs/SETUP.md` 정정)은 실제 빌드 절차 테스트 이후로 보류하기로 사용자가 결정함 — §A 착수를
-> 막지 않는다. 지금부터는 **§A(마켓플레이스 로드맵 콘텐츠)**가 실작업 우선순위다.
+> (`docs/SETUP.md` 정정)은 실제 빌드 절차 테스트 이후로 보류하기로 사용자가 결정함. §A는
+> `stablenet-contract-dev`가 1단계 퍼블리시 + 커맨드 3개(`test-contract`/`review-contract`/
+> `audit-contract`) 전부 라이브 검증까지 끝나서 항목 삭제(완료 정책). 감사 과정에서 실제
+> `GovValidator.sol`의 보안 결함 2건(High, 기계적 확인됨)을 찾았는데 — 이건 `stablenet-expert`가
+> 아니라 go-stablenet 자체의 이슈라 이 WORKLIST 범위 밖(사용자에게 별도 보고함, 여기 기록 안 함).
+> 지금부터는 §A 남은 두 카테고리(`stablenet-tooling`/`stablenet-qa`)가 실작업 우선순위다.
 
 ---
 
-## A. 마켓플레이스 로드맵 — 신규 플러그인 카테고리 (착수 전, 0%)
+## A. 마켓플레이스 로드맵 — 신규 플러그인 카테고리
 
-README 기준 현재 4-카테고리 로드맵(`core-dev`=구현 완료 + 아래 3개=미착수) 중 `core-dev` 1개만
-구현됐다. 나머지는 README에 이름·스코프만 적혀 있고 실제 에이전트/스킬/MCP 설계는 아직 없다.
+README 기준 4-카테고리 로드맵 중 `core-dev`·`stablenet-contract-dev`(1단계) 구현 완료. 아래 두
+카테고리는 여전히 미착수.
 
-- [ ] **Contract Development (`stablenet-contract-dev`)** — Solidity/EVM 스마트컨트랙트 작성·리뷰·
-  보안 감사. 다음 액션: Solidity 툴체인(Foundry/Hardhat 등) 기준 자체 domain-pack류 구조 설계
-  ADR 작성부터 시작. 재사용 불가 범위는 **evaluator뿐**([ADR-0005 §2.3](adr/ADR-0005-stablenet-expert-marketplace-split.md):
-  변경된 테스트 함수 탐지가 Go 문법을 하드코딩하므로 Solidity에 안 맞음) — orchestrator/planner/
-  implementer 같은 Jira-driven 상태 머신 패턴 자체는 재검토 대상이지 "불가"로 확정된 바 없음.
 - [ ] **Toolchain & Infrastructure (`stablenet-tooling`)** — 노드/devnet/chainbench 설치, 진단,
   릴리즈 노트. 다음 액션: 스코프 확정(설치 스크립트만? doctor류 진단까지 포함?) 후 별도 설계 필요.
   core-dev의 `scripts/setup.py`/`scripts/doctor.py`는 참고할 수 있으나, 거기 담긴 체크 항목 자체가

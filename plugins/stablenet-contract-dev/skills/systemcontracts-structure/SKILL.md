@@ -33,10 +33,24 @@ systemcontracts/
                               # coin_adapter_test.go, gov_council_alloc_sync_test.go
 ```
 
+## Prerequisite: OpenZeppelin submodules
+
+`systemcontracts/solidity/openzeppelin/contracts` and `.../openzeppelin/contracts-upgradeable` are
+**git submodules** (see `.gitmodules` at repo root), not plain vendored files. A checkout that
+never ran `git submodule update --init` has these as empty directories, and both compiling and
+testing fail with a `solc: exit status 1` / "not found" panic that reads like a source-code
+problem but is actually just an uninitialized submodule. Check `git submodule status` for those
+two paths (a leading `-` means uninitialized) before debugging anything else. Confirmed live
+2026-07-31 — this is exactly what an incomplete/scratch checkout (e.g. one cloned only to build a
+`stablenet-knowledge` index, not to build code) looks like.
+
 ## Build & test commands
 
-- **Compile**: `go run ./systemcontracts/compile` from repo root (default flags assume the
-  conventional layout above; pass `-root`/`-openZeppelin` explicitly if running from elsewhere).
+- **Compile**: `go run ./systemcontracts/compile -root=systemcontracts/solidity -openZeppelin=systemcontracts/solidity/openzeppelin`
+  from repo root. The binary's own default flag values (`../solidity`) assume it's invoked with
+  `systemcontracts/compile/` as the working directory — pass the flags explicitly instead of
+  relying on the defaults from repo root, or they resolve to the wrong path and fail with a
+  misleading "file not found" even when the source is fine.
 - **Test**: `go test ./systemcontracts/test/...` from repo root. Tests import
   `systemcontracts/compile/compiler` directly and deploy compiled bytecode into a simulated
   go-ethereum backend (`types.GenesisAlloc` + friends) — there is no separate `forge test` /

@@ -28,6 +28,7 @@ description: >-
   it finds a bypass.
 skills: stablenet-contract-dev:systemcontracts-structure, stablenet-contract-dev:solidity-security, stablenet-contract-dev:solidity-patterns
 tools: Read, Grep, Glob, Bash, Skill
+disallowedTools: Write, Edit
 model: opus
 color: red
 ---

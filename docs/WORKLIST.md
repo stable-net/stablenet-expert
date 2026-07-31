@@ -9,16 +9,30 @@
 
 ---
 
-## A. 마켓플레이스 로드맵 — 신규 플러그인 카테고리 (착수 전, 0%)
+## A. 마켓플레이스 로드맵 — 신규 플러그인 카테고리
 
-README 기준 현재 4-카테고리 로드맵(`core-dev`=구현 완료 + 아래 3개=미착수) 중 `core-dev` 1개만
-구현됐다. 나머지는 README에 이름·스코프만 적혀 있고 실제 에이전트/스킬/MCP 설계는 아직 없다.
+README 기준 4-카테고리 로드맵 중 `core-dev`(구현 완료)에 이어 `stablenet-contract-dev`가 1단계
+퍼블리시됐다(2026-07-31, PR #6). 아래 두 카테고리는 여전히 미착수.
 
-- [ ] **Contract Development (`stablenet-contract-dev`)** — Solidity/EVM 스마트컨트랙트 작성·리뷰·
-  보안 감사. 다음 액션: Solidity 툴체인(Foundry/Hardhat 등) 기준 자체 domain-pack류 구조 설계
-  ADR 작성부터 시작. 재사용 불가 범위는 **evaluator뿐**([ADR-0005 §2.3](adr/ADR-0005-stablenet-expert-marketplace-split.md):
-  변경된 테스트 함수 탐지가 Go 문법을 하드코딩하므로 Solidity에 안 맞음) — orchestrator/planner/
-  implementer 같은 Jira-driven 상태 머신 패턴 자체는 재검토 대상이지 "불가"로 확정된 바 없음.
+- [ ] **Contract Development (`stablenet-contract-dev`) — 1단계 퍼블리시 + `test-contract` 라이브
+  검증 완료(2026-07-31), `review-contract`/`audit-contract`는 아직 실제 에이전트 디스패치로 안 돌려봄.**
+  [ADR-0009](adr/ADR-0009-stablenet-contract-dev-plugin-design.md)로 스코프·아키텍처 결정 후
+  스캐폴딩 완료(PR #6). 플러그인을 실제 설치(`claude plugin marketplace update` +
+  `claude plugin install stablenet-contract-dev@stablenet-expert` — `enabledPlugins`에 넣는 것만으론
+  부족, 설치 커맨드가 별도로 필요했음 + 커맨드 등록에 세션 재시작 1회 더 필요) 후
+  `/stablenet-contract-dev:test-contract`을 `cks-refactor-2`(go-stablenet) 대상으로 실제 실행 —
+  **버그 2개 발견·수정**: (1) `systemcontracts/compile` 바이너리의 기본 플래그(`-root=../solidity`)가
+  `systemcontracts/compile/`를 cwd로 가정해서 리포 루트에서 `go run ./systemcontracts/compile`로
+  실행하면 실패 — `-root`/`-openZeppelin`을 리포 루트 기준 절대경로로 명시하도록 커맨드/스킬 수정.
+  (2) `systemcontracts/solidity/openzeppelin/{contracts,contracts-upgradeable}`가 git submodule인데
+  `cks-refactor-2`(인덱싱 전용으로 클론된 체크아웃)엔 초기화가 안 돼 있어서 "파일 없음"으로 보이는
+  솔c 에러가 남 — submodule 미초기화 감지+안내를 `systemcontracts-structure`/`test-contract`에 추가.
+  수정 후 `go run ./systemcontracts/compile`·`go test ./systemcontracts/test/...` 둘 다 실제로 통과
+  확인함. **미해결 발견**: `reviewer`/`security-reviewer` 에이전트 frontmatter에
+  `tools: Read, Grep, Glob(, Bash), Skill`만 명시했는데도, 세션에 실제 로드된 도구 목록엔 `Write`,
+  `Edit`이 추가로 붙어 있었다(읽기전용 리뷰/감사 에이전트로 의도했는데 스코프가 넓어짐) — Claude Code
+  플러그인 에이전트의 `tools:` frontmatter가 exhaustive allowlist가 아닐 수 있음, 원인 조사 필요.
+  2단계(일반 Foundry/Hardhat EVM 지원)는 별도 ADR 대상, 아직 착수 근거 없음.
 - [ ] **Toolchain & Infrastructure (`stablenet-tooling`)** — 노드/devnet/chainbench 설치, 진단,
   릴리즈 노트. 다음 액션: 스코프 확정(설치 스크립트만? doctor류 진단까지 포함?) 후 별도 설계 필요.
   core-dev의 `scripts/setup.py`/`scripts/doctor.py`는 참고할 수 있으나, 거기 담긴 체크 항목 자체가

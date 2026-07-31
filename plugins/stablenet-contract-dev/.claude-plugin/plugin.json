@@ -1,0 +1,9 @@
+{
+  "name": "stablenet-contract-dev",
+  "version": "0.1.0",
+  "description": "Solidity smart contract authoring, review, and security audit for go-stablenet's embedded systemcontracts/ (governance, minting, native-coin adapter).",
+  "author": {
+    "name": "mhha"
+  },
+  "license": "AGPL-3.0"
+}

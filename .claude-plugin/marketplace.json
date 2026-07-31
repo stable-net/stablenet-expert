@@ -3,7 +3,7 @@
   "name": "stablenet-expert",
   "metadata": {
     "version": "0.1.0",
-    "description": "AI agent plugins for go-stablenet development — Jira-driven automated development pipeline, with dapp/contract/quality/tooling plugins planned."
+    "description": "AI agent plugins for go-stablenet development — Jira-driven automated development pipeline, Solidity smart contract dev, with tooling/qa plugins planned."
   },
   "owner": {
     "name": "mhha"
@@ -13,6 +13,11 @@
       "name": "core-dev",
       "source": "./plugins/core-dev",
       "description": "go-stablenet Jira-driven automated development pipeline (Stablenet Knowledge MCP + chainbench MCP) — analyze, plan, implement, evaluate, PR, merge."
+    },
+    {
+      "name": "stablenet-contract-dev",
+      "source": "./plugins/stablenet-contract-dev",
+      "description": "Solidity smart contract authoring, review, and security audit for go-stablenet's embedded systemcontracts/ (governance, minting, native-coin adapter)."
     }
   ]
 }

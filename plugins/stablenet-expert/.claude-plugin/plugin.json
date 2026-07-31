@@ -1,0 +1,9 @@
+{
+  "name": "stablenet-expert",
+  "version": "0.1.0",
+  "description": "Meta-plugin for the stablenet-expert marketplace. Ecosystem doctor: plugin install/enable status and cross-plugin MCP server registration conflicts.",
+  "author": {
+    "name": "mhha"
+  },
+  "license": "AGPL-3.0"
+}

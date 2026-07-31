@@ -12,14 +12,28 @@ and independently installable.
 
 ## At a glance
 
-- **1** plugin published today (`core-dev`); 3 more categories planned (see below)
+- **3** plugins published today (`core-dev`, `contract-dev`, `stablenet-expert`); 2 more
+  categories planned (see below)
 - Design rationale: [`docs/adr/ADR-0005-stablenet-expert-marketplace-split.md`](docs/adr/ADR-0005-stablenet-expert-marketplace-split.md)
 
 ## Install
 
+Install the meta-plugin first and run its diagnostics to confirm your environment is ready:
+
 ```bash
 claude plugin marketplace add <stablenet-expert-url>
+claude plugin install --scope user stablenet-expert@stablenet-expert
+```
+
+```
+/stablenet-expert:doctor
+```
+
+Then install whichever plugin(s) you actually need:
+
+```bash
 claude plugin install --scope user core-dev@stablenet-expert
+claude plugin install --scope user contract-dev@stablenet-expert
 ```
 
 Or from inside Claude Code: run `/plugin`, choose **Add marketplace**, and browse plugins.
@@ -28,6 +42,21 @@ Or from inside Claude Code: run `/plugin`, choose **Add marketplace**, and brows
 > **restart Claude Code**. Skills and agents activate right away.
 
 ## Plugins
+
+### Ecosystem
+
+<table>
+  <thead>
+    <tr><th>Plugin</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><strong><a href="plugins/stablenet-expert/">stablenet-expert</a></strong></td>
+    <td>Meta-plugin (named after the marketplace itself). Ecosystem doctor — plugin install/enable status, cross-plugin MCP server registration conflicts. Install this first.
+    <pre lang="bash">claude plugin install --scope user stablenet-expert@stablenet-expert</pre></td>
+  </tr>
+  </tbody>
+</table>
 
 ### Core Development
 

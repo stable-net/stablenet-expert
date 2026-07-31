@@ -18,6 +18,11 @@
       "name": "contract-dev",
       "source": "./plugins/contract-dev",
       "description": "Solidity smart contract authoring, review, and security audit for go-stablenet's embedded systemcontracts/ (governance, minting, native-coin adapter)."
+    },
+    {
+      "name": "stablenet-expert",
+      "source": "./plugins/stablenet-expert",
+      "description": "Meta-plugin: ecosystem doctor for this marketplace (plugin install/enable status, cross-plugin MCP server registration conflicts)."
     }
   ]
 }

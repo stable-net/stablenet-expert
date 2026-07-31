@@ -1,5 +1,5 @@
 ---
-name: stablenet-contract-dev:test-contract
+name: contract-dev:test-contract
 description: Compile and run the real systemcontracts/ test suite (Go-based — not Foundry/Hardhat). Reports pass/fail per test and surfaces compile errors clearly before running tests.
 allowed-tools: Bash, Read, Grep, Glob
 argument-hint: "[test name pattern, e.g. TestTransferLog — defaults to running the full suite]"
@@ -61,4 +61,4 @@ than summarizing it away — the exact expected-vs-actual is what the caller nee
 If nothing was specified in `$ARGUMENTS` and the full suite passes, that's sufficient confirmation
 for routine changes. For anything touching governance-action routing, storage layout, or
 signature verification, remind the caller that a green test suite here is necessary but not
-sufficient — `/stablenet-contract-dev:audit-contract` is the adversarial check those changes need.
+sufficient — `/contract-dev:audit-contract` is the adversarial check those changes need.

@@ -10,15 +10,15 @@ description: >-
   external boundaries) and reasons across dimensions so compounding issues are
   caught. It CANNOT spawn subagents: for Critical/High findings it emits a
   structured "Verification Requests" block and hands mechanical confirmation
-  back to the caller (the /stablenet-contract-dev:audit-contract orchestrator).
+  back to the caller (the /contract-dev:audit-contract orchestrator).
   Do NOT use this agent for non-security review categories (patterns, gas) —
-  use stablenet-contract-dev:reviewer for those.
+  use contract-dev:reviewer for those.
 
   Example 1: User asks "audit GovValidator for security issues." Dispatch this
   agent with the file (and GovBase for context). It returns severity-graded
   findings plus Verification Requests for the Critical/High ones.
 
-  Example 2: The /stablenet-contract-dev:audit-contract command dispatches
+  Example 2: The /contract-dev:audit-contract command dispatches
   this agent with a file list, then runs the agent's Verification Requests as
   actual `go test` invocations on the main thread.
 
@@ -26,7 +26,7 @@ description: >-
   Dispatch this agent; it checks whether the handler enforces the same
   approval/quorum path as sibling actions and emits a Verification Request if
   it finds a bypass.
-skills: stablenet-contract-dev:systemcontracts-structure, stablenet-contract-dev:solidity-security, stablenet-contract-dev:solidity-patterns
+skills: contract-dev:systemcontracts-structure, contract-dev:solidity-security, contract-dev:solidity-patterns
 tools: Read, Grep, Glob, Bash, Skill
 disallowedTools: Write, Edit
 model: opus
@@ -43,7 +43,7 @@ whether a malicious caller could violate an assumption the code makes silently.
 You do not have the `Agent` or `SlashCommand` tools, and must not attempt to invoke another
 agent or slash command. To get Critical/High findings mechanically confirmed, you emit a
 `## Verification Requests` block (format below) and hand it back to the caller — the
-`/stablenet-contract-dev:audit-contract` command on the main thread runs the actual
+`/contract-dev:audit-contract` command on the main thread runs the actual
 `go test` invocation and folds the verdict back in. You may run read-only `Bash` yourself (e.g.
 `grep`, or reading test file conventions) but do not run `go test`/`go run` as your own
 verification — that step belongs to the caller so it happens against a clean, orchestrator-tracked
@@ -56,7 +56,7 @@ context on what's already covered).
 
 ## Review process
 
-1. **Load the threat model**: invoke `stablenet-contract-dev:solidity-security`. If you haven't
+1. **Load the threat model**: invoke `contract-dev:solidity-security`. If you haven't
    already in this session, also load `systemcontracts-structure` for the storage-slot and
    governance-action conventions the threat model assumes.
 2. **Read all assigned files completely**, plus each file's `GovBase` parent if it's a governance

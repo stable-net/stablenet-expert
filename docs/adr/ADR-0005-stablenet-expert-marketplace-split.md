@@ -9,7 +9,7 @@ dapp 로드맵 제외).**
 > `stablenet-expert` 멀티플러그인 마켓플레이스로 확장한다. 기존 파이프라인은
 > **`core-dev`**로 이름을 바꿔 이관한다(완료). evaluator의 4단계 검증 로직은
 > **분리하지 않고 core-dev에 그대로 둔다**(§2.3 — 최초안은 `stablenet-cq` 분리였으나 재검토 후 철회).
-> `stablenet-contract-dev`는 Solidity/EVM 스마트컨트랙트로 범위를 한정한다.
+> `contract-dev`는 Solidity/EVM 스마트컨트랙트로 범위를 한정한다.
 > **상태:** Accepted — §2.1/2.2/2.4는 `stablenet-expert` 리포로 이관 완료. §2.3은 "분리 안 함"으로
 > 최종 결정. §5(dapp 로드맵 제외)로 §1의 5-카테고리는 4-카테고리로 축소.
 
@@ -47,7 +47,7 @@ stablenet-expert/
 ├── plugins/
 │   ├── core-dev/           # coding-agent 이관 ("core 개발")
 │   ├── stablenet-cq/                 # evaluator 분리 신설 ("테스트 & 코드 품질")
-│   ├── stablenet-contract-dev/       # 신설 (Solidity/EVM)
+│   ├── contract-dev/       # 신설 (Solidity/EVM)
 │   ├── stablenet-dapp-dev/           # 신설 (범위 미정 — §4)
 │   ├── stablenet-tooling/            # 신설 (범위 미정 — §4)
 │   └── stablenet-expert/             # meta (생태계 doctor)
@@ -91,7 +91,7 @@ stablenet-expert/
 5. **재사용 명분 자체가 약하다 (결정적).** evaluator §4.1의 "변경된 테스트 함수 탐지"는
    `git diff | grep -E '^\+func (Test|Fuzz)...'`처럼 **Go 문법을 프롬프트에 하드코딩**한다.
    Stage 1–3(unit/lint/security)의 실제 명령은 domain-pack이 주지만(`go test`/`golangci-lint`/
-   `gosec`), 그 명령을 조립하는 절차 자체가 Go 전용이다. 그런데 §2.4에서 `stablenet-contract-dev`를
+   `gosec`), 그 명령을 조립하는 절차 자체가 Go 전용이다. 그런데 §2.4에서 `contract-dev`를
    **Solidity/EVM**로 확정했다 — 완전히 다른 툴체인(Foundry/Hardhat, solhint, slither)이 필요하다.
    즉 지금 evaluator/cq 로직은 애초에 contract-dev나 dapp-dev가 재사용할 수 있는 게 아니다.
    "분리해서 다른 플러그인이 재사용하게 하자"는 원래 명분이 contract-dev 범위 확정 순간 무너진다.
@@ -105,11 +105,11 @@ stablenet-expert/
 안에 티켓 없이 evaluator를 직접 구동하는 가벼운 커맨드(예: `/core-dev:check`)를
 추가하는 것으로 크로스플러그인 비용 없이 해결 가능 — 필요해지면 별도 ADR/작업으로.
 
-진짜 별도 `stablenet-cq`(또는 도메인별 검증 플러그인)는 `stablenet-contract-dev`(Solidity)가 실제로
+진짜 별도 `stablenet-cq`(또는 도메인별 검증 플러그인)는 `contract-dev`(Solidity)가 실제로
 만들어지고 자기 검증 로직이 필요해지는 시점에, 지금 evaluator를 감싸는 형태가 아니라 **그 도메인
 전용으로 새로 설계**하는 게 맞다.
 
-### 2.4 `stablenet-contract-dev` 범위
+### 2.4 `contract-dev` 범위
 
 go-stablenet(geth fork + WBFT)은 EVM 호환이므로, Solidity 스마트컨트랙트 작성/리뷰/보안감사로
 한정한다(`compact-core`의 대응물). WBFT·런타임 등 체인 코어 개발은 명시적으로 이 플러그인
@@ -128,7 +128,7 @@ go-stablenet(geth fork + WBFT)은 EVM 호환이므로, Solidity 스마트컨트�
 - **후속**:
   1. `stablenet-tooling` 범위는 go-stablenet 실제 노드 운영 툴링 대비 미검토 — 별도 조사 필요
      (`stablenet-dapp-dev`는 §5에서 로드맵 제외돼 이 항목에서 뺐다).
-  2. `stablenet-contract-dev`(Solidity)가 실제로 만들어지면, 그 도메인 전용 검증 플러그인이
+  2. `contract-dev`(Solidity)가 실제로 만들어지면, 그 도메인 전용 검증 플러그인이
      필요한지는 그때 별도 ADR로 재검토.
   3. (선택) `/core-dev:check` 커맨드 — 별도 작업으로 필요 시 진행.
 
@@ -151,7 +151,7 @@ dapp 여부와 무관하게 그대로 유효하다. §1/§2.1의 dapp 언급은 
 [docs/adr/README.md](README.md) "삭제 금지, supersede만") 위 두 지점에 이 절을 가리키는
 주석만 남겼다.
 
-**현재 로드맵(4-카테고리):** `core-dev`(발행 완료) + `stablenet-contract-dev`/`stablenet-tooling`/
+**현재 로드맵(4-카테고리):** `core-dev`(발행 완료) + `contract-dev`/`stablenet-tooling`/
 `stablenet-qa`(계획, 미착수). `stablenet-qa`는 §2.3 최종 결정(evaluator는 core-dev 잔류)과 실질적으로
 같은 상태를 가리키는 이름일 뿐 — §2.3 자체가 번복된 게 아니라, "미래에 이 결정을 재검토할 수도
 있다"는 가능성만 이름으로 열어둔 것이다. 메타 플러그인(`stablenet-expert`)은 위 셋 중 하나가

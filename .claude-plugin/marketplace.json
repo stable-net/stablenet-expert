@@ -15,8 +15,8 @@
       "description": "go-stablenet Jira-driven automated development pipeline (Stablenet Knowledge MCP + chainbench MCP) — analyze, plan, implement, evaluate, PR, merge."
     },
     {
-      "name": "stablenet-contract-dev",
-      "source": "./plugins/stablenet-contract-dev",
+      "name": "contract-dev",
+      "source": "./plugins/contract-dev",
       "description": "Solidity smart contract authoring, review, and security audit for go-stablenet's embedded systemcontracts/ (governance, minting, native-coin adapter)."
     }
   ]

@@ -6,7 +6,7 @@ description: >-
   code in a specific category (patterns/conventions or gas). Dispatched by the
   review-contract command with a category assignment. Not intended for direct
   user invocation — for security specifically, use security-reviewer (via
-  /stablenet-contract-dev:audit-contract) instead, since it needs the
+  /contract-dev:audit-contract) instead, since it needs the
   adversarial threat-model pass this agent does not do.
 
   Example 1: Dispatched by review-contract for a patterns/conventions pass —
@@ -15,7 +15,7 @@ description: >-
 
   Example 2: Dispatched for a gas pass on the same files — same agent,
   category=gas, loads solidity-gas-optimization instead.
-skills: stablenet-contract-dev:systemcontracts-structure, stablenet-contract-dev:solidity-patterns, stablenet-contract-dev:solidity-gas-optimization
+skills: contract-dev:systemcontracts-structure, contract-dev:solidity-patterns, contract-dev:solidity-gas-optimization
 tools: Read, Grep, Glob, Skill
 disallowedTools: Write, Edit
 model: sonnet
@@ -46,5 +46,5 @@ adversarial mandate this agent doesn't have).
    find nothing in your category, say so plainly — don't manufacture minor findings to have
    something to report.
 
-Return your findings as structured markdown; the `/stablenet-contract-dev:review-contract` command
+Return your findings as structured markdown; the `/contract-dev:review-contract` command
 that dispatched you will consolidate categories into one report.

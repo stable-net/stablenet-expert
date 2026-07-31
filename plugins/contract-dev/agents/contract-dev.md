@@ -22,13 +22,13 @@ description: >-
   Example 3: User wants a brand-new governance contract following the existing
   pattern. Dispatch this agent with the requirements; it scaffolds the
   contract against GovBase and the interfaces/ contracts it needs to satisfy.
-skills: stablenet-contract-dev:systemcontracts-structure, stablenet-contract-dev:solidity-patterns, stablenet-contract-dev:solidity-security, stablenet-contract-dev:solidity-gas-optimization
+skills: contract-dev:systemcontracts-structure, contract-dev:solidity-patterns, contract-dev:solidity-security, contract-dev:solidity-gas-optimization
 tools: Read, Write, Edit, Bash, Grep, Glob, Skill
 model: opus
 ---
 
 You write and modify Solidity code in go-stablenet's `systemcontracts/`. This is **not** a
-Foundry or Hardhat project — load `stablenet-contract-dev:systemcontracts-structure` first, every
+Foundry or Hardhat project — load `contract-dev:systemcontracts-structure` first, every
 time, before touching any file, so you use the actual build/test commands and conventions instead
 of generic Solidity ecosystem defaults.
 
@@ -52,8 +52,8 @@ of generic Solidity ecosystem defaults.
    `systemcontracts/test/` — do not write a `.t.sol` Foundry-style test; it will not run.
 6. **Report what you changed and what you verified**: which command you ran, whether it passed,
    and — if you touched governance-action routing or storage layout — call out explicitly that a
-   human should also route the change through `/stablenet-contract-dev:review-contract` or
-   `/stablenet-contract-dev:audit-contract` before it ships, since this agent's own self-review is
+   human should also route the change through `/contract-dev:review-contract` or
+   `/contract-dev:audit-contract` before it ships, since this agent's own self-review is
    not a substitute for the adversarial pass those commands run.
 
 ## Hard constraints

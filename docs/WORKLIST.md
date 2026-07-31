@@ -5,7 +5,7 @@
 >
 > 최근 정리: 2026-07-31. §B는 namespace 4단계 검증까지 끝나서 사실상 해소됐고, 남은 유일한 항목
 > (`docs/SETUP.md` 정정)은 실제 빌드 절차 테스트 이후로 보류하기로 사용자가 결정함. §A는
-> `stablenet-contract-dev`가 1단계 퍼블리시 + 커맨드 3개(`test-contract`/`review-contract`/
+> `contract-dev`가 1단계 퍼블리시 + 커맨드 3개(`test-contract`/`review-contract`/
 > `audit-contract`) 전부 라이브 검증까지 끝나서 항목 삭제(완료 정책). 감사 과정에서 실제
 > `GovValidator.sol`의 보안 결함 2건(High, 기계적 확인됨)을 찾았는데 — 이건 `stablenet-expert`가
 > 아니라 go-stablenet 자체의 이슈라 이 WORKLIST 범위 밖(사용자에게 별도 보고함, 여기 기록 안 함).
@@ -15,7 +15,7 @@
 
 ## A. 마켓플레이스 로드맵 — 신규 플러그인 카테고리
 
-README 기준 4-카테고리 로드맵 중 `core-dev`·`stablenet-contract-dev`(1단계) 구현 완료. 아래 두
+README 기준 4-카테고리 로드맵 중 `core-dev`·`contract-dev`(1단계) 구현 완료. 아래 두
 카테고리는 여전히 미착수.
 
 - [ ] **Toolchain & Infrastructure (`stablenet-tooling`)** — 노드/devnet/chainbench 설치, 진단,
@@ -26,13 +26,13 @@ README 기준 4-카테고리 로드맵 중 `core-dev`·`stablenet-contract-dev`(
   하므로 값은 새로 정의해야 한다.
 - [ ] **Test & QA (`stablenet-qa`)** — 크로스 프로젝트 테스트/품질게이트 툴링. **별도 플러그인으로
   분리할지 자체가 미정** — README가 명시하듯 "future-reconsideration candidate"일 뿐, 현재
-  evaluator는 `core-dev` 안에 있고 이 결정을 뒤집을 근거(예: `stablenet-contract-dev`가 자체
+  evaluator는 `core-dev` 안에 있고 이 결정을 뒤집을 근거(예: `contract-dev`가 자체
   verification이 필요해지는 시점)가 아직 없음. 다음 액션 없음 — 위 두 카테고리 중 하나가 구체화될 때
   재논의.
 - [ ] **`stablenet-expert` 메타 플러그인** (ecosystem doctor, 크로스플러그인 의존성 감사) — 블로킹
-  조건("`core-dev` 외 최소 1개 published")이 `stablenet-contract-dev` 퍼블리시로 충족됨(2026-07-31).
+  조건("`core-dev` 외 최소 1개 published")이 `contract-dev` 퍼블리시로 충족됨(2026-07-31).
   다만 실제로 감사할 가치가 있는 크로스플러그인 이슈가 벌써 하나 나왔다 — WORKLIST §B에서 발견한
-  "`coding-agent`/`core-dev`(또는 향후 `stablenet-contract-dev`) 동시 활성화 시 동일 MCP 서버 이중
+  "`coding-agent`/`core-dev`(또는 향후 `contract-dev`) 동시 활성화 시 동일 MCP 서버 이중
   등록 충돌"이 정확히 이 메타 플러그인이 doctor로 잡아줘야 할 종류의 문제. 착수 여부는 여전히 사용자
   판단 필요(지금 2개뿐이라 아직 이르다고 볼 수도 있음) — 재검토 대상으로 격상.
 

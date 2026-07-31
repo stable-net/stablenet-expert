@@ -1,6 +1,6 @@
 ---
-name: stablenet-contract-dev:audit-contract
-description: Adversarial security audit of systemcontracts/ Solidity code. Runs a single security-reviewer specialist pass, then mechanically confirms Critical/High findings by running the emitted Verification Requests as real `go test` invocations, and synthesizes a consolidated security report. Security-only; for patterns/gas use /stablenet-contract-dev:review-contract.
+name: contract-dev:audit-contract
+description: Adversarial security audit of systemcontracts/ Solidity code. Runs a single security-reviewer specialist pass, then mechanically confirms Critical/High findings by running the emitted Verification Requests as real `go test` invocations, and synthesizes a consolidated security report. Security-only; for patterns/gas use /contract-dev:review-contract.
 allowed-tools: Bash, Agent, Read, Glob, Grep, ToolSearch
 argument-hint: "[path/to/contract.sol or directory, defaults to systemcontracts/solidity]"
 ---
@@ -12,7 +12,7 @@ run all confirmations yourself.
 
 ## Step 1: Identify files
 
-Same file-discovery rule as `/stablenet-contract-dev:review-contract` Step 1 — use `$ARGUMENTS` if
+Same file-discovery rule as `/contract-dev:review-contract` Step 1 — use `$ARGUMENTS` if
 given, otherwise default to `systemcontracts/solidity/` excluding `openzeppelin/` and `test/`
 doubles. For a governance-contract target, always include its `GovBase` parent in the file list —
 the security reviewer needs it for the shared member/proposal machinery, not just the leaf

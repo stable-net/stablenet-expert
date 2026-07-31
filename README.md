@@ -52,9 +52,9 @@ Or from inside Claude Code: run `/plugin`, choose **Add marketplace**, and brows
   </thead>
   <tbody>
   <tr>
-    <td><strong><a href="plugins/stablenet-contract-dev/">stablenet-contract-dev</a></strong></td>
-    <td>Solidity smart contract authoring, review, and security audit for go-stablenet's embedded <code>systemcontracts/</code> (governance, minting, native-coin adapter). 1st-stage scope only — see <a href="docs/adr/ADR-0009-stablenet-contract-dev-plugin-design.md">ADR-0009</a>.
-    <pre lang="bash">claude plugin install --scope user stablenet-contract-dev@stablenet-expert</pre></td>
+    <td><strong><a href="plugins/contract-dev/">contract-dev</a></strong></td>
+    <td>Solidity smart contract authoring, review, and security audit for go-stablenet's embedded <code>systemcontracts/</code> (governance, minting, native-coin adapter). 1st-stage scope only — see <a href="docs/adr/ADR-0009-contract-dev-plugin-design.md">ADR-0009</a>.
+    <pre lang="bash">claude plugin install --scope user contract-dev@stablenet-expert</pre></td>
   </tr>
   </tbody>
 </table>
@@ -74,10 +74,10 @@ ahead of the work landing.
 `core-dev`'s evaluator (unit+race/lint/security/chainbench checks) into a standalone
 `stablenet-cq` plugin so other categories could reuse it. That was reconsidered and reversed
 (ADR-0005 §2.3): the checks are Go/go-stablenet-specific (hardcoded around `go test`/
-`golangci-lint`/`gosec`), so a Solidity-based `stablenet-contract-dev` couldn't actually reuse
+`golangci-lint`/`gosec`), so a Solidity-based `contract-dev` couldn't actually reuse
 them, and splitting would have added cross-plugin domain-pack/MCP-duplication costs for no real
 reuse benefit. The evaluator stays inside `core-dev`. `stablenet-qa` is listed above only as a
-**future-reconsideration candidate** — e.g. if `stablenet-contract-dev` eventually needs its own
+**future-reconsideration candidate** — e.g. if `contract-dev` eventually needs its own
 verification plugin, it would be designed for that domain directly, not as a generic wrapper
 around today's evaluator, and that design work would revisit this row.
 

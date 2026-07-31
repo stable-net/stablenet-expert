@@ -1,5 +1,5 @@
 {
-  "name": "stablenet-contract-dev",
+  "name": "contract-dev",
   "version": "0.1.0",
   "description": "Solidity smart contract authoring, review, and security audit for go-stablenet's embedded systemcontracts/ (governance, minting, native-coin adapter).",
   "author": {

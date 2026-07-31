@@ -8,10 +8,18 @@ If something fails, skip to [§9 Troubleshooting](#9-troubleshooting).
 
 > **R1' architecture.** The core-dev plugin is the orchestrator/consumer. It talks
 > to three MCP servers: `jira-gateway` (in this repo), `stablenet-knowledge`
-> (code-knowledge-system, a sibling repo that composes ckv semantic + ckg graph
-> retrieval), and `chainbench` (a sibling repo, the deterministic test runner).
+> (`stablenet-knowledge-mcp`, a sibling repo — the stablenet-specialized distribution of the
+> upstream `knowledge-system` project, fusing ckv semantic + ckg graph retrieval behind one
+> HTTP server), and `chainbench` (a sibling repo, the deterministic test runner). Unlike
+> jira-gateway/chainbench (launched per-session over stdio), `stablenet-knowledge` is a
+> persistent HTTP server you start once and point `.mcp.json` at by URL — see §3.2/§4.2.
 > ckv/ckg are dev-only and not reached directly. The agent-facing tool surface
 > is frozen in `scripts/contract/agent-mcp.schema.json`.
+>
+> **`contract-dev`** (Solidity work on go-stablenet's embedded `systemcontracts/`) has **no MCP
+> server** — it reads the checkout directly. See §5.3/§7.4. Never enable it and `core-dev`
+> together with `coding-agent` (or any other plugin that also registers `stablenet-knowledge`) —
+> §9.9 explains why.
 
 ---
 
@@ -19,7 +27,7 @@ If something fails, skip to [§9 Troubleshooting](#9-troubleshooting).
 
 | Tool | Why | Check |
 |------|-----|-------|
-| Go ≥ 1.25 | Build jira-gateway + the sibling stablenet-knowledge/chainbench Go wire | `go version` |
+| Go ≥ 1.25 | Build jira-gateway + the sibling stablenet-knowledge-mcp/chainbench Go wire | `go version` |
 | C toolchain (cc/clang) | stablenet-knowledge links sqlite-vec (CGO) | `cc --version` |
 | Node ≥ 18 + npm | chainbench MCP server (TypeScript) | `node --version` |
 | git ≥ 2.40 | Branch/commit/log throughout the pipeline | `git --version` |
@@ -44,26 +52,34 @@ A note on optionality:
 
 ## 2. Clone the repositories
 
-core-dev depends on two sibling repos resolved by path at runtime
-(not vendored): `code-knowledge-system` (stablenet-knowledge) and `chainbench`.
+core-dev depends on two sibling repos resolved by path/URL at runtime
+(not vendored): `stablenet-knowledge-mcp` (the `stablenet-knowledge` MCP server) and `chainbench`.
 
 ```bash
 git clone <stablenet-expert-url> stablenet-expert
-git clone <code-knowledge-system-url> code-knowledge-system
+git clone <stablenet-knowledge-mcp-url> stablenet-knowledge-mcp
 git clone <chainbench-url> chainbench
 cd stablenet-expert
 ```
+
+`stablenet-knowledge-mcp` is the stablenet-specialized distribution of the upstream
+[`knowledge-system`](https://github.com/0xmhha/knowledge-system) project (three formerly-separate
+repos — `code-knowledge-graph`/`code-knowledge-vector`/`code-knowledge-system` — consolidated into
+one Go module). If you see `code-knowledge-system` referenced anywhere else, that's the old
+pre-consolidation name for this same functionality.
 
 The stablenet-expert layout you should see:
 
 ```
 stablenet-expert/
 ├── plugins/
-│   └── core-dev/  # Claude Code plugin (commands, agents, skills, hooks)
-│       └── .mcp.json        # MCP server registration (jira-gateway, stablenet-knowledge, chainbench)
+│   ├── core-dev/       # Claude Code plugin (commands, agents, skills, hooks)
+│   │   └── .mcp.json           # MCP server registration (jira-gateway, stablenet-knowledge, chainbench)
+│   └── contract-dev/   # Solidity plugin for go-stablenet's embedded systemcontracts/ — no .mcp.json (§5.3)
 ├── scripts/
 │   └── contract/
 │       ├── agent-mcp.schema.json   # C1 SSoT: every tool the agents may call
+│       ├── mcp-namespace.json      # SSoT for stablenet-knowledge's tool-name prefix (cks vs stablenet_knowledge)
 │       └── lint-tool-names.sh      # drift gate: prompt tool names must be in the schema
 ├── packages/
 │   ├── jira-gateway-mcp/    # Sensitive-filter proxy in front of Jira REST API
@@ -71,9 +87,6 @@ stablenet-expert/
 │       └── patterns.json    # Sensitive-information policy (jira-gateway)
 └── docs/                    # Specs and plans
 ```
-
-The stablenet-knowledge shim that used to live at `packages/stablenet-knowledge-mcp/` is gone —
-stablenet-knowledge is the sibling `code-knowledge-system` repo now.
 
 ---
 
@@ -87,15 +100,32 @@ go build -o bin/jira-gateway-mcp ./cmd/server
 go test ./...
 ```
 
-### 3.2 stablenet-knowledge (sibling repo, CGO)
+### 3.2 stablenet-knowledge (sibling repo `stablenet-knowledge-mcp`, CGO)
 
 stablenet-knowledge inherits sqlite-vec, so it needs `CGO_ENABLED=1` and a C
-toolchain. Build the MCP binary into `bin/stablenet-knowledge-mcp`:
+toolchain. `make build-mcp` builds the three MCP server binaries (`system-mcp` is the fused
+server core-dev/contract-dev actually talk to; `graph-mcp`/`vector-mcp` are the standalone
+engines, dev-only):
 
 ```bash
-cd ../../../code-knowledge-system
-CGO_ENABLED=1 make build-bins      # produces bin/stablenet-knowledge-mcp (+ cks-eval, etc.)
-ls -l bin/stablenet-knowledge-mcp
+cd ../../../stablenet-knowledge-mcp
+CGO_ENABLED=1 make build-mcp NAMESPACE=      # empty NAMESPACE — see the warning below
+ls -l bin/system-mcp
+```
+
+> **`NAMESPACE=` (empty) is required, not optional.** `make build-mcp`'s **default** stamps
+> the `stablenet_knowledge` tool-namespace root (`stablenet_knowledge.context.*`/
+> `stablenet_knowledge.ops.*`), but `core-dev`/`contract-dev`'s current committed contract
+> (`scripts/contract/mcp-namespace.json`, `tool_prefix: "cks"`) still expects the bare/upstream
+> `cks.*` names. Building with the Makefile's own default silently produces a server neither
+> plugin's prompts can call correctly. If that SSoT is ever migrated to `stablenet_knowledge`
+> (see `docs/WORKLIST.md` §B / the namespace-migration ADRs), drop `NAMESPACE=` here and rerun
+> `scripts/contract/sync-mcp-namespace.py --apply` in this repo to match.
+
+Separately, build the dataset-build CLIs (needed for §6):
+
+```bash
+make build-dataset-bins   # produces bin/{knowledge-setup,ckg,ckv,filelist-gen,cks-domain-*}
 ```
 
 ### 3.3 chainbench (sibling repo, TS + Go wire)
@@ -143,25 +173,55 @@ is wrong.
 
 ### 4.2 stablenet-knowledge (required)
 
-stablenet-knowledge is config-file driven (a single `-config <cks.yaml>` flag); the YAML carries
-the ckv/ckg index paths, the go-stablenet source root, the embedder model, and
-the Ollama endpoint. Point `.mcp.json` at the built binary and a config file:
+Unlike jira-gateway/chainbench, `.mcp.json` does **not** launch stablenet-knowledge via stdio — it
+connects to an **already-running HTTP server** by URL:
 
-```bash
-export STABLENET_KNOWLEDGE_MCP_BIN="$HOME/Work/code-knowledge-system/bin/stablenet-knowledge-mcp"
-export STABLENET_KNOWLEDGE_CONFIG="$HOME/Work/code-knowledge-system/cks.yaml"
+```json
+"stablenet-knowledge": { "type": "http", "url": "${STABLENET_KNOWLEDGE_MCP_URL}" }
 ```
 
-Create `cks.yaml` from the example and edit the paths:
+So there are two separate things to set up: the server's own config file, and the URL env var
+that points `.mcp.json` at wherever you're running it.
+
+**Server config** — `bin/system-mcp -config <mcp.yaml>` reads a single YAML file carrying the
+ckv/ckg index paths, the go-stablenet source root, the embedder model, and the listen address:
 
 ```bash
-cp "$HOME/Work/code-knowledge-system/policies/cks.yaml.example" "$STABLENET_KNOWLEDGE_CONFIG"
-# In cks.yaml set:
-#   backends.ckg.path        -> the ckg SQLite store (from `ckg build`)
-#   backends.ckg.source_root -> the go-stablenet working tree
-#   backends.ckv.path        -> the ckv vector store dir (from `ckv build`)
-#   backends.ckv.embed_model -> bge-m3
+cd ../../../stablenet-knowledge-mcp
+cp projects/stablenet/mcp.yaml.example projects/stablenet/mcp.yaml   # gitignored, deployment-local
+$EDITOR projects/stablenet/mcp.yaml
+# Fill in the <angle-bracket> placeholders:
+#   backends.ckg.path        -> <dataset>/graph/graph.db   (a FILE, not the graph dir — see §6)
+#   backends.ckg.source_root -> the go-stablenet working tree you indexed
+#   backends.ckv.path        -> <dataset>/vector           (a DIRECTORY)
 #   backends.ckv.ollama_url  -> http://localhost:11434
+#   listen.http_addr         -> 127.0.0.1:8930 for loopback-only, or 0.0.0.0:8930 + allow_remote:
+#                                true if another machine/session needs to reach it
+```
+
+`bin/system-mcp gen-config -out <path> -dataset-dir <dataset> -source-root <checkout> ...` can
+generate this file from flags instead of hand-editing the template — pass `-lan` to auto-fill a
+remote-reachable listen address. Run either way, then start the server (it stays running — this
+is a long-lived process, not something Claude Code launches per session):
+
+```bash
+./bin/system-mcp -config projects/stablenet/mcp.yaml &
+```
+
+**Point `.mcp.json` at it**:
+
+```bash
+export STABLENET_KNOWLEDGE_MCP_URL="http://127.0.0.1:8930/mcp"   # or the LAN IP if not loopback
+```
+
+`STABLENET_KNOWLEDGE_MCP_BIN`/`STABLENET_KNOWLEDGE_CONFIG` (binary path / `mcp.yaml` path) are
+**not** used for the actual connection — `/core-dev:doctor`/`/core-dev:setup` read them for local
+sanity checks (binary exists, config file exists and parses) independent of whatever URL you're
+actually pointed at. Set them too since doctor checks for them, but they're diagnostics, not wiring:
+
+```bash
+export STABLENET_KNOWLEDGE_MCP_BIN="$HOME/Work/stablenet-knowledge-mcp/bin/system-mcp"
+export STABLENET_KNOWLEDGE_CONFIG="$HOME/Work/stablenet-knowledge-mcp/projects/stablenet/mcp.yaml"
 ```
 
 ### 4.3 Ollama + bge-m3 (required for full retrieval)
@@ -199,11 +259,12 @@ network with `profile: "default"` — `default.yaml` IS the go-stablenet
 
 ---
 
-## 5. Install the plugin in Claude Code
+## 5. Install the plugin(s) in Claude Code
 
-The plugin lives at `stablenet-expert/plugins/core-dev/`. Point Claude Code
-at it via your user-level config, or add the `stablenet-expert` marketplace and
-install `core-dev` from it.
+`core-dev` lives at `stablenet-expert/plugins/core-dev/`; `contract-dev` at
+`stablenet-expert/plugins/contract-dev/`. Point Claude Code at either via your user-level config
+(§5.1, best for local development against an unpublished checkout), or add the `stablenet-expert`
+marketplace and install by name (§5.3).
 
 ### 5.1 Direct path install (recommended for local development)
 
@@ -239,6 +300,24 @@ Run the tool-name drift gate to confirm the prompts and the contract agree:
 bash scripts/contract/lint-tool-names.sh        # exits 0 when there is no drift
 ```
 
+### 5.3 Installing via the marketplace (either plugin)
+
+```bash
+claude plugin marketplace add <stablenet-expert-url-or-path>
+claude plugin install core-dev@stablenet-expert
+claude plugin install contract-dev@stablenet-expert   # optional — Solidity work only
+```
+
+`contract-dev` has **no MCP server and no env vars to configure** — it reads
+`systemcontracts/` in your go-stablenet checkout directly via `Read`/`Grep`/`Glob`. Installing it
+alongside `core-dev` is the normal case (full go-stablenet dev, contracts included) and is safe —
+they don't share any server registration. What's **not** safe is enabling `core-dev` together
+with `coding-agent` (a different marketplace/plugin that also registers `stablenet-knowledge`
+under a different name) — see §9.9.
+
+Whichever install method you used, slash commands only register after a session **restart**;
+skills and agents activate immediately.
+
 ---
 
 ## 6. First-time indexing of go-stablenet
@@ -246,20 +325,29 @@ bash scripts/contract/lint-tool-names.sh        # exits 0 when there is no drift
 Before the Planner can retrieve anything, ckv and ckg must ingest the
 go-stablenet working tree.
 
-### 6.1 Build the indexes (sibling stablenet-knowledge CLIs)
+### 6.1 Build the dataset (`knowledge-setup`, sibling repo)
+
+Don't call the `ckg`/`ckv` engine binaries directly for a first build — `knowledge-setup`
+orchestrates both (graph build → vector build aligned to that graph → alignment verify) in one
+pass. The stablenet pack ships a thin wrapper over it:
 
 ```bash
-# Semantic (ckv) — requires Ollama + bge-m3; this is the slow one.
-ckv build --src /abs/path/to/go-stablenet --out /abs/path/to/ckv-store \
-          --embedder=ollama --model-name=bge-m3
-# Graph (ckg)
-ckg build --src /abs/path/to/go-stablenet --out /abs/path/to/ckg.db
+cd ../../../stablenet-knowledge-mcp
+GSN_SRC=/abs/path/to/go-stablenet OUT=/abs/path/to/knowledge-data/stablenet \
+  ./projects/stablenet/scripts/build-dataset.sh
+# SKIP_CKV=1 ...   # graph only — skips the multi-hour Ollama embed, for a quick smoke test
 ```
 
-Point the paths you used here at `cks.yaml` (§4.2). A full bge-m3 embed of
-go-stablenet is throughput-gated and can take hours — run it once on a capable
-machine. Afterwards the agent keeps the index warm: the Planner calls
-`cks.ops.freshness` and, when stale, `cks.ops.index{mode:"incremental"}`.
+This produces `<OUT>/graph/graph.db` and `<OUT>/vector/` — point `mcp.yaml`'s `backends.ckg.path`
+and `backends.ckv.path` (§4.2) at exactly those two paths. A full bge-m3 embed of go-stablenet is
+throughput-gated and can take hours — run it once on a capable machine. Afterwards the agent keeps
+the index warm: the Planner calls `cks.ops.freshness` and, when stale, `cks.ops.index{mode:"incremental"}`.
+
+> Production/shared deployments use the versioned `<family>@<ver>/` layout + blue-green promotion
+> (`knowledge-setup --version <ver>` or the `cks.ops.reindex` MCP tool) instead of building
+> straight into `OUT`, so a bad rebuild never breaks what's already being served. See
+> `stablenet-knowledge-mcp/system/docs/ops-blue-green-reindex.md` — the single-checkout flow above
+> is enough to get started.
 
 ### 6.2 Verify the index
 
@@ -359,6 +447,22 @@ that allowlist.
 rm -rf .stablenet-expert/tickets/TEST-1_*
 ```
 
+### 7.4 `contract-dev` smoke test (if installed)
+
+No env vars, no MCP server — just compile+test go-stablenet's embedded Solidity contracts through
+their actual toolchain (a custom Go wrapper around `solc`, not Foundry/Hardhat):
+
+```
+/contract-dev:test-contract
+```
+
+This should report `Compile: OK` and a full `go test ./systemcontracts/test/...` pass. Two things
+that trip up a fresh checkout — both self-diagnosed by the command, see §9.9's sibling entries in
+the plugin's own `systemcontracts-structure` skill if you hit either: the compiler binary's
+default flags assume the wrong working directory, and
+`systemcontracts/solidity/openzeppelin/{contracts,contracts-upgradeable}` are git submodules that
+need `git submodule update --init` if you cloned go-stablenet without `--recurse-submodules`.
+
 ---
 
 ## 8. Wire in your real workflow
@@ -384,13 +488,19 @@ Once the smoke test passes:
 
 ### 9.1 `MCP server 'stablenet-knowledge' is not connected`
 
-- Check `STABLENET_KNOWLEDGE_MCP_BIN` points at the built `bin/stablenet-knowledge-mcp` and `STABLENET_KNOWLEDGE_CONFIG` at a
-  valid `cks.yaml`.
+- Check the server is actually **running** — `.mcp.json` connects over HTTP, it doesn't start it
+  for you. `curl $STABLENET_KNOWLEDGE_MCP_URL/../healthz` (drop the `/mcp` suffix) should return
+  `{"status":"ok", ...}`. If not, start it: `bin/system-mcp -config <mcp.yaml>` (§4.2).
+- Check `STABLENET_KNOWLEDGE_MCP_URL` is exported and matches the address the server actually
+  bound (its startup log prints `reachable at http://...`).
 - Read the server's stderr. `Ollama unavailable` is a warning, not a fatal
   error: stablenet-knowledge boots in degraded (Smart Dummy) mode and `cks.ops.health` reports
   `degraded`.
-- A CGO link error means stablenet-knowledge was built without a C toolchain — rebuild with
-  `CGO_ENABLED=1` (§3.2).
+- A CGO link error at build time means stablenet-knowledge was built without a C toolchain —
+  rebuild with `CGO_ENABLED=1` (§3.2).
+- Tool calls failing with `cks_context_*: tool not found` even though the server connects: the
+  server's namespace and this repo's `scripts/contract/mcp-namespace.json` disagree — see the
+  `NAMESPACE=` warning in §3.2.
 
 ### 9.2 `Jira: authentication failed`
 
@@ -437,7 +547,7 @@ export PATTERNS_PATH="/absolute/path/to/stablenet-expert/packages/sensitive-guar
 ```
 
 stablenet-knowledge sanitization is separate — it is driven by `sanitize.rules_path` in
-`cks.yaml`, not by an env var.
+`mcp.yaml` (§4.2), not by an env var.
 
 ### 9.8 Hooks not firing
 
@@ -446,14 +556,29 @@ see entries in `{workspace}/logs/impl.log`, check the hook scripts have the
 executable bit (`ls -l plugins/core-dev/hooks/*.sh`) and that `${CLAUDE_PLUGIN_ROOT}`
 resolves in your Claude Code build.
 
+### 9.9 One of `core-dev`/`contract-dev`'s MCP tools silently stops responding after enabling another plugin
+
+**Never enable `core-dev` and `coding-agent` at the same time** (or any two plugins that both
+register a `stablenet-knowledge`-equivalent server). They point at the identical server (same
+`JIRA_GATEWAY_BIN` path, same `stablenet-knowledge-mcp` URL) under different plugin/server names,
+and Claude Code appears to dedup/conflict by the underlying connection rather than by
+plugin+server-name — enabling both leaves one plugin's copy of that server disconnected for the
+whole session, with no error beyond "MCP server not connected". `contract-dev` doesn't register
+any MCP server (§5.3), so it's always safe to run alongside either.
+
+If you hit this: disable one of the two plugins (`~/.claude/settings.json`'s `enabledPlugins`,
+or a project-local `.claude/settings.local.json` override to scope it to one project directory)
+and restart.
+
 ---
 
 ## 10. What to look at next
 
 - `scripts/contract/agent-mcp.schema.json` — the C1 SSoT for every agent-facing tool
+- `scripts/contract/mcp-namespace.json` — the SSoT for stablenet-knowledge's tool-name prefix
 - `packages/jira-gateway-mcp/README.md` — jira-gateway server documentation
-- the sibling `code-knowledge-system` and `chainbench` repos — stablenet-knowledge and
-  chainbench server documentation
+- the sibling `stablenet-knowledge-mcp` and `chainbench` repos — stablenet-knowledge and
+  chainbench server documentation (start with `stablenet-knowledge-mcp/README.md`)
 
 When you're comfortable on a small ticket, scale up. The Orchestrator caps
 automatic retries at `max_eval_cycles` (default 3) so the pipeline never spins

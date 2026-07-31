@@ -44,6 +44,21 @@ Or from inside Claude Code: run `/plugin`, choose **Add marketplace**, and brows
   </tbody>
 </table>
 
+### Contract Development
+
+<table>
+  <thead>
+    <tr><th>Plugin</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><strong><a href="plugins/stablenet-contract-dev/">stablenet-contract-dev</a></strong></td>
+    <td>Solidity smart contract authoring, review, and security audit for go-stablenet's embedded <code>systemcontracts/</code> (governance, minting, native-coin adapter). 1st-stage scope only — see <a href="docs/adr/ADR-0009-stablenet-contract-dev-plugin-design.md">ADR-0009</a>.
+    <pre lang="bash">claude plugin install --scope user stablenet-contract-dev@stablenet-expert</pre></td>
+  </tr>
+  </tbody>
+</table>
+
 ### Planned categories (not yet published)
 
 These categories are scoped in [ADR-0005](docs/adr/ADR-0005-stablenet-expert-marketplace-split.md)
@@ -52,7 +67,6 @@ ahead of the work landing.
 
 | Category | Working name | Scope |
 |---|---|---|
-| Contract Development | `stablenet-contract-dev` | Solidity/EVM smart contract authoring, review, and security audit |
 | Toolchain & Infrastructure | `stablenet-tooling` | Node/devnet/chainbench install, diagnostics, release notes |
 | Test & QA | `stablenet-qa` | Cross-project test/quality-gate tooling — **not currently planned as a standalone plugin, see caveat below** |
 

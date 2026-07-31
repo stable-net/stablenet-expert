@@ -3,10 +3,9 @@
 > **Tier 3 (상태/잔여작업).** dated·disposable, 코드+git에서 재생성 가능. 완료된 항목은
 > 삭제한다(이력 보존이 목적이 아니다 — 그건 git log가 한다). 새 항목은 발견 즉시 추가한다.
 >
-> 최근 정리: 2026-07-29. `core-dev` 플러그인 이관(coding-agent → stablenet-expert)은 구조·내용·
-> 게이트 검증 전부 완료 상태(§C는 그 위에서 남은 마이너 정비). §A(마켓플레이스 로드맵 콘텐츠)와
-> §B(멀티플러그인 확장성 인프라)가 지금부터 진행해야 할 실작업이다 — §A의 어떤 항목이든 실제
-> 착수하기 전에 §B부터 정리해야 두 번 일하지 않는다.
+> 최근 정리: 2026-07-31. §B는 namespace 4단계 검증까지 끝나서 사실상 해소됐고, 남은 유일한 항목
+> (`docs/SETUP.md` 정정)은 실제 빌드 절차 테스트 이후로 보류하기로 사용자가 결정함 — §A 착수를
+> 막지 않는다. 지금부터는 **§A(마켓플레이스 로드맵 콘텐츠)**가 실작업 우선순위다.
 
 ---
 
@@ -46,7 +45,8 @@ README 기준 현재 4-카테고리 로드맵(`core-dev`=구현 완료 + 아래 
 플러그인 연결 → namespace `cks`→`stablenet-knowledge` 전환, 코드 수정 없이 동작 확인)으로 각각 완전히
 해소했다. 남은 건 이 검증 과정에서 스코프 밖으로 미뤄둔 문서 정정 하나뿐.
 
-- [ ] **`docs/SETUP.md`가 sibling repo를 여전히 `code-knowledge-system`으로 안내 (9곳: 11·48·52·76·96·
+- [ ] **(보류 — 실제 빌드 절차 테스트 이후 진행, 2026-07-31 사용자 결정)** `docs/SETUP.md`가
+  sibling repo를 여전히 `code-knowledge-system`으로 안내 (9곳: 11·48·52·76·96·
   151·152·158·455줄)** — `stablenet-expert`가 실제로 붙어야 할 건 `stablenet-knowledge-mcp`다.
   `git clone` 안내(52줄), sibling repo 설명(11·48·76줄), 빌드 절차 진입(96줄),
   `STABLENET_KNOWLEDGE_MCP_BIN`/`STABLENET_KNOWLEDGE_CONFIG` 경로 예시(151·152·158줄), prerequisites

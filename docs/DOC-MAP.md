@@ -38,6 +38,7 @@
 | [ADR-0006](adr/ADR-0006-proxy-mcp-gateway-security-model.md) | Proxy MCP Gateway 보안 모델 | Accepted · 구현됨 (HANDOFF.md에서 추출) |
 | [ADR-0007](adr/ADR-0007-bc-hybrid-harness-architecture.md) | B+C 하이브리드 하네스 아키텍처 | Accepted · 구현됨 (HANDOFF.md에서 추출) |
 | [ADR-0008](adr/ADR-0008-new-plugin-scaffolding-contract.md) | 신규 플러그인 스캐폴딩 계약 + packages/plugins 경계 | Accepted · 부분 구현 (체크리스트는 플러그인 #2 착수 전까지 미검증) |
+| [ADR-0009](adr/ADR-0009-stablenet-contract-dev-plugin-design.md) | stablenet-contract-dev 플러그인 설계 (1단계: go-stablenet 내장 systemcontracts/) | Accepted · 설계만 (스캐폴딩 미착수) |
 
 ## Tier 3 — 상태 / 잔여작업
 

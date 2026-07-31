@@ -29,9 +29,12 @@ README 기준 4-카테고리 로드맵 중 `core-dev`·`stablenet-contract-dev`(
   evaluator는 `core-dev` 안에 있고 이 결정을 뒤집을 근거(예: `stablenet-contract-dev`가 자체
   verification이 필요해지는 시점)가 아직 없음. 다음 액션 없음 — 위 두 카테고리 중 하나가 구체화될 때
   재논의.
-- [ ] **`stablenet-expert` 메타 플러그인** (ecosystem doctor, 크로스플러그인 의존성 감사) — `core-dev`
-  외에 최소 1개 플러그인(위 3개 중 하나)이 published 상태가 되어 감사 대상이 2개 이상 생기기
-  전까지는 설계할 근거 자체가 없음 — 착수 대상 아님.
+- [ ] **`stablenet-expert` 메타 플러그인** (ecosystem doctor, 크로스플러그인 의존성 감사) — 블로킹
+  조건("`core-dev` 외 최소 1개 published")이 `stablenet-contract-dev` 퍼블리시로 충족됨(2026-07-31).
+  다만 실제로 감사할 가치가 있는 크로스플러그인 이슈가 벌써 하나 나왔다 — WORKLIST §B에서 발견한
+  "`coding-agent`/`core-dev`(또는 향후 `stablenet-contract-dev`) 동시 활성화 시 동일 MCP 서버 이중
+  등록 충돌"이 정확히 이 메타 플러그인이 doctor로 잡아줘야 할 종류의 문제. 착수 여부는 여전히 사용자
+  판단 필요(지금 2개뿐이라 아직 이르다고 볼 수도 있음) — 재검토 대상으로 격상.
 
 ## B. 멀티플러그인 확장성 인프라 (플러그인 #2 착수 전 반드시 정리)
 

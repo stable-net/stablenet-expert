@@ -16,7 +16,8 @@
 | [ADR-0007](ADR-0007-bc-hybrid-harness-architecture.md) | B+C 하이브리드 하네스 아키텍처 (문서 기반 상태 머신 + 격리 멀티에이전트) | Accepted (historical, 2026-07-21 추출) | 구현됨 — `state-machine` skill, `orchestrator/planner/implementer/evaluator` agents |
 | [ADR-0008](ADR-0008-new-plugin-scaffolding-contract.md) | 신규 플러그인 스캐폴딩 계약 + `packages/` vs `plugins/<name>/` 경계 | Accepted (2026-07-29) | 부분 구현 — lint/CI 자동 탐색은 반영됨, 체크리스트·경계 기준은 플러그인 #2 착수 전까지 미검증 |
 | [ADR-0009](ADR-0009-contract-dev-plugin-design.md) | `contract-dev` 플러그인 설계 (1단계: go-stablenet 내장 systemcontracts/) | Accepted (2026-07-31) | 설계만 — `compact-core`형 구조(MCP 서버 없음, skills+리뷰/감사 에이전트) 결정, 실제 스캐폴딩은 별도 작업 |
-| [ADR-0010](ADR-0010-stablenet-expert-meta-plugin-design.md) | `stablenet-expert` 메타 플러그인 설계 (1단계: doctor만) | Accepted (2026-07-31) | 설계만 — `midnight-expert`의 `doctor` 패턴 참고하되 5체크 대신 2체크(플러그인 상태 + MCP 이중 등록 충돌, 후자는 신규)로 축소, 실제 스캐폴딩은 별도 작업 |
+| [ADR-0010](ADR-0010-stablenet-expert-meta-plugin-design.md) | `stablenet-expert` 메타 플러그인 설계 (1단계: doctor만) | Accepted (2026-07-31) | 구현됨 — PR #12, `check-plugins.sh`/`check-mcp-conflicts.sh` 라이브 검증(실제 coding-agent/core-dev 충돌 3건 정확히 탐지) 완료 |
+| [ADR-0011](ADR-0011-stablenet-expert-doctor-interactive-setup.md) | `stablenet-expert:doctor` 2단계 (대화형 수정 + 플러그인별 setup 위임) | Accepted (2026-07-31) | 설계만 — `midnight-expert:doctor`의 위임/대화형수정 패턴 채택, `core-dev`의 기존 setup remediation(ADR-0002/0004) 재사용(재구현 안 함), 구현은 별도 작업 |
 
 의존 관계: ADR-0001 ← ADR-0002 ← ADR-0004 (도메인팩 → setup/doctor → remediation 라우팅).
 ADR-0005는 ADR-0001(도메인팩)을 전제로 한다. ADR-0006·ADR-0007은 독립이며, `HANDOFF.md`(2026-06-05
@@ -26,7 +27,8 @@ ADR-0005는 ADR-0001(도메인팩)을 전제로 한다. ADR-0006·ADR-0007은 �
 플러그인 체크리스트)을 전제로 하며, WORKLIST §B 검증 중 실증된 MCP 서버 이중 등록 충돌(ADR-0008
 §2.2의 첫 실제 사례)을 근거로 MCP 서버를 아예 두지 않기로 결정했다. ADR-0010은 ADR-0009와 같은
 전제(ADR-0008 체크리스트) 위에 있으며, ADR-0009가 발견한 이중 등록 충돌(`docs/SETUP.md` §9.9)을
-자동 탐지로 승격하는 것이 핵심 동기다.
+자동 탐지로 승격하는 것이 핵심 동기다. ADR-0011은 ADR-0010(doctor 1단계)의 직접 후속이며,
+ADR-0002/ADR-0004(core-dev의 doctor→setup remediation 라우팅)를 전제로 재사용한다.
 ADR-0003은 독립이며, 검증 절차는 [`../reproduction-verification-runbook-2026-06-23.md`](../reproduction-verification-runbook-2026-06-23.md).
 
 > 비고: 이 ADR들은 각각 단일 토픽을 둘러싼 **응집된 결정 묶음**(보통 결정 4건)으로 작성돼 있어,

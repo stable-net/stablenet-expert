@@ -1,5 +1,5 @@
 ---
-name: contract-dev:solidity-security
+name: solidity-security
 description: This skill should be used when performing a security review or audit of Solidity smart contract code, or when reasoning about a contract's threat model. Covers reentrancy, access control, signature/replay attacks (EIP-712/EIP-2612/EIP-3009), upgradeable-storage collisions, unchecked external calls, denial-of-service via unbounded iteration, and governance/proposal-system-specific pitfalls (the pattern used throughout go-stablenet's systemcontracts/). Defines the Verification Requests protocol used by the security-reviewer agent. Load contract-dev:systemcontracts-structure first for the repo-specific storage-slot and governance-action conventions this skill assumes.
 version: 0.1.0
 ---

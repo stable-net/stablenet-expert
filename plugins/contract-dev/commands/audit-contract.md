@@ -1,5 +1,5 @@
 ---
-name: contract-dev:audit-contract
+name: audit-contract
 description: Adversarial security audit of systemcontracts/ Solidity code. Runs a single security-reviewer specialist pass, then mechanically confirms Critical/High findings by running the emitted Verification Requests as real `go test` invocations, and synthesizes a consolidated security report. Security-only; for patterns/gas use /contract-dev:review-contract.
 allowed-tools: Bash, Agent, Read, Glob, Grep, ToolSearch
 argument-hint: "[path/to/contract.sol or directory, defaults to systemcontracts/solidity]"

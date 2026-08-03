@@ -1,5 +1,5 @@
 ---
-name: contract-dev:review-contract
+name: review-contract
 description: Review systemcontracts/ Solidity code for pattern/convention adherence and gas efficiency, using parallel category reviewers. Security is NOT covered here — use /contract-dev:audit-contract for that.
 allowed-tools: Bash, Agent, Read, Glob, Grep, ToolSearch
 argument-hint: "[path/to/contract.sol or directory, defaults to systemcontracts/solidity]"

@@ -1,5 +1,5 @@
 ---
-name: contract-dev:test-contract
+name: test-contract
 description: Compile and run the real systemcontracts/ test suite (Go-based — not Foundry/Hardhat). Reports pass/fail per test and surfaces compile errors clearly before running tests.
 allowed-tools: Bash, Read, Grep, Glob
 argument-hint: "[test name pattern, e.g. TestTransferLog — defaults to running the full suite]"

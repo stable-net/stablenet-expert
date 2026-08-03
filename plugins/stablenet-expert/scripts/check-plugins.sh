@@ -11,10 +11,24 @@ emit() {
   printf '%s | %s | %s\n' "$name" "$status" "$detail"
 }
 
-MARKETPLACE_JSON="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/.claude-plugin/marketplace.json"
+MARKETPLACE="stablenet-expert"
 INSTALLED_PLUGINS="$HOME/.claude/plugins/installed_plugins.json"
 SETTINGS="$HOME/.claude/settings.json"
-MARKETPLACE="stablenet-expert"
+
+# The installed marketplace clone (~/.claude/plugins/marketplaces/<name>/) is the real,
+# production-accurate location — a plugin installed via `claude plugin install` runs from a
+# standalone cache dir (~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/) that is NOT
+# nested inside a full repo checkout, so deriving this path via `../../..` from this script's
+# own location only ever worked when run directly from a git checkout during development, and
+# silently broke the very first time this ran from an actual installed plugin (confirmed live
+# 2026-08-03: it resolved to ~/.claude/plugins/cache/stablenet-expert/.claude-plugin/..., which
+# doesn't exist). Prefer the installed marketplace clone; fall back to the checkout-relative
+# path only for local dev/testing convenience.
+MARKETPLACE_JSON="$HOME/.claude/plugins/marketplaces/$MARKETPLACE/.claude-plugin/marketplace.json"
+if [ ! -f "$MARKETPLACE_JSON" ]; then
+  CHECKOUT_JSON="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd 2>/dev/null)/.claude-plugin/marketplace.json"
+  [ -f "$CHECKOUT_JSON" ] && MARKETPLACE_JSON="$CHECKOUT_JSON"
+fi
 
 if ! command -v python3 >/dev/null 2>&1; then
   emit "check-plugins" "warn" "python3 not available — cannot run this check"

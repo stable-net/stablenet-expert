@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # check-mcp-conflicts.sh — detect two *enabled* plugins registering the same underlying
 # MCP server (same resolved command/args, or same resolved HTTP URL) under different
-# plugin/server names. Claude Code appears to dedup/conflict by the resolved connection
-# rather than by plugin+server-name, so this leaves one plugin's copy silently
+# plugin/server names. Claude Code deduplicates MCP server declarations by resolved
+# endpoint rather than by plugin+server-name, so this leaves one plugin's copy silently
 # disconnected all session (see docs/SETUP.md §9.9 — this automates that manual finding,
 # not present in references/midnight-expert's doctor since that ecosystem doesn't share
 # servers across plugins the way coding-agent/core-dev do).
+#
+# HTTP identity is resolved internally (to actually detect the conflict) but NEVER printed —
+# same reasoning as check-mcp-connectivity.sh: this script's stdout is Bash tool output that
+# flows into the calling LLM's context, and an internal server's URL/IP has no business there.
+# A resolved stdio command path is printed (it's a local file path, not a network address).
 set -u
 
 emit() {
@@ -44,6 +49,13 @@ env = dict(settings.get("env", {}))
 def emit(name, status, detail):
     print(f"{name} | {status} | {detail}")
 
+VAR_REF_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
+
+def var_refs(template):
+    if not isinstance(template, str):
+        return []
+    return [v for v in VAR_REF_RE.findall(template) if v != "CLAUDE_PLUGIN_ROOT"]
+
 def resolve(s, plugin_root):
     if not isinstance(s, str):
         return s
@@ -54,7 +66,7 @@ def resolve(s, plugin_root):
         return env.get(var, os.environ.get(var, m.group(0)))
     return re.sub(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}", sub, s)
 
-# identity -> list of (plugin_key, server_alias)
+# identity -> list of (plugin_key, server_alias, url_var_refs_or_None)
 registry = defaultdict(list)
 checked = 0
 
@@ -76,26 +88,36 @@ for key, enabled in enabled_map.items():
     for alias, cfg in servers.items():
         checked += 1
         if cfg.get("type") == "http":
-            identity = ("http", resolve(cfg.get("url", ""), plugin_root))
+            template = cfg.get("url", "")
+            identity = ("http", resolve(template, plugin_root))
+            ref = ", ".join(var_refs(template)) or "a static URL"
         else:
             identity = ("cmd", resolve(cfg.get("command", ""), plugin_root),
                         tuple(resolve(a, plugin_root) for a in cfg.get("args", [])))
-        registry[identity].append((key, alias))
+            ref = None
+        registry[identity].append((key, alias, ref))
 
 if checked == 0:
     emit("MCP conflict check", "info", "no enabled plugin registers any MCP server")
 else:
     conflicts = {ident: entries for ident, entries in registry.items()
-                 if len({k for k, _ in entries}) > 1}
+                 if len({k for k, _, _ in entries}) > 1}
     if not conflicts:
         emit("ALL_MCP_CONFLICTS_PASS", "pass",
              f"{checked} server registration(s) across enabled plugins, no duplicates")
     else:
         for ident, entries in conflicts.items():
-            names = ", ".join(f"{k}:{a}" for k, a in entries)
-            target = ident[1] if ident[0] == "http" else ident[1]
-            emit("MCP conflict", "critical",
-                 f"{names} all resolve to the same server ({target}) — enabling these "
-                 "plugins together leaves one silently disconnected all session; "
-                 "disable all but one (see docs/SETUP.md §9.9)")
+            if ident[0] == "http":
+                names = ", ".join(f"{k}:{a} (via {ref})" for k, a, ref in entries)
+                emit("MCP conflict", "critical",
+                     f"{names} all resolve to the same server — enabling these "
+                     "plugins together leaves one silently disconnected all session; "
+                     "disable all but one (see docs/SETUP.md §9.9)")
+            else:
+                names = ", ".join(f"{k}:{a}" for k, a, _ in entries)
+                target = ident[1]
+                emit("MCP conflict", "critical",
+                     f"{names} all resolve to the same server ({target}) — enabling these "
+                     "plugins together leaves one silently disconnected all session; "
+                     "disable all but one (see docs/SETUP.md §9.9)")
 PYEOF

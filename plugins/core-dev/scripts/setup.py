@@ -34,18 +34,25 @@ import subprocess
 import sys
 from pathlib import Path
 
-# (key, where, required, how-to-find)
+# (key, where, description, how-to-find)
 PUBLIC = "settings.json"
 SECRET = "settings.local.json"
 
 REQUIRED = [
-    ("STABLENET_KNOWLEDGE_MCP_BIN", PUBLIC, "stablenet-knowledge MCP binary"),
-    ("STABLENET_KNOWLEDGE_CONFIG", PUBLIC, "stablenet-knowledge config yaml (ckg/ckv paths)"),
-    ("JIRA_GATEWAY_BIN", PUBLIC, "jira-gateway MCP binary"),
-    ("JIRA_BASE_URL", PUBLIC, "Jira site URL, e.g. https://your.atlassian.net"),
-    ("JIRA_USER_EMAIL", PUBLIC, "Jira account email"),
-    ("CHAINBENCH_DIR", PUBLIC, "chainbench checkout directory"),
-    ("JIRA_API_TOKEN", SECRET, "Jira API token (secret)"),
+    ("STABLENET_KNOWLEDGE_MCP_BIN", PUBLIC, "stablenet-knowledge MCP binary",
+     "build the sibling stablenet-knowledge-mcp repo (see its README) -> bin/stablenet-knowledge-mcp"),
+    ("STABLENET_KNOWLEDGE_CONFIG", PUBLIC, "stablenet-knowledge config yaml (ckg/ckv paths)",
+     "sibling stablenet-knowledge-mcp repo's cks-stablenet.yaml or cks.yaml"),
+    ("JIRA_GATEWAY_BIN", PUBLIC, "jira-gateway MCP binary",
+     "build packages/jira-gateway-mcp in this repo (go build) -> bin/jira-gateway-mcp"),
+    ("JIRA_BASE_URL", PUBLIC, "Jira site URL, e.g. https://your.atlassian.net",
+     "your organization's Atlassian site URL"),
+    ("JIRA_USER_EMAIL", PUBLIC, "Jira account email",
+     "the email of the Atlassian account the API token below belongs to"),
+    ("CHAINBENCH_DIR", PUBLIC, "chainbench checkout directory",
+     "sibling chainbench repo's checkout path"),
+    ("JIRA_API_TOKEN", SECRET, "Jira API token (secret)",
+     "create one at https://id.atlassian.com/manage-profile/security/api-tokens"),
 ]
 
 # --autonomous: granular permissions.allow (ADR §5.2) — the plugin's own MCP tools,
@@ -251,13 +258,15 @@ def main(argv: list[str] | None = None) -> int:
     rre = _repo_root_env(_plugin_root(), repo_root, args.project)
 
     resolved: dict[str, tuple[str | None, str]] = {}
-    for key, _where, _desc in REQUIRED:
+    for key, _where, _desc, _hint in REQUIRED:
         resolved[key] = _resolve(key, overrides, detected)
 
     # Interactive fallback for anything still unresolved.
     if args.interactive:
-        for key, _where, desc in REQUIRED:
+        for key, _where, desc, hint in REQUIRED:
             if resolved[key][0] is None:
+                if hint:
+                    print(f"  {key}: {hint}")
                 try:
                     ans = input(f"{key} ({desc}): ").strip()
                 except EOFError:
@@ -270,11 +279,13 @@ def main(argv: list[str] | None = None) -> int:
     print(f"core-dev setup — project: {repo_root}")
     print(f"  {'KEY':<18} {'STATUS':<10} SOURCE / VALUE")
     missing = []
-    for key, where, _desc in REQUIRED:
+    for key, where, _desc, hint in REQUIRED:
         val, src = resolved[key]
         if val is None:
             missing.append(key)
             print(f"  {key:<18} {'MISSING':<10} -> needs --set {key}=... or --interactive")
+            if hint:
+                print(f"  {'':<18} {'':<10} where to get it: {hint}")
         else:
             shown = "********" if where == SECRET else val
             print(f"  {key:<18} {src.upper():<10} {shown}  [{where}]")
@@ -318,8 +329,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     # --fix: write resolved env into the two settings files (claude_dir defined above).
-    public_vals = {k: resolved[k][0] for k, w, _ in REQUIRED if w == PUBLIC and resolved[k][0]}
-    secret_vals = {k: resolved[k][0] for k, w, _ in REQUIRED if w == SECRET and resolved[k][0]}
+    public_vals = {k: resolved[k][0] for k, w, _, _ in REQUIRED if w == PUBLIC and resolved[k][0]}
+    secret_vals = {k: resolved[k][0] for k, w, _, _ in REQUIRED if w == SECRET and resolved[k][0]}
     if pin_rre:
         public_vals[rre] = str(repo_root)   # pin active pack's repo_root_env to this repo
 

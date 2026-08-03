@@ -18,12 +18,18 @@ and independently installable.
 
 ## Install
 
-Install the meta-plugin first and run its diagnostics to confirm your environment is ready:
+### Using the Claude CLI
+
+Register the marketplace, then install the meta-plugin first and run its diagnostics to confirm
+your environment is ready:
 
 ```bash
-claude plugin marketplace add <stablenet-expert-url>
+claude plugin marketplace add stable-net/stablenet-expert
 claude plugin install --scope user stablenet-expert@stablenet-expert
 ```
+
+Restart Claude Code (slash commands from a plugin installed mid-session only register after a
+restart — see the note below), then run:
 
 ```
 /stablenet-expert:doctor
@@ -36,10 +42,20 @@ claude plugin install --scope user core-dev@stablenet-expert
 claude plugin install --scope user contract-dev@stablenet-expert
 ```
 
-Or from inside Claude Code: run `/plugin`, choose **Add marketplace**, and browse plugins.
+Use `--scope user` to install **globally for your user** (available in every project),
+`--scope project` for the current project only, or `--scope local` for an unmanaged local install.
+
+### From within Claude Code
+
+1. Run `/plugin` to open the plugin manager.
+2. Choose **Add marketplace** and enter `stable-net/stablenet-expert` (or the full
+   `https://github.com/stable-net/stablenet-expert` URL).
+3. Use **Browse plugins** to pick which plugins to install — `stablenet-expert` (the meta-plugin,
+   diagnostics) first, then `core-dev`/`contract-dev` as needed.
 
 > **Note.** Slash commands from a plugin installed mid-session only register after you
-> **restart Claude Code**. Skills and agents activate right away.
+> **restart Claude Code**. Skills and agents activate right away — if a command isn't found
+> immediately after installing, restart and try again.
 
 ## Plugins
 

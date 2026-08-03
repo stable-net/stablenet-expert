@@ -1,5 +1,5 @@
 ---
-name: contract-dev:systemcontracts-structure
+name: systemcontracts-structure
 description: This skill should be used whenever working on go-stablenet's embedded Solidity system contracts (systemcontracts/) — reading, writing, reviewing, auditing, or testing any file under systemcontracts/solidity/. Covers the repo layout (v1/v2/libraries/interfaces/abstracts), the custom Go-based compile pipeline (not Foundry/Hardhat), the Go-test-based test harness, and the storage-slot-numbered upgradeable-contract convention used throughout. Load this first, before any Solidity-specific skill, to orient in this codebase's specific toolchain (which differs from the generic Solidity ecosystem).
 version: 0.1.0
 ---

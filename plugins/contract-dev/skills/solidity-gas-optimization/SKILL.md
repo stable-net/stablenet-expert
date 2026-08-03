@@ -1,5 +1,5 @@
 ---
-name: contract-dev:solidity-gas-optimization
+name: solidity-gas-optimization
 description: This skill should be used when reviewing Solidity code for gas efficiency, or when writing new contract code where gas cost matters (governance/token operations that run frequently). Covers storage packing, EnumerableSet iteration cost, custom errors vs require strings, calldata vs memory, and when NOT to micro-optimize at the expense of the storage-slot discipline documented in systemcontracts-structure. This is a Low/Info-severity lens, not a security lens — pair with solidity-security for anything touching correctness.
 version: 0.1.0
 ---

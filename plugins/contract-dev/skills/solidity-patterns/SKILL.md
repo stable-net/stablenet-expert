@@ -1,5 +1,5 @@
 ---
-name: contract-dev:solidity-patterns
+name: solidity-patterns
 description: This skill should be used when writing new Solidity code for systemcontracts/, or when reviewing whether new code follows this codebase's existing conventions. Covers the GovBase inheritance pattern, custom-error style, the ACTION_* governance-action convention, OpenZeppelin usage boundaries, and how v1 vs v2 contracts coexist. This is the "match the existing codebase" lens — for correctness use solidity-security, for gas use solidity-gas-optimization.
 version: 0.1.0
 ---

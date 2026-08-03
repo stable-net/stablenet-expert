@@ -1,5 +1,5 @@
 ---
-name: stablenet-expert:doctor
+name: doctor
 description: Ecosystem health check for the stablenet-expert marketplace — plugin install/enable status, cross-plugin MCP server registration conflicts — with interactive fixes and delegation to each installed plugin's own /<plugin>:setup for environment configuration.
 allowed-tools: Bash, Read, Skill, AskUserQuestion
 argument-hint: ""

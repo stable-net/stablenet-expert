@@ -112,10 +112,21 @@ different kinds of actions with different safety profiles, don't treat them unif
   not a bulk multi-select nod. Print the platform-appropriate install command (from
   `docs/SETUP.md` §1) and let the user run it themselves.
 - **MCP env not configured** (Step 2 `critical` items — `JIRA_API_TOKEN`,
-  `STABLENET_KNOWLEDGE_MCP_URL`, `CKS_MCP_URL`, anything else naming a URL/IP/token): never ask
-  the user to type the value into `AskUserQuestion` or into a Bash command you'll run — both put
-  it straight into this conversation. Instead, point them at `scripts/set-mcp-env.sh`, and be
-  explicit that **they** run it, not you:
+  `STABLENET_KNOWLEDGE_MCP_URL`, `CKS_MCP_URL`, anything else naming a URL/IP/token): `set-mcp-env.sh`
+  only covers the *mechanics* of persisting a value — it says nothing about where that value
+  actually comes from, and this command has no business hardcoding that (it's exactly the
+  domain knowledge ADR-0011 §2.2 says belongs to the owning plugin, not here). Before pointing
+  at `set-mcp-env.sh`, check whether the owning plugin has its own `/<plugin>:setup` and, if so,
+  invoke it (e.g. `Skill(skill: "core-dev:setup", args: "--check")`) — its report is expected to
+  say where to obtain each missing value (`core-dev/scripts/setup.py`'s `REQUIRED` table carries
+  a `how-to-find` hint per key for exactly this reason). Fold that guidance into what you tell
+  the user, then point at `set-mcp-env.sh` for the actual write. If the owning plugin has no
+  setup command, say plainly that you don't have "where to get this" guidance to offer and the
+  user will need to know the value already (or check that plugin's own README/docs).
+
+  Never ask the user to type the value itself into `AskUserQuestion` or into a Bash command
+  you'll run — both put it straight into this conversation. Instead, point them at
+  `scripts/set-mcp-env.sh`, and be explicit that **they** run it, not you:
 
   ```
   Run this yourself, in your own terminal (don't ask me to run it, and don't paste the value
@@ -203,3 +214,8 @@ Finish with a summary:
   plugin that hardcodes a literal URL/IP in its own `.mcp.json` (instead of an env var
   reference) isn't something this command can fix; that plugin's `.mcp.json` itself needs
   fixing, which is a code change, not a doctor-time configuration step.
+- `AskUserQuestion` requires at least 2 options per question — Step 3's multi-select checkbox
+  only works when there are 2+ outstanding items. Confirmed live: with exactly one outstanding
+  item, the multi-select call itself errors. If Steps 0-2 leave exactly one actionable item, ask
+  about it as a plain two-option question (do it now / later) instead of forcing a multi-select
+  with a single checkbox.

@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -136,15 +137,7 @@ def _detect(repo_root: Path) -> dict[str, str]:
     return found
 
 
-def _resolve(key: str, overrides: dict[str, str], detected: dict[str, str]) -> tuple[str | None, str]:
-    """Return (value, source). source in {set, env, detected, none}."""
-    if key in overrides:
-        return overrides[key], "set"
-    if os.environ.get(key):
-        return os.environ[key], "env"
-    if key in detected:
-        return detected[key], "detected"
-    return None, "none"
+PLACEHOLDER_RE = re.compile(r"^CHANGE-ME", re.IGNORECASE)
 
 
 def _load_json(path: Path) -> dict:
@@ -154,8 +147,67 @@ def _load_json(path: Path) -> dict:
         return {}
 
 
+def _persisted(claude_dir: Path) -> dict[str, tuple[str, str]]:
+    """Currently-persisted, non-placeholder env values -> {key: (value, scope)}.
+
+    Checks project scope first (claude_dir/settings.json, settings.local.json), then falls back
+    to the global user-scope ~/.claude/settings.json -- matching Claude Code's own scope
+    precedence (local > project > user), and matching what check-mcp-connectivity.sh actually
+    reads (the global file) for plugins installed with --scope user. This is READ-ONLY: --fix
+    below never writes to the global file, only to claude_dir's own settings.json/
+    settings.local.json -- extending *detection* to the global scope closes the false "all
+    resolved" report a project-scope-only check gave while a value only existed globally (or,
+    worse, while a process env var happened to shadow a real placeholder sitting in either
+    file); it does not change what gets written.
+
+    A key present with a literal CHANGE-ME-... placeholder is treated as NOT persisted (not a
+    usable value even though the key technically exists) at either scope.
+    """
+    found: dict[str, tuple[str, str]] = {}
+    for name in ("settings.json", "settings.local.json"):
+        env = _load_json(claude_dir / name).get("env")
+        if not isinstance(env, dict):
+            continue
+        for k, v in env.items():
+            if v and not PLACEHOLDER_RE.match(v) and k not in found:
+                found[k] = (v, "project")
+    global_env = _load_json(Path.home() / ".claude" / "settings.json").get("env")
+    if isinstance(global_env, dict):
+        for k, v in global_env.items():
+            if v and not PLACEHOLDER_RE.match(v) and k not in found:
+                found[k] = (v, "global")
+    return found
+
+
+def _resolve(key: str, overrides: dict[str, str], persisted: dict[str, tuple[str, str]],
+             detected: dict[str, str]) -> tuple[str | None, str]:
+    """Return (value, source). source in {set, project, global, env, detected, none}.
+
+    A persisted value (project or global scope) outranks the raw process environment: it's what
+    Claude Code's MCP servers actually read via ${VAR} substitution, whereas a process env var
+    can be an unrelated shell-profile export that Claude Code never sees -- treating it as
+    "resolved" would silently disagree with what check-mcp-connectivity.sh reports for the exact
+    same key.
+    """
+    if key in overrides:
+        return overrides[key], "set"
+    if key in persisted:
+        value, scope = persisted[key]
+        return value, scope
+    if os.environ.get(key):
+        return os.environ[key], "env"
+    if key in detected:
+        return detected[key], "detected"
+    return None, "none"
+
+
 def _merge_env(path: Path, values: dict[str, str], force: bool) -> list[str]:
-    """Merge values into the "env" block of a settings file. Returns keys written."""
+    """Merge values into the "env" block of a settings file. Returns keys written.
+
+    A CHANGE-ME-... placeholder already sitting in this key is always replaced (even without
+    --force) -- it's an explicit "not configured yet" marker, not a real value someone set on
+    purpose, so it doesn't get the same "keep existing" protection a genuine value gets.
+    """
     doc = _load_json(path)
     env = doc.get("env")
     if not isinstance(env, dict):
@@ -164,8 +216,9 @@ def _merge_env(path: Path, values: dict[str, str], force: bool) -> list[str]:
     for k, v in values.items():
         if not v:
             continue
-        if env.get(k) and not force:
-            continue  # keep existing
+        existing = env.get(k)
+        if existing and not force and not PLACEHOLDER_RE.match(existing):
+            continue  # keep existing genuine value
         env[k] = v
         written.append(k)
     doc["env"] = env
@@ -254,12 +307,14 @@ def main(argv: list[str] | None = None) -> int:
         overrides[k.strip()] = v.strip()
 
     repo_root = _repo_root()
+    claude_dir = repo_root / ".claude"
     detected = _detect(repo_root)
+    persisted = _persisted(claude_dir)
     rre = _repo_root_env(_plugin_root(), repo_root, args.project)
 
     resolved: dict[str, tuple[str | None, str]] = {}
     for key, _where, _desc, _hint in REQUIRED:
-        resolved[key] = _resolve(key, overrides, detected)
+        resolved[key] = _resolve(key, overrides, persisted, detected)
 
     # Interactive fallback for anything still unresolved.
     if args.interactive:
@@ -288,7 +343,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  {'':<18} {'':<10} where to get it: {hint}")
         else:
             shown = "********" if where == SECRET else val
-            print(f"  {key:<18} {src.upper():<10} {shown}  [{where}]")
+            note = " (global; --fix would still write a project-local copy)" if src == "global" else ""
+            print(f"  {key:<18} {src.upper():<10} {shown}  [{where}]{note}")
     print(f"  {'chainbench-mcp':<18} {'OK' if chainbench_mcp else 'NOT ON PATH':<10} "
           f"{chainbench_mcp or '-> install chainbench so chainbench-mcp is on PATH'}")
     is_plugin_repo = bool(repo_root) and (
@@ -306,8 +362,6 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  {'permissions':<18} {'NOTE':<10} "
           "--autonomous registers granular allow (MCP + read-only bash + edits/build/"
           "feature-branch git) and deny (secret files); merge/tag stay prompted")
-
-    claude_dir = repo_root / ".claude"
 
     # --autonomous: register the allow/deny lists independent of --fix / env resolution.
     if args.autonomous:

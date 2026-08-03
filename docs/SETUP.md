@@ -560,15 +560,24 @@ resolves in your Claude Code build.
 
 **Never enable `core-dev` and `coding-agent` at the same time** (or any two plugins that both
 register a `stablenet-knowledge`-equivalent server). They point at the identical server (same
-`JIRA_GATEWAY_BIN` path, same `stablenet-knowledge-mcp` URL) under different plugin/server names,
-and Claude Code appears to dedup/conflict by the underlying connection rather than by
-plugin+server-name — enabling both leaves one plugin's copy of that server disconnected for the
-whole session, with no error beyond "MCP server not connected". `contract-dev` doesn't register
-any MCP server (§5.3), so it's always safe to run alongside either.
+`JIRA_GATEWAY_BIN` path, same `stablenet-knowledge-mcp` URL) under different plugin/server names.
+
+This is not a server-side limitation — a single MCP server handling many concurrent clients is
+completely normal. It's that Claude Code **deduplicates MCP server declarations by their resolved
+endpoint** (URL for HTTP servers, resolved command+args for stdio servers), not by the name each
+declaration is registered under. When two declarations from different scopes resolve to the same
+endpoint, only the higher-precedence one actually connects — the precedence order is
+**local > project > user > plugin-provided > connector** (see
+[Scope hierarchy and precedence](https://code.claude.com/docs/en/mcp.md)). Since `core-dev` and
+`coding-agent` are both plugin-provided and neither outranks the other by that rule, which one
+"wins" is not something you should rely on — the losing plugin's copy silently shows as
+disconnected for the whole session, with no error beyond "MCP server not connected".
+`contract-dev` doesn't register any MCP server (§5.3), so it's always safe to run alongside either.
 
 If you hit this: disable one of the two plugins (`~/.claude/settings.json`'s `enabledPlugins`,
 or a project-local `.claude/settings.local.json` override to scope it to one project directory)
-and restart.
+and restart. `/stablenet-expert:doctor`'s final step detects this pattern automatically across all
+enabled plugins (not just this pair) and walks you through picking which one to keep.
 
 ---
 

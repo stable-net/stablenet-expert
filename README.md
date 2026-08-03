@@ -57,6 +57,35 @@ Use `--scope user` to install **globally for your user** (available in every pro
 > **restart Claude Code**. Skills and agents activate right away — if a command isn't found
 > immediately after installing, restart and try again.
 
+### Update / reinstall
+
+Installing again over an existing install doesn't pull new content — refresh the marketplace
+first, then reinstall:
+
+```bash
+claude plugin marketplace update stablenet-expert
+claude plugin uninstall core-dev@stablenet-expert
+claude plugin install --scope user core-dev@stablenet-expert
+```
+
+(Repeat the uninstall/install pair for whichever plugin(s) you need updated.) Restart afterward —
+same rule as any other install.
+
+### Uninstall
+
+```bash
+claude plugin uninstall core-dev@stablenet-expert
+claude plugin uninstall contract-dev@stablenet-expert
+claude plugin uninstall stablenet-expert@stablenet-expert
+```
+
+Add `--scope project` or `--scope local` if you installed with that scope instead of the
+`user`-scope default. To also remove the marketplace registration itself (not just the plugins):
+
+```bash
+claude plugin marketplace remove stablenet-expert
+```
+
 ## Plugins
 
 ### Ecosystem
@@ -68,7 +97,7 @@ Use `--scope user` to install **globally for your user** (available in every pro
   <tbody>
   <tr>
     <td><strong><a href="plugins/stablenet-expert/">stablenet-expert</a></strong></td>
-    <td>Meta-plugin (named after the marketplace itself). Ecosystem doctor — plugin install/enable status, cross-plugin MCP server registration conflicts. Install this first.
+    <td>Meta-plugin (named after the marketplace itself). Ecosystem doctor — common toolchain prerequisites, plugin install/enable status, MCP server connectivity, and cross-plugin MCP server registration conflicts. Install this first.
     <pre lang="bash">claude plugin install --scope user stablenet-expert@stablenet-expert</pre></td>
   </tr>
   </tbody>

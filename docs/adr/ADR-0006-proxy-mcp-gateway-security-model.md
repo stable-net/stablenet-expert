@@ -8,7 +8,11 @@
 
 > **결정 한 줄:** 민감정보(시크릿·사내정보)는 **MCP 서버 레벨**에서, LLM에 도달하기 *전에* 정규식+엔트로피
 > 검사로 REDACT/BLOCK한다. Skill(=LLM이 보고 나서 판단하는 방식)로는 처리하지 않는다.
-> **상태:** Accepted (구현 반영됨 — `packages/jira-gateway-mcp`, `pr-sanitize` skill 모두 존재)
+> **상태:** Accepted (구현 반영됨 — `packages/jira-gateway-mcp`, `pr-sanitize` skill 모두 존재).
+> **인바운드 절만** [ADR-0013](ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md)으로 **Partially
+> superseded** (2026-08-04) — `jira-gateway` 폐기로 인바운드 서버단 필터링 보장을 상실하는 것을
+> 명시적으로 감수. 아웃바운드(§2의 "Outbound도 대칭 처리" 문단, `pr-sanitize`)는 `jira-gateway`와
+> 무관하게 독립 동작해왔으므로 그대로 유효하다.
 
 ## 1. Context (왜)
 

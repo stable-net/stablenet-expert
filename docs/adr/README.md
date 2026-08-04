@@ -12,13 +12,14 @@
 | [ADR-0003](ADR-0003-reproduction-and-fix-validity.md) | Reproduction vs Fix-Validity 분리 + 2-티어 재현 | Accepted (2026-06-23) | 구현·머지 — PR #18 (v0.1.25). 라이브 무회귀 잔여(§6) |
 | [ADR-0004](ADR-0004-doctor-remediation-routing.md) | doctor→setup remediation routing + single-source fix table | Accepted (2026-06-26) | 구현됨 — PR #31·#33, `plugins/core-dev/scripts/doctor.py` REMEDIATION 테이블 |
 | [ADR-0005](ADR-0005-stablenet-expert-marketplace-split.md) | stablenet-expert 마켓플레이스 분리 + core-dev/cq 경계 | Accepted (2026-07-20) | 구현됨 — `stablenet-expert` 리포로 이관 완료(§2.1/2.2/2.4). §2.3(cq 분리)은 재검토 후 철회. §5 dapp 로드맵 제외 반영 (4-카테고리로 축소) |
-| [ADR-0006](ADR-0006-proxy-mcp-gateway-security-model.md) | Proxy MCP Gateway 보안 모델 (양방향 민감정보 필터링) | Accepted (historical, 2026-07-21 추출) | 구현됨 — `packages/jira-gateway-mcp/internal/filter/`, `pr-sanitize` skill |
+| [ADR-0006](ADR-0006-proxy-mcp-gateway-security-model.md) | Proxy MCP Gateway 보안 모델 (양방향 민감정보 필터링) | Accepted (historical, 2026-07-21 추출); 인바운드 절만 Partially superseded by ADR-0013 (2026-08-04) | 구현됨 — `packages/jira-gateway-mcp/internal/filter/`, `pr-sanitize` skill. 아웃바운드(`pr-sanitize`)는 그대로 유효, 인바운드는 ADR-0013으로 대체 예정 |
 | [ADR-0007](ADR-0007-bc-hybrid-harness-architecture.md) | B+C 하이브리드 하네스 아키텍처 (문서 기반 상태 머신 + 격리 멀티에이전트) | Accepted (historical, 2026-07-21 추출) | 구현됨 — `state-machine` skill, `orchestrator/planner/implementer/evaluator` agents |
 | [ADR-0008](ADR-0008-new-plugin-scaffolding-contract.md) | 신규 플러그인 스캐폴딩 계약 + `packages/` vs `plugins/<name>/` 경계 | Accepted (2026-07-29) | 부분 구현 — lint/CI 자동 탐색은 반영됨, 체크리스트·경계 기준은 플러그인 #2 착수 전까지 미검증 |
 | [ADR-0009](ADR-0009-contract-dev-plugin-design.md) | `contract-dev` 플러그인 설계 (1단계: go-stablenet 내장 systemcontracts/) | Accepted (2026-07-31) | 설계만 — `compact-core`형 구조(MCP 서버 없음, skills+리뷰/감사 에이전트) 결정, 실제 스캐폴딩은 별도 작업 |
 | [ADR-0010](ADR-0010-stablenet-expert-meta-plugin-design.md) | `stablenet-expert` 메타 플러그인 설계 (1단계: doctor만) | Accepted (2026-07-31) | 구현됨 — PR #12, `check-plugins.sh`/`check-mcp-conflicts.sh` 라이브 검증(실제 coding-agent/core-dev 충돌 3건 정확히 탐지) 완료 |
 | [ADR-0011](ADR-0011-stablenet-expert-doctor-interactive-setup.md) | `stablenet-expert:doctor` 2단계 (대화형 수정 + 플러그인별 setup 위임) | Superseded by ADR-0012 (2026-08-03) | 설계만 — `midnight-expert:doctor`의 위임/대화형수정 패턴 채택, `core-dev`의 기존 setup remediation(ADR-0002/0004) 재사용(재구현 안 함). 위임/자체수정 원칙은 ADR-0012에 유지, 스텝 구조만 대체됨 |
 | [ADR-0012](ADR-0012-doctor-step-order-revision.md) | `doctor` 스텝 재구성: 공통 환경 체크 + MCP 연결성 체크 + 결정/실행 분리 + MCP 값 비노출 | Accepted (2026-08-03) | 구현됨 — `scripts/check-environment.sh`·`check-mcp-connectivity.sh`·`set-mcp-env.sh` 신규, `commands/doctor.md` 전면 재작성(0-5 6단계), `scripts/check-setup-delegates.sh` 제거·Step 4에 인라인 흡수, `docs/SETUP.md` §9.9 MCP dedup 설명 정정, MCP 연결 값(URL/IP/토큰)이 체크 출력·대화에 노출되지 않도록 정정 |
+| [ADR-0013](ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md) | `jira-gateway` 폐기, 공식 Atlassian MCP로 전환 (ADR-0006 인바운드 절 개정) | Accepted (2026-08-04) | 설계만 — 코드 마이그레이션은 별도 작업. 인바운드 서버단 필터링 보장을 감수하고 상실하는 것으로 명시적 결정, 아웃바운드(`pr-sanitize`)는 무관하게 유지 |
 
 의존 관계: ADR-0001 ← ADR-0002 ← ADR-0004 (도메인팩 → setup/doctor → remediation 라우팅).
 ADR-0005는 ADR-0001(도메인팩)을 전제로 한다. ADR-0006·ADR-0007은 독립이며, `HANDOFF.md`(2026-06-05
@@ -33,6 +34,9 @@ ADR-0002/ADR-0004(core-dev의 doctor→setup remediation 라우팅)를 전제로
 ADR-0011을 supersede하며, 실제 라이브 실행(2026-08-03)에서 드러난 스텝 구조 문제(공통 환경 체크
 부재, MCP 연결성 체크 부재, 결정/실행 미분리, 위임 스텝의 부자연스러운 분리)를 근거로 한다 —
 ADR-0011의 위임/자체수정 원칙 자체는 바뀌지 않았다.
+ADR-0013은 ADR-0006의 인바운드 절만 부분 supersede한다 — `jira-gateway`(인바운드 필터링의 유일한
+구현 지점)를 폐기하기로 한 결정에서 파생됐으며, 아웃바운드(`pr-sanitize`)는 `jira-gateway`와
+무관하게 독립적으로 동작해왔으므로 ADR-0006의 해당 절은 그대로 유효하다.
 ADR-0003은 독립이며, 검증 절차는 [`../reproduction-verification-runbook-2026-06-23.md`](../reproduction-verification-runbook-2026-06-23.md).
 
 > 비고: 이 ADR들은 각각 단일 토픽을 둘러싼 **응집된 결정 묶음**(보통 결정 4건)으로 작성돼 있어,

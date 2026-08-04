@@ -35,13 +35,14 @@
 | [ADR-0003](adr/ADR-0003-reproduction-and-fix-validity.md) | Reproduction vs Fix-Validity + 2-티어 재현 | Accepted · 구현됨 (v0.1.25), 라이브 무회귀 잔여 |
 | [ADR-0004](adr/ADR-0004-doctor-remediation-routing.md) | doctor→setup remediation routing | Accepted · 구현됨 |
 | [ADR-0005](adr/ADR-0005-stablenet-expert-marketplace-split.md) | stablenet-expert 마켓플레이스 분리 + core-dev/cq 경계 | Accepted · 구현됨 (§2.3 cq 분리는 철회) |
-| [ADR-0006](adr/ADR-0006-proxy-mcp-gateway-security-model.md) | Proxy MCP Gateway 보안 모델 | Accepted · 구현됨 (HANDOFF.md에서 추출) |
+| [ADR-0006](adr/ADR-0006-proxy-mcp-gateway-security-model.md) | Proxy MCP Gateway 보안 모델 | Accepted · 구현됨 (HANDOFF.md에서 추출); 인바운드 절만 ADR-0013으로 부분 supersede |
 | [ADR-0007](adr/ADR-0007-bc-hybrid-harness-architecture.md) | B+C 하이브리드 하네스 아키텍처 | Accepted · 구현됨 (HANDOFF.md에서 추출) |
 | [ADR-0008](adr/ADR-0008-new-plugin-scaffolding-contract.md) | 신규 플러그인 스캐폴딩 계약 + packages/plugins 경계 | Accepted · 부분 구현 (체크리스트는 플러그인 #2 착수 전까지 미검증) |
 | [ADR-0009](adr/ADR-0009-contract-dev-plugin-design.md) | contract-dev 플러그인 설계 (1단계: go-stablenet 내장 systemcontracts/) | Accepted · 설계만 (스캐폴딩 미착수) |
 | [ADR-0010](adr/ADR-0010-stablenet-expert-meta-plugin-design.md) | stablenet-expert 메타 플러그인 설계 (1단계: doctor만) | Accepted · 구현됨 (PR #12, 라이브 검증 완료) |
 | [ADR-0011](adr/ADR-0011-stablenet-expert-doctor-interactive-setup.md) | stablenet-expert:doctor 2단계 (대화형 수정 + 플러그인별 setup 위임) | Superseded by ADR-0012 (스텝 구조 변경) |
 | [ADR-0012](adr/ADR-0012-doctor-step-order-revision.md) | doctor 스텝 재구성: 공통 환경 체크 + MCP 연결성 체크 + 결정/실행 분리 + MCP 값 비노출 | Accepted · 구현됨 (`commands/doctor.md`, `check-environment.sh`/`check-mcp-connectivity.sh`/`set-mcp-env.sh` 신규, 기존 `check-mcp-conflicts.sh`의 URL 노출도 정정) |
+| [ADR-0013](adr/ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md) | jira-gateway 폐기, 공식 Atlassian MCP로 전환 (ADR-0006 인바운드 절 개정) | Accepted · 설계만 (구현 미착수) |
 
 ## Tier 3 — 상태 / 잔여작업
 

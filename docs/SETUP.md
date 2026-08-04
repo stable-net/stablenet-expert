@@ -6,15 +6,18 @@ order; each one ends with a quick verification command so you know it worked.
 
 If something fails, skip to [§9 Troubleshooting](#9-troubleshooting).
 
-> **R1' architecture.** The core-dev plugin is the orchestrator/consumer. It talks
-> to three MCP servers: `jira-gateway` (in this repo), `stablenet-knowledge`
-> (`stablenet-knowledge-mcp`, a sibling repo — the stablenet-specialized distribution of the
-> upstream `knowledge-system` project, fusing ckv semantic + ckg graph retrieval behind one
-> HTTP server), and `chainbench` (a sibling repo, the deterministic test runner). Unlike
-> jira-gateway/chainbench (launched per-session over stdio), `stablenet-knowledge` is a
-> persistent HTTP server you start once and point `.mcp.json` at by URL — see §3.2/§4.2.
-> ckv/ckg are dev-only and not reached directly. The agent-facing tool surface
-> is frozen in `scripts/contract/agent-mcp.schema.json`.
+> **R1' architecture.** The core-dev plugin is the orchestrator/consumer. It talks to two MCP
+> servers this repo owns — `stablenet-knowledge` (`stablenet-knowledge-mcp`, a sibling repo —
+> the stablenet-specialized distribution of the upstream `knowledge-system` project, fusing ckv
+> semantic + ckg graph retrieval behind one HTTP server) and `chainbench` (a sibling repo, the
+> deterministic test runner) — plus one it doesn't: the official **Atlassian** MCP plugin for
+> Jira (see §4.1; per [ADR-0013](adr/ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md), the
+> self-hosted `jira-gateway` this repo used to run has been retired). Unlike chainbench (launched
+> per-session over stdio), `stablenet-knowledge` is a persistent HTTP server you start once and
+> point `.mcp.json` at by URL — see §3.1/§4.2. ckv/ckg are dev-only and not reached directly. The
+> agent-facing tool surface for this repo's own servers is frozen in
+> `scripts/contract/agent-mcp.schema.json` (the Atlassian plugin's tools aren't this repo's to
+> define a contract for).
 >
 > **`contract-dev`** (Solidity work on go-stablenet's embedded `systemcontracts/`) has **no MCP
 > server** — it reads the checkout directly. See §5.3/§7.4. Never enable it and `core-dev`
@@ -27,13 +30,13 @@ If something fails, skip to [§9 Troubleshooting](#9-troubleshooting).
 
 | Tool | Why | Check |
 |------|-----|-------|
-| Go ≥ 1.25 | Build jira-gateway + the sibling stablenet-knowledge-mcp/chainbench Go wire | `go version` |
+| Go ≥ 1.25 | Build the sibling stablenet-knowledge-mcp/chainbench Go wire | `go version` |
 | C toolchain (cc/clang) | stablenet-knowledge links sqlite-vec (CGO) | `cc --version` |
 | Node ≥ 18 + npm | chainbench MCP server (TypeScript) | `node --version` |
 | git ≥ 2.40 | Branch/commit/log throughout the pipeline | `git --version` |
 | GitHub CLI (`gh`) ≥ 2.50 | PR creation, comments, status checks, merge | `gh auth status` |
 | Claude Code | Hosts the plugin | (CLI/IDE) |
-| Atlassian (Jira) Cloud account | Source of tickets | (web) |
+| Atlassian (Jira) Cloud account + official Atlassian MCP plugin | Source of tickets — see §4.1 for install + OAuth login, not an env var | `claude mcp list` |
 | Ollama + `bge-m3` | Required for full stablenet-knowledge retrieval (semantic + intent) | `ollama list` |
 | Python 3 | Lint script + ad-hoc JSON inspection | `python3 --version` |
 
@@ -74,17 +77,18 @@ The stablenet-expert layout you should see:
 stablenet-expert/
 ├── plugins/
 │   ├── core-dev/       # Claude Code plugin (commands, agents, skills, hooks)
-│   │   └── .mcp.json           # MCP server registration (jira-gateway, stablenet-knowledge, chainbench)
+│   │   └── .mcp.json           # MCP server registration (stablenet-knowledge, chainbench — Jira is the
+│   │                            #   external Atlassian MCP plugin, not registered here, see §4.1)
 │   └── contract-dev/   # Solidity plugin for go-stablenet's embedded systemcontracts/ — no .mcp.json (§5.3)
 ├── scripts/
 │   └── contract/
-│       ├── agent-mcp.schema.json   # C1 SSoT: every tool the agents may call
+│       ├── agent-mcp.schema.json   # C1 SSoT: every tool the agents may call (this repo's own servers only)
 │       ├── mcp-namespace.json      # SSoT for stablenet-knowledge's tool-name prefix (cks vs stablenet_knowledge)
 │       └── lint-tool-names.sh      # drift gate: prompt tool names must be in the schema
 ├── packages/
-│   ├── jira-gateway-mcp/    # Sensitive-filter proxy in front of Jira REST API
 │   └── sensitive-guard/
-│       └── patterns.json    # Sensitive-information policy (jira-gateway)
+│       └── patterns.json    # Sensitive-information policy, used by the pr-sanitize skill (outbound only —
+│                              #   see ADR-0013 for why there's no inbound Jira filter anymore)
 └── docs/                    # Specs and plans
 ```
 
@@ -92,15 +96,7 @@ stablenet-expert/
 
 ## 3. Build the servers
 
-### 3.1 jira-gateway (in this repo)
-
-```bash
-cd packages/jira-gateway-mcp
-go build -o bin/jira-gateway-mcp ./cmd/server
-go test ./...
-```
-
-### 3.2 stablenet-knowledge (sibling repo `stablenet-knowledge-mcp`, CGO)
+### 3.1 stablenet-knowledge (sibling repo `stablenet-knowledge-mcp`, CGO)
 
 stablenet-knowledge inherits sqlite-vec, so it needs `CGO_ENABLED=1` and a C
 toolchain. `make build-mcp` builds the three MCP server binaries (`system-mcp` is the fused
@@ -128,7 +124,7 @@ Separately, build the dataset-build CLIs (needed for §6):
 make build-dataset-bins   # produces bin/{knowledge-setup,ckg,ckv,filelist-gen,cks-domain-*}
 ```
 
-### 3.3 chainbench (sibling repo, TS + Go wire)
+### 3.2 chainbench (sibling repo, TS + Go wire)
 
 chainbench is tri-language; the launcher needs the built TS bundle and the Go
 wire binary:
@@ -152,28 +148,50 @@ shell profile so Claude Code's child processes inherit them.
 
 ### 4.1 Jira (required)
 
-Create an API token at
-<https://id.atlassian.com/manage-profile/security/api-tokens>.
+Per [ADR-0013](adr/ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md), `core-dev` no longer
+runs its own Jira MCP server — it uses the official **Atlassian** MCP plugin, a remote/OAuth
+connector from Anthropic's own `claude-plugins-official` marketplace. This is **not** part of
+this repo's own marketplace (`stablenet-expert`) and is **not** installed by the steps in §3 —
+it's a separate, one-time setup on your own machine, and (since it's OAuth/identity-based) every
+team member authenticates with their **own** Atlassian account, not a shared token.
+
+**Install the plugin** (skip the `marketplace add` if you've already added
+`claude-plugins-official` for something else):
 
 ```bash
-export JIRA_BASE_URL="https://your-domain.atlassian.net"
-export JIRA_USER_EMAIL="you@example.com"
-export JIRA_API_TOKEN="atlassian_api_token_here"
+claude plugin marketplace add anthropics/claude-plugins-official
+claude plugin install atlassian@claude-plugins-official
 ```
+
+Restart Claude Code (plugin-provided MCP servers only register after a restart, same rule as
+any other plugin install).
+
+**Authenticate.** Either run this from your shell:
+
+```bash
+claude mcp login "plugin:atlassian:atlassian"
+```
+
+or, from inside a Claude Code session, run `/mcp`, select `atlassian`, and choose
+**Authenticate** — either path opens a browser for Atlassian's OAuth login. Log in with the
+Atlassian Cloud account that has access to your Jira site, and approve the permission grant.
 
 Verify:
 
 ```bash
-curl -s -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
-  "$JIRA_BASE_URL/rest/api/3/myself" | python3 -m json.tool | head -5
+claude mcp list
 ```
 
-A successful call returns your account info. A 401 means the token or email
-is wrong.
+Look for `plugin:atlassian:atlassian: https://mcp.atlassian.com/v1/mcp/authv2 (HTTP) - ✔ Connected`.
+If it instead shows `! Needs authentication`, re-run the `claude mcp login` step above.
+
+There is no `JIRA_API_TOKEN`/`JIRA_BASE_URL`/`JIRA_USER_EMAIL` to export anymore — those were
+specific to the retired `jira-gateway` server (§9.2 has the current troubleshooting steps for
+the OAuth-based flow).
 
 ### 4.2 stablenet-knowledge (required)
 
-Unlike jira-gateway/chainbench, `.mcp.json` does **not** launch stablenet-knowledge via stdio — it
+Unlike chainbench, `.mcp.json` does **not** launch stablenet-knowledge via stdio — it
 connects to an **already-running HTTP server** by URL:
 
 ```json
@@ -252,7 +270,7 @@ The `chainbench-mcp` launcher self-resolves `CHAINBENCH_DIR` from
 export CHAINBENCH_DIR="$HOME/Work/chainbench"
 ```
 
-Prerequisites (built in §3.3): `mcp-server/dist/index.js` and the
+Prerequisites (built in §3.2): `mcp-server/dist/index.js` and the
 `network/chainbench-net` wire binary must exist. The Evaluator initializes the
 network with `profile: "default"` — `default.yaml` IS the go-stablenet
 (stablenet-adapter) profile; there is no separate `go-stablenet` profile.
@@ -289,10 +307,11 @@ Restart Claude Code and run `/help`; you should see `/core-dev:work`,
 `/core-dev:analyze`, `/core-dev:review`, `/core-dev:status`,
 `/core-dev:merge`.
 
-Open the MCP status panel; **`jira-gateway`, `stablenet-knowledge`, and `chainbench`** should
-all show as connected. If a server fails to start, check the launching
-process's env — `.mcp.json` substitutes `${...}` from the parent shell, so the
-variables from §4 must be exported.
+Open the MCP status panel (or run `claude mcp list`); **`stablenet-knowledge`, `chainbench`, and
+`plugin:atlassian:atlassian`** should all show as connected. If one of the two servers this repo
+registers fails to start, check the launching process's env — `.mcp.json` substitutes `${...}`
+from the parent shell, so the variables from §4.2/§4.3 must be exported. If `atlassian` shows
+unauthenticated instead, that's a §4.1 OAuth issue, not an env var — see §9.2.
 
 Run the tool-name drift gate to confirm the prompts and the contract agree:
 
@@ -497,16 +516,24 @@ Once the smoke test passes:
   error: stablenet-knowledge boots in degraded (Smart Dummy) mode and `cks.ops.health` reports
   `degraded`.
 - A CGO link error at build time means stablenet-knowledge was built without a C toolchain —
-  rebuild with `CGO_ENABLED=1` (§3.2).
+  rebuild with `CGO_ENABLED=1` (§3.1).
 - Tool calls failing with `cks_context_*: tool not found` even though the server connects: the
   server's namespace and this repo's `scripts/contract/mcp-namespace.json` disagree — see the
-  `NAMESPACE=` warning in §3.2.
+  `NAMESPACE=` warning in §3.1.
 
-### 9.2 `Jira: authentication failed`
+### 9.2 `Jira: authentication failed` / MCP tool calls to Jira fail
 
-- Re-issue the token: <https://id.atlassian.com/manage-profile/security/api-tokens>.
-- Confirm `JIRA_USER_EMAIL` matches the account that owns the token.
-- Try the `curl` from §4.1 to isolate token vs plugin.
+Per §4.1, Jira now goes through the official Atlassian MCP plugin (OAuth), not an API token —
+so this is no longer a "check env vars" problem:
+
+- `claude mcp list` — confirm `plugin:atlassian:atlassian` shows `✔ Connected`, not
+  `! Needs authentication`.
+- If it shows unauthenticated, re-run `claude mcp login "plugin:atlassian:atlassian"` (or `/mcp`
+  → `atlassian` → Authenticate) and complete the OAuth login again — tokens can expire or get
+  revoked on the Atlassian side independent of anything in this repo.
+- If a specific call still fails after that (e.g. `getJiraIssue` for a real ticket 404s), confirm
+  the authenticated Atlassian account actually has access to that Jira site/project — this is a
+  permissions question on Atlassian's side, not a Claude Code or plugin config issue.
 
 ### 9.3 `state.json transition blocked`
 
@@ -532,22 +559,20 @@ The expected tool names are the C1 set (`chainbench_init`, `chainbench_start`,
 `chainbench_status`, `chainbench_test_run`, `chainbench_report`,
 `chainbench_stop`). If the chainbench server is unregistered or its names
 drift, reconcile against `scripts/contract/agent-mcp.schema.json` (provider
-`chainbench`) and confirm §3.3/§4.4 prerequisites are built. The Evaluator
+`chainbench`) and confirm §3.2/§4.4 prerequisites are built. The Evaluator
 detects the mismatch before running so it doesn't leak processes.
 
-### 9.7 `jira-gateway: patterns.json not found`
+### 9.7 `Jira: authentication failed` even though `claude mcp list` shows Connected
 
-The jira-gateway filter engine looks for `packages/sensitive-guard/patterns.json`
-via `PATTERNS_PATH`, then relative paths, then `./packages/sensitive-guard/patterns.json`.
-It fails closed (returns `BLOCKED`) rather than passing data unscanned. Set it
-explicitly:
+Historical note: this section number used to be "`jira-gateway: patterns.json not found`",
+back when this repo ran its own Jira MCP server. Per
+[ADR-0013](adr/ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md) that server is retired —
+see §9.2 for the current (OAuth-based) Jira troubleshooting steps. This entry number is kept
+stable rather than renumbered, since `docs/adr/*` and other docs cite specific `§9.x` numbers
+by value elsewhere in this repo.
 
-```bash
-export PATTERNS_PATH="/absolute/path/to/stablenet-expert/packages/sensitive-guard/patterns.json"
-```
-
-stablenet-knowledge sanitization is separate — it is driven by `sanitize.rules_path` in
-`mcp.yaml` (§4.2), not by an env var.
+`packages/sensitive-guard/patterns.json` is unaffected by any of this — it's read directly by
+the `pr-sanitize` skill (outbound scrubbing), independent of which Jira backend is in use.
 
 ### 9.8 Hooks not firing
 
@@ -560,7 +585,7 @@ resolves in your Claude Code build.
 
 **Never enable `core-dev` and `coding-agent` at the same time** (or any two plugins that both
 register a `stablenet-knowledge`-equivalent server). They point at the identical server (same
-`JIRA_GATEWAY_BIN` path, same `stablenet-knowledge-mcp` URL) under different plugin/server names.
+`stablenet-knowledge-mcp` URL) under different plugin/server names.
 
 This is not a server-side limitation — a single MCP server handling many concurrent clients is
 completely normal. It's that Claude Code **deduplicates MCP server declarations by their resolved
@@ -583,11 +608,13 @@ enabled plugins (not just this pair) and walks you through picking which one to 
 
 ## 10. What to look at next
 
-- `scripts/contract/agent-mcp.schema.json` — the C1 SSoT for every agent-facing tool
+- `scripts/contract/agent-mcp.schema.json` — the C1 SSoT for every agent-facing tool this repo
+  owns (Jira, via the external Atlassian plugin, isn't in scope for this contract — see §4.1)
 - `scripts/contract/mcp-namespace.json` — the SSoT for stablenet-knowledge's tool-name prefix
-- `packages/jira-gateway-mcp/README.md` — jira-gateway server documentation
 - the sibling `stablenet-knowledge-mcp` and `chainbench` repos — stablenet-knowledge and
   chainbench server documentation (start with `stablenet-knowledge-mcp/README.md`)
+- [ADR-0013](adr/ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md) — why Jira moved to the
+  official Atlassian MCP plugin and what was traded off
 
 When you're comfortable on a small ticket, scale up. The Orchestrator caps
 automatic retries at `max_eval_cycles` (default 3) so the pipeline never spins

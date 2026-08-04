@@ -10,12 +10,6 @@ Code.
 The repo root carries no functional content — every plugin under `plugins/` is self-contained
 and independently installable.
 
-## At a glance
-
-- **3** plugins published today (`core-dev`, `contract-dev`, `stablenet-expert`); 2 more
-  categories planned (see below)
-- Design rationale: [`docs/adr/ADR-0005-stablenet-expert-marketplace-split.md`](docs/adr/ADR-0005-stablenet-expert-marketplace-split.md)
-
 ## Install
 
 ### Using the Claude CLI

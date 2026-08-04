@@ -144,18 +144,34 @@ different kinds of actions with different safety profiles, don't treat them unif
   bypasses this conversation, and invoking it as a tool call would put its prompt/stdin/stdout
   right back into that same conversation.
 
-**After every plugin install/enable you process here**, immediately check whether that plugin
-ships `commands/setup.md` (`Read` `<installPath>/commands/setup.md` — the `installPath` is in
-`~/.claude/plugins/installed_plugins.json`) and, if so, ask: "`<plugin>` has its own environment
-setup — run it now?" → yes invokes
-`Skill(skill: "<plugin>:setup", args: "--check")` and folds that skill's own report into this
-command's output verbatim (don't summarize or reinterpret it — it's that plugin's authoritative
-diagnosis, per ADR-0011 §2.2: this command has no MCP/env knowledge of any other plugin's
-requirements). This is per-plugin, done as each plugin is processed — not a separate pass over
-every enabled plugin at the end.
+**Setup delegation only works for a plugin whose commands were already registered when this
+session started** — Claude Code reads a plugin's `commands/`/`skills/` at session startup, not
+live, so a plugin installed or enabled *during this same doctor run* has no invokable
+`/<plugin>:setup` (or `Skill(skill: "<plugin>:setup", ...)`) until the session restarts.
+Confirmed live (2026-08-04): invoking it right after an install fails with
+`Unknown skill: <plugin>:setup`, not a graceful "not ready yet" — so don't attempt it. Branch on
+whether the plugin was already `pass` in Step 1 **before** this run touched it:
+
+- **Already installed+enabled before this run** (a pre-existing `pass` row, or one you didn't
+  touch in Step 4): its commands were registered at session start, so delegation is safe right
+  now. Check whether it ships `commands/setup.md` (`Read` `<installPath>/commands/setup.md` —
+  `installPath` is in `~/.claude/plugins/installed_plugins.json`) and, if so, ask: "`<plugin>`
+  has its own environment setup — run it now?" → yes invokes
+  `Skill(skill: "<plugin>:setup", args: "--check")` and folds that skill's own report into this
+  command's output verbatim (don't summarize or reinterpret it — it's that plugin's authoritative
+  diagnosis, per ADR-0011 §2.2: this command has no MCP/env knowledge of any other plugin's
+  requirements).
+- **Installed or enabled by Step 4 in this same run**: do **not** attempt the Skill invocation —
+  it will fail. Instead say plainly: "`<plugin>` was just installed — restart Claude Code, then
+  run `/<plugin>:setup` yourself (or re-run `/stablenet-expert:doctor` after restarting, and
+  delegation will work on that pass since the plugin will then already be registered)."
+
+This is per-plugin, done as each plugin is processed — not a separate pass over every enabled
+plugin at the end.
 
 If a fix requires a session restart to take effect (plugin install/enable, `enabledPlugins`
-changes), say so plainly and don't claim it's "done" until the user confirms they've restarted.
+changes — which is every case above where delegation was deferred), say so plainly and don't
+claim it's "done" until the user confirms they've restarted.
 
 ## Step 5: MCP dual-registration conflict check
 
@@ -219,3 +235,7 @@ Finish with a summary:
   item, the multi-select call itself errors. If Steps 0-2 leave exactly one actionable item, ask
   about it as a plain two-option question (do it now / later) instead of forcing a multi-select
   with a single checkbox.
+- Setup delegation (Step 4) cannot reach a plugin installed/enabled earlier in the *same* Step 4
+  — see Step 4's branch on this. This isn't a workaround-able quirk, it's how Claude Code
+  registers plugin commands (session-startup only), so don't try to be clever about retrying the
+  Skill call within the same run — it will not succeed until after a restart.

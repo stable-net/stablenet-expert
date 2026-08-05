@@ -5,12 +5,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-project.py\" --hook",
+            "command": "\"${STABLENET_EXPERT_PYTHON:-python3}\" \"${CLAUDE_PLUGIN_ROOT}/scripts/resolve-project.py\" --hook",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session-context.py\"",
+            "command": "\"${STABLENET_EXPERT_PYTHON:-python3}\" \"${CLAUDE_PLUGIN_ROOT}/hooks/session-context.py\"",
             "timeout": 5
           }
         ]
@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/on-stop.py\"",
+            "command": "\"${STABLENET_EXPERT_PYTHON:-python3}\" \"${CLAUDE_PLUGIN_ROOT}/hooks/on-stop.py\"",
             "timeout": 5
           }
         ]
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/doc-guard.py\" pre",
+            "command": "\"${STABLENET_EXPERT_PYTHON:-python3}\" \"${CLAUDE_PLUGIN_ROOT}/hooks/doc-guard.py\" pre",
             "timeout": 5
           }
         ]
@@ -43,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/git-guard.py\"",
+            "command": "\"${STABLENET_EXPERT_PYTHON:-python3}\" \"${CLAUDE_PLUGIN_ROOT}/hooks/git-guard.py\"",
             "timeout": 5
           }
         ]
@@ -75,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/doc-guard.py\" post",
+            "command": "\"${STABLENET_EXPERT_PYTHON:-python3}\" \"${CLAUDE_PLUGIN_ROOT}/hooks/doc-guard.py\" post",
             "timeout": 5
           }
         ]

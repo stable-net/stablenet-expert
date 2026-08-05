@@ -328,7 +328,7 @@ flowchart LR
 | 결정 | Why | 위치 |
 |------|-----|------|
 | **Jira Gateway MCP 언어 = Go** | 처음 TypeScript로 시작 → 다른 TS 사용처가 없어 Go로 전환. 단일 바이너리, 빠른 시작, geth 생태계와 동일 언어 | `packages/jira-gateway-mcp/go.mod` |
-| **C1 SSoT JSON Schema + 도구 이름 lint** | stablenet-knowledge의 실제 도구 이름과 agent/command 마크다운의 도구 참조가 따로 드리프트하기 쉬움 → 스키마를 단일 소스로 두고 lint로 기계 검증 | `scripts/contract/agent-mcp.schema.json` + `scripts/contract/lint-tool-names.sh` |
+| **도구 이름 SSoT 스키마 + lint** | stablenet-knowledge의 실제 도구 이름과 agent/command 마크다운의 도구 참조가 따로 드리프트하기 쉬움 → 스키마를 단일 소스로 두고 lint로 기계 검증 | `scripts/contract/agent-mcp.schema.json` + `scripts/contract/lint-tool-names.sh` |
 | **자체 stablenet-knowledge-mcp shim 폐기** | 자체 in-tree 구현이 외부 stablenet-knowledge(code-knowledge-system)와 표면(도구 이름·응답 스키마)이 어긋남. 외부가 더 풍부한 도메인 시스템을 제공하므로 in-tree 코드를 통째 삭제하고 외부 바이너리(`${STABLENET_KNOWLEDGE_MCP_BIN}`)에 위임 | `plugins/core-dev/.mcp.json`의 `stablenet-knowledge` 항목 |
 | **ADF→Markdown 자체 구현 (HTML 비경유)** | HTML 변환 라이브러리를 경유하는 대안은 의존성이 하나 더 붙음. ADF를 직접 파싱하는 쪽이 의존성 그래프가 가벼움 | `packages/jira-gateway-mcp/internal/jira/adf.go` |
 | **Jira transition 3-tier lookup** | 워크플로 transition 이름은 프로젝트마다 다르다 → name → status name → statusCategory key 순으로 case-insensitive 매칭해, 별도 설정 파일 없이 프로젝트별 차이를 흡수 | `packages/jira-gateway-mcp/internal/jira/client.go TransitionIssue` |

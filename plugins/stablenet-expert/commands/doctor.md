@@ -86,6 +86,8 @@ concrete action, e.g.:
 - `Install core-dev@stablenet-expert` (from a Step 1 `info` row)
 - `Enable contract-dev` (from a Step 1 `info` row: installed but not enabled)
 - `Pull the bge-m3 model (ollama pull bge-m3)` (from a Step 0 `warn` row)
+- `Install Python 3.12 alongside your current interpreter` (from the Step 0 `python3` row —
+  `critical` if none exists, `info` if one exists but predates 3.10)
 - `Walk me through setting JIRA_API_TOKEN` (from a Step 2 `critical` row — see Step 4 for why
   this always means "point at `set-mcp-env.sh`", never "type the value here")
 
@@ -101,6 +103,27 @@ that doesn't exist yet at Step 3.
 Process each item the user selected in Step 3, grouped by what it actually is — these are
 different kinds of actions with different safety profiles, don't treat them uniformly:
 
+- **Python install** (Step 0 `python3` row, if selected): **do this first, before any plugin
+  install/enable.** The delegation later in this step runs a plugin's `scripts/setup.py`, so on a
+  machine with no interpreter every other repair in this step is unavailable until this one lands
+  (ADR-0015). Run:
+
+  ```bash
+  bash "${CLAUDE_PLUGIN_ROOT}/scripts/install-python.sh" --install
+  ```
+
+  It is idempotent — if a suitable interpreter already exists it installs nothing and reports that
+  one. On success the last stdout line is `INTERPRETER=<absolute path>`.
+
+  Record that path as `STABLENET_EXPERT_PYTHON` under `env` in `~/.claude/settings.json`. This is
+  a filesystem path, not a credential, so write it directly — the `set-mcp-env.sh` hidden-input
+  route exists for secrets and does not apply here.
+
+  Then, **for the remainder of this run**, substitute that absolute path wherever the steps below
+  say `"$python_bin"`. Tell the user plainly that the hooks pick it up from the *next* session:
+  Claude Code reads settings `env` at session start, so this run's already-loaded hooks keep using
+  the interpreter they started with. Nothing is relinked and `PATH` is untouched, so there is
+  nothing to undo later.
 - **Plugin install/enable** (Step 1 items): run `claude plugin install <plugin>@stablenet-expert`
   or `claude plugin enable <plugin>@stablenet-expert` directly — safe, user-scoped, reversible via
   uninstall/disable.
@@ -155,8 +178,9 @@ exactly this reason, so **a plugin installed in Step 4 gets its setup in the sam
 For each plugin processed, resolve its path and check:
 
 ```bash
-P=$(python3 -c "import json,pathlib; print(json.load(open(pathlib.Path.home()/'.claude/plugins/installed_plugins.json'))['plugins']['<plugin>@stablenet-expert'][0]['installPath'])")
-python3 "$P/scripts/setup.py" --check --json
+python_bin="${STABLENET_EXPERT_PYTHON:-python3}"
+plugin_path=$("$python_bin" -c "import json,pathlib; print(json.load(open(pathlib.Path.home()/'.claude/plugins/installed_plugins.json'))['plugins']['<plugin>@stablenet-expert'][0]['installPath'])")
+"$python_bin" "$plugin_path/scripts/setup.py" --check --json
 ```
 
 The JSON carries one row per required key: `key`, `description` (what the value is *for*),
@@ -170,10 +194,10 @@ Then split the rows and act on each kind differently:
   present in global settings). Offer them together in one `AskUserQuestion` (multi-select),
   one option per key, using the row's `description` as the option description so the user can
   see what each value is for rather than guessing from the variable name. On confirmation:
-  `python3 "$P/scripts/setup.py" --fix`. Report which keys it wrote, from the script's own output.
+  `"$python_bin" "$plugin_path/scripts/setup.py" --fix`. Report which keys it wrote, from the script's own output.
 - **`missing` rows that are not secret** — nothing to write unattended; the user has to supply
   the value. Print the key, its `description`, and its `how_to_find` verbatim, and give them the
-  command to run themselves: `python3 "$P/scripts/setup.py" --fix --set KEY=VALUE`.
+  command to run themselves: `"$python_bin" "$plugin_path/scripts/setup.py" --fix --set KEY=VALUE`.
 - **`missing` rows that are `secret: true`** — same as above except the value must never enter
   this conversation. Point at `set-mcp-env.sh` per the rules earlier in this step; do not offer
   `--set` for a secret and do not run it yourself.

@@ -21,6 +21,8 @@
 | [ADR-0012](ADR-0012-doctor-step-order-revision.md) | `doctor` 스텝 재구성: 공통 환경 체크 + MCP 연결성 체크 + 결정/실행 분리 + MCP 값 비노출 | Accepted (2026-08-03) | 구현됨 — `scripts/check-environment.sh`·`check-mcp-connectivity.sh`·`set-mcp-env.sh` 신규, `commands/doctor.md` 전면 재작성(0-5 6단계), `scripts/check-setup-delegates.sh` 제거·Step 4에 인라인 흡수, `docs/SETUP.md` §9.9 MCP dedup 설명 정정, MCP 연결 값(URL/IP/토큰)이 체크 출력·대화에 노출되지 않도록 정정 |
 | [ADR-0013](ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md) | `jira-gateway` 폐기, 공식 Atlassian MCP로 전환 (ADR-0006 인바운드 절 개정) | Accepted (2026-08-04) | 설계만 — 코드 마이그레이션은 별도 작업. 인바운드 서버단 필터링 보장을 감수하고 상실하는 것으로 명시적 결정, 아웃바운드(`pr-sanitize`)는 무관하게 유지 |
 | [ADR-0014](ADR-0014-plugin-setup-script-contract.md) | 플러그인 setup 스크립트 계약 (`--check`/`--fix`/`--json`) + doctor의 경로 기반 위임 | Accepted (2026-08-05) | 구현됨 — `core-dev/scripts/setup.py`에 `--json` 추가(용도 설명·시크릿 비노출 계약, `test_setup.py::TestJSONOutput`이 고정), `commands/doctor.md` Step 4를 스킬 호출에서 스크립트 실행으로 교체. ADR-0011 §2.2 위임 원칙은 유지하고 수단만 교체 |
+| [ADR-0015](ADR-0015-python-interpreter-selection.md) | Python 인터프리터 선택 정책 | Accepted (2026-08-05) | 구현됨 — 버전 게이트를 두지 않고(런타임 스크립트는 3.9에서 동작, CI만 3.12), 동의한 경우에만 `install-python.sh`로 설치하며, `STABLENET_EXPERT_PYTHON` 절대경로로 참조해 시스템 `python3`와 PATH를 건드리지 않는다. settings `env`의 훅 전달과 `${VAR:-default}` 확장은 실측 검증 |
+| [ADR-0016](ADR-0016-naming-and-abbreviations.md) | 명명·약어 규칙 | Accepted (2026-08-05) | 적용 중 — GLOSSARY.md 신설, 삭제된 문서의 `C1`/`C4` 제거, 벤치 문서의 `RI-1..11`을 불변식 번호로 복원. 에이전트 지시문의 `RI-nn` 제거는 파이프라인 영향을 따로 확인하기 위해 후속 PR로 분리. 도메인팩(`domains/**`)은 색인 기준선 보호를 위해 제외 |
 
 의존 관계: ADR-0001 ← ADR-0002 ← ADR-0004 (도메인팩 → setup/doctor → remediation 라우팅).
 ADR-0005는 ADR-0001(도메인팩)을 전제로 한다. ADR-0006·ADR-0007은 독립이며, `HANDOFF.md`(2026-06-05

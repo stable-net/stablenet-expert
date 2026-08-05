@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/stable-net/stablenet-expert/scripts/contract/agent-mcp.schema.json",
-  "title": "R1' Agent-facing MCP Contract (C1 SSoT)",
+  "title": "Agent-facing MCP contract (single source of truth)",
   "description": "Single source of truth for every tool the core-dev plugin calls. Providers: stablenet-knowledge (our .mcp.json alias for the code-knowledge-system MCP; registered tools keep their cks_* names), chainbench, jira-gateway. ckv/ckg are dev-only and intentionally NOT in this contract. Each provider's conformance test validates its registered tools against this file; scripts/contract/lint-tool-names.sh asserts every mcp__server__tool reference in the agent/command prompts is a tool name listed here.",
   "providers": {
     "stablenet-knowledge": {

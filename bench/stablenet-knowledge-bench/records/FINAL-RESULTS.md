@@ -39,7 +39,7 @@
 | M3 | 0.462 | 89% | 32 | 1,372 |
 | M4 | 0.667 | 70% | 6 | 172 |
 
-### invariants (불변식 RI-1..11, 11문항)
+### invariants (불변식 1~11, 11문항 — `plugins/core-dev/domains/go-stablenet/invariants.md`)
 | 방식 | f1 | 정답률 | halluc | tok |
 |---|---|---|---|---|
 | M1_raw | 0.962 | 91% | 26 | 6,891 |

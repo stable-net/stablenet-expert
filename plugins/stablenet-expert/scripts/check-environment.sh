@@ -21,11 +21,11 @@ all_pass=true
 
 # Go >= 1.25 -- jira-gateway + sibling stablenet-knowledge-mcp/chainbench Go wire
 if command -v go >/dev/null 2>&1; then
-  gv="$(go version | grep -oE 'go[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 | sed 's/^go//')"
-  if [ -n "$gv" ] && version_ge "$gv" "1.25"; then
-    emit "Go" "pass" "go$gv"
+  go_version="$(go version | grep -oE 'go[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 | sed 's/^go//')"
+  if [ -n "$go_version" ] && version_ge "$go_version" "1.25"; then
+    emit "Go" "pass" "go$go_version"
   else
-    emit "Go" "warn" "go${gv:-?} found, need >= 1.25 (core-dev/contract-dev builds)"
+    emit "Go" "warn" "go${go_version:-?} found, need >= 1.25 (core-dev/contract-dev builds)"
     all_pass=false
   fi
 else
@@ -43,11 +43,11 @@ fi
 
 # Node >= 18 + npm -- chainbench MCP server (TypeScript)
 if command -v node >/dev/null 2>&1; then
-  nv="$(node --version | sed 's/^v//')"
-  if version_ge "$nv" "18.0.0"; then
-    emit "Node" "pass" "v$nv"
+  node_version="$(node --version | sed 's/^v//')"
+  if version_ge "$node_version" "18.0.0"; then
+    emit "Node" "pass" "v$node_version"
   else
-    emit "Node" "warn" "v$nv found, need >= 18 (chainbench MCP server)"
+    emit "Node" "warn" "v$node_version found, need >= 18 (chainbench MCP server)"
     all_pass=false
   fi
 else
@@ -57,11 +57,11 @@ fi
 
 # git >= 2.40 -- branch/commit/log throughout the pipeline
 if command -v git >/dev/null 2>&1; then
-  gitv="$(git --version | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)"
-  if [ -n "$gitv" ] && version_ge "$gitv" "2.40"; then
-    emit "git" "pass" "$gitv"
+  git_version="$(git --version | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)"
+  if [ -n "$git_version" ] && version_ge "$git_version" "2.40"; then
+    emit "git" "pass" "$git_version"
   else
-    emit "git" "warn" "${gitv:-?} found, need >= 2.40"
+    emit "git" "warn" "${git_version:-?} found, need >= 2.40"
     all_pass=false
   fi
 else
@@ -71,16 +71,16 @@ fi
 
 # GitHub CLI (gh) >= 2.50, authenticated -- PR creation, comments, status checks, merge
 if command -v gh >/dev/null 2>&1; then
-  ghv="$(gh --version | head -n1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?')"
+  gh_version="$(gh --version | head -n1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?')"
   if gh auth status >/dev/null 2>&1; then
-    auth="authenticated"
+    gh_auth_state="authenticated"
   else
-    auth="NOT authenticated -- run 'gh auth login'"
+    gh_auth_state="NOT authenticated -- run 'gh auth login'"
   fi
-  if [ -n "$ghv" ] && version_ge "$ghv" "2.50"; then
-    emit "GitHub CLI" "pass" "$ghv, $auth"
+  if [ -n "$gh_version" ] && version_ge "$gh_version" "2.50"; then
+    emit "GitHub CLI" "pass" "$gh_version, $gh_auth_state"
   else
-    emit "GitHub CLI" "warn" "${ghv:-?} found, need >= 2.50; $auth"
+    emit "GitHub CLI" "warn" "${gh_version:-?} found, need >= 2.50; $gh_auth_state"
     all_pass=false
   fi
 else
@@ -88,11 +88,32 @@ else
   all_pass=false
 fi
 
-# python3 -- this plugin's own doctor checks (and the lint script) need it
+# python3 -- load-bearing in a way the other entries are not. Doctor's own Step 4 delegation runs
+# `python3 <plugin>/scripts/setup.py` (ADR-0014), so without an interpreter doctor cannot set up
+# ANY plugin it installs -- the repair mechanism itself is gone, not just one feature. Hence
+# `critical` when absent, and hence install-python.sh is bash-only.
+#
+# No hard version gate: every runtime script here carries `from __future__ import annotations`, so
+# they run on 3.9. Only the test suite needs 3.10+ (`dict | None` at runtime), and CI pins 3.12.
+# Reporting `info` rather than `warn` below is deliberate -- an old-but-working interpreter is not
+# a defect, it just can't run the tests locally.
+python_recommended="3.12"  # matches .github/workflows/ci.yml
+python_floor="3.10"        # below this the test suite cannot run
 if command -v python3 >/dev/null 2>&1; then
-  emit "python3" "pass" "$(python3 --version 2>&1)"
+  python_version="$(python3 -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null)"
+  if [ -z "$python_version" ]; then
+    emit "python3" "warn" "found on PATH but 'python3 -c' failed -- the interpreter looks broken"
+    all_pass=false
+  elif version_ge "$python_version" "$python_floor"; then
+    emit "python3" "pass" "$python_version"
+  else
+    emit "python3" "info" \
+      "$python_version -- hooks and doctor scripts run fine; the test suite needs >= $python_floor (CI uses $python_recommended). Install alongside with scripts/install-python.sh; your system python3 is left untouched"
+    all_pass=false
+  fi
 else
-  emit "python3" "critical" "not found -- stablenet-expert's own doctor checks require it"
+  emit "python3" "critical" \
+    "not found -- doctor cannot run any plugin's setup.py without it (ADR-0014). Install with scripts/install-python.sh (installs $python_recommended)"
   all_pass=false
 fi
 

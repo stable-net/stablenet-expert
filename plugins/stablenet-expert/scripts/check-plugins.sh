@@ -30,8 +30,9 @@ if [ ! -f "$MARKETPLACE_JSON" ]; then
   [ -f "$CHECKOUT_JSON" ] && MARKETPLACE_JSON="$CHECKOUT_JSON"
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-  emit "check-plugins" "warn" "python3 not available — cannot run this check"
+python_bin="${STABLENET_EXPERT_PYTHON:-python3}"
+if ! command -v "$python_bin" >/dev/null 2>&1; then
+  emit "check-plugins" "warn" "no Python interpreter available — cannot run this check"
   exit 0
 fi
 
@@ -48,7 +49,7 @@ if [ ! -f "$SETTINGS" ]; then
   exit 0
 fi
 
-python3 - "$MARKETPLACE_JSON" "$INSTALLED_PLUGINS" "$SETTINGS" "$MARKETPLACE" <<'PYEOF'
+"$python_bin" - "$MARKETPLACE_JSON" "$INSTALLED_PLUGINS" "$SETTINGS" "$MARKETPLACE" <<'PYEOF'
 import json, sys
 
 marketplace_path, installed_path, settings_path, marketplace = sys.argv[1:5]

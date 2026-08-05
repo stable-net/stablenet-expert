@@ -38,7 +38,7 @@ If something fails, skip to [§9 Troubleshooting](#9-troubleshooting).
 | Claude Code | Hosts the plugin | (CLI/IDE) |
 | Atlassian (Jira) Cloud account + official Atlassian MCP plugin | Source of tickets — see §4.1 for install + OAuth login, not an env var | `claude mcp list` |
 | Ollama + `bge-m3` | Required for full stablenet-knowledge retrieval (semantic + intent) | `ollama list` |
-| Python 3 | Lint script + ad-hoc JSON inspection | `python3 --version` |
+| Python 3 (3.12 권장) | core-dev 훅 4종(`git-guard`/`doc-guard`/`session-context`/`on-stop`), doctor의 check 스크립트, 각 플러그인의 `scripts/setup.py` — 없으면 doctor가 플러그인 셋업 자체를 못 한다([ADR-0015](adr/ADR-0015-python-interpreter-selection.md)) | `python3 --version` |
 
 A note on optionality:
 
@@ -82,7 +82,7 @@ stablenet-expert/
 │   └── contract-dev/   # Solidity plugin for go-stablenet's embedded systemcontracts/ — no .mcp.json (§5.3)
 ├── scripts/
 │   └── contract/
-│       ├── agent-mcp.schema.json   # C1 SSoT: every tool the agents may call (this repo's own servers only)
+│       ├── agent-mcp.schema.json   # single source of truth: every tool the agents may call (this repo's own servers only)
 │       ├── mcp-namespace.json      # SSoT for stablenet-knowledge's tool-name prefix (cks vs stablenet_knowledge)
 │       └── lint-tool-names.sh      # drift gate: prompt tool names must be in the schema
 ├── packages/
@@ -555,7 +555,8 @@ The merge command checks: (1) PR approved, (2) all status checks succeeded,
 
 ### 9.6 `Evaluator Stage 4: ChainBench MCP interface mismatch`
 
-The expected tool names are the C1 set (`chainbench_init`, `chainbench_start`,
+The expected tool names are the schema-declared set (`scripts/contract/agent-mcp.schema.json` —
+`chainbench_init`, `chainbench_start`,
 `chainbench_status`, `chainbench_test_run`, `chainbench_report`,
 `chainbench_stop`). If the chainbench server is unregistered or its names
 drift, reconcile against `scripts/contract/agent-mcp.schema.json` (provider
@@ -608,7 +609,7 @@ enabled plugins (not just this pair) and walks you through picking which one to 
 
 ## 10. What to look at next
 
-- `scripts/contract/agent-mcp.schema.json` — the C1 SSoT for every agent-facing tool this repo
+- `scripts/contract/agent-mcp.schema.json` — the single source of truth for every agent-facing tool this repo
   owns (Jira, via the external Atlassian plugin, isn't in scope for this contract — see §4.1)
 - `scripts/contract/mcp-namespace.json` — the SSoT for stablenet-knowledge's tool-name prefix
 - the sibling `stablenet-knowledge-mcp` and `chainbench` repos — stablenet-knowledge and

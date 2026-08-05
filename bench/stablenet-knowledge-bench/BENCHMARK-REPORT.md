@@ -52,12 +52,11 @@
 | 버킷 | 수 | 출처/의도 |
 |------|----|-----------|
 | `seeded_cks_eval` | 10 | cks-eval `scenarios-stablenet` SN01–SN10 그대로 시드 |
-| `invariants` | 11 | byzantine-fairness 불변식 RI-1..RI-11 각 1문항 (정답 = 정전 코드 경로) |
+| `invariants` | 11 | byzantine-fairness 불변식 1~11번 각 1문항 (`plugins/core-dev/domains/go-stablenet/invariants.md`) (정답 = 정전 코드 경로) |
 | `hotspot` | 6 | 최근 버그픽스 핫스팟 (`c37994e9b` 라운드체인지 레이스, `9978930ba` justification 위조, `3eada119e` gov_council zero-balance, `98f05c2a0` AnzeonTip refresh, txpool fee-delegation) |
-| `cherry_pick_boundary` | 3 | geth 원본 vs StableNet 글루 구분 (RI-9; `handler.go` vs `handler_istanbul.go`/`tx_fee_delegation.go`) |
+| `cherry_pick_boundary` | 3 | geth 원본 vs StableNet 글루 구분 (불변식 9 CHERRY-PICK PRINCIPLE; `handler.go` vs `handler_istanbul.go`/`tx_fee_delegation.go`) |
 
-불변식 커버리지(실측): RI-1×3, RI-2×2, RI-3×3, RI-4×2, RI-5×2, RI-6×2, RI-7×2, RI-8×3,
-RI-9×3, RI-10×2, RI-11×3 → **RI-1..RI-11 전부 ≥2회 커버**.
+불변식 커버리지(실측): 1×3, 2×2, 3×3, 4×2, 5×2, 6×2, 7×2, 8×3, 9×3, 10×2, 11×3 → **불변식 1~11 전부 ≥2회 커버**.
 
 스키마: cks-eval v1(`file`+`start_line`+`end_line`) 상위호환 v2 — `sha_pin`, `difficulty`,
 `invariant_refs`, `language`, `bucket`, `expected_keywords` 추가. 코드 드리프트 방어를 위해
@@ -134,7 +133,7 @@ RI-9×3, RI-10×2, RI-11×3 → **RI-1..RI-11 전부 ≥2회 커버**.
 **장점 (이 하니스가 잘 잡아내도록 설계된 것)**
 - stablenet-knowledge 자동 선별(M4)이 토큰 대비 정확도에서 우월하면 **정량적 ROI**가 드러난다.
 - hallucination을 **live stablenet-knowledge로 교차검증** → "그럴듯한 거짓 인용"을 기계적으로 적발.
-- 골든셋이 **불변식 RI-1..11 + 최근 버그 핫스팟**에 정렬 → 합의 안전성에 직결된 질문 위주.
+- 골든셋이 **불변식 1~11 + 최근 버그 핫스팟**에 정렬 → 합의 안전성에 직결된 질문 위주.
 - `validate_golden.py` 드리프트 가드 → 코드 변경 시 재실행만으로 품질 저하 즉시 감지(회귀 탐지기).
 
 **단점 / 리스크 (해석 시 유의)**

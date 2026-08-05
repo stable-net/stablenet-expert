@@ -31,7 +31,7 @@ tickets_dir="${repo_root}/.stablenet-expert/tickets"
 bench_dir="${repo_root}/.stablenet-expert/bench"
 [ -d "${tickets_dir}" ] || [ -d "${bench_dir}" ] || exit 0
 
-ts="$(date -u +%FT%TZ)"
+timestamp="$(date -u +%FT%TZ)"
 
 have_jq=0
 command -v jq >/dev/null 2>&1 && have_jq=1
@@ -47,9 +47,9 @@ if [ "${have_jq}" -eq 1 ]; then
   # keep it as-is. prompt/description are captured verbatim (no truncation) so
   # token accounting is exact. Approx char counts are added as a cheap proxy.
   transcript_line="$(printf '%s' "${payload}" | jq -c \
-    --arg ts "${ts}" \
+    --arg timestamp "${timestamp}" \
     '{
-       ts: $ts,
+       ts: $timestamp,
        subagent_type: (.tool_input.subagent_type // "unknown"),
        description: (.tool_input.description // null),
        prompt: (.tool_input.prompt // null),
@@ -73,7 +73,7 @@ for ws in "${tickets_dir}"/*/ "${bench_dir}"/*/cells/*/ ; do
 
   mkdir -p "${ws}logs"
   printf '%s [INFO] hook=on-agent-complete subagent=%s\n' \
-    "${ts}" "${subagent_type}" >> "${ws}logs/impl.log" 2>/dev/null || true
+    "${timestamp}" "${subagent_type}" >> "${ws}logs/impl.log" 2>/dev/null || true
 
   # Transcript JSONL (append one record per agent completion).
   if [ -n "${transcript_line}" ]; then

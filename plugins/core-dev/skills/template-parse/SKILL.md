@@ -15,7 +15,7 @@ Jira 티켓의 description(markdown)을 파싱하여 작업 유형을 식별하�
 ## 1. 입력
 
 - `description` (string): Jira 티켓의 description 본문 (markdown)
-  - Jira API v3에서 받은 ADF가 markdown으로 변환된 형태 (RI-04 참조)
+  - Jira API v3에서 받은 ADF가 markdown으로 변환된 형태
 - `summary` (string, optional): Jira 티켓의 summary 필드. 본문에 요약이 없을 때 폴백.
 
 ## 2. 출력
@@ -311,7 +311,7 @@ panic: nil pointer dereference at consensus/wbft/finalize.go:89
 
 ---
 
-## 8. ADF (Atlassian Document Format) 처리 (RI-04)
+## 8. ADF (Atlassian Document Format) 처리
 
 Jira Gateway MCP가 ADF → markdown 변환을 처리한 후 이 skill을 호출하는 것이 원칙이다.
 

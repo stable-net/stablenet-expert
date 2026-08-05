@@ -104,7 +104,7 @@ argument-hint: "<JIRA-ID, 예: STABLE-1234>"
      plan_progress = state.states.IMPLEMENTATION.plan_progress
      commits = flatten(plan_progress.steps[*].commits)
 
-4.2. 크기에 따라 전략을 달리해 본문 작성(RI-14)
+4.2. 크기에 따라 전략을 달리해 본문 작성
 
      # 2-tier 포맷터
      plan_progress.total_steps <= 10이면:

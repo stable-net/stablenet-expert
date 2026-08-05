@@ -111,7 +111,7 @@ The go-stablenet pack declares unit/lint/sec + `mcp:chainbench`, so all of §4�
 
 ---
 
-## 4. Stage 1 — Unit Test (RI-21)
+## 4. Stage 1 — Unit Test
 
 ### 4.0 Retrieval-health-aware strictness (honor analyzer §3.0b)
 Read `related-code.json.retrieval_health` (mirrored in `states.ANALYSIS`). If
@@ -182,7 +182,7 @@ bash: cd {repo_root} && \
         > {workspace_dir}/logs/coverage-summary.txt
 ```
 
-### 4.4 -race scope (RI-21 — focused, concurrency-sensitive)
+### 4.4 -race scope (focused, concurrency-sensitive)
 
 ```
 read {workspace_dir}/related-code.json → ckg.concurrency_impact
@@ -500,16 +500,17 @@ defensive coding, not data exfiltration.
 
 ---
 
-## 7. Stage 4 — ChainBench Integration Test (RI-20)
+## 7. Stage 4 — ChainBench Integration Test
 
-### 7.0 Pre-flight: confirm tool interfaces (RI-20)
+### 7.0 Pre-flight: confirm tool interfaces
 
 **Load the chainbench tools first (deferred plugin MCP tools).** They are exposed
 as `mcp__plugin_core-dev_chainbench__*` with schemas that load on demand. Run
 ToolSearch once before the pre-flight check:
 `ToolSearch "select:mcp__plugin_core-dev_chainbench__chainbench_init,mcp__plugin_core-dev_chainbench__chainbench_start,mcp__plugin_core-dev_chainbench__chainbench_status,mcp__plugin_core-dev_chainbench__chainbench_test_run,mcp__plugin_core-dev_chainbench__chainbench_report,mcp__plugin_core-dev_chainbench__chainbench_failure_context,mcp__plugin_core-dev_chainbench__chainbench_log_search,mcp__plugin_core-dev_chainbench__chainbench_stop"`.
 
-Confirm the chainbench MCP exposes the C1 tool subset before the first call:
+Confirm the chainbench MCP exposes the tool subset declared in
+`scripts/contract/agent-mcp.schema.json` before the first call:
 
 ```
 list tools available to this Agent. Compare to the expected names:
@@ -700,11 +701,11 @@ Run additional catalog tests as the ticket scope warrants (e.g.
 authoritative pass/fail comes from the report parse in §7.5b, not from scraping
 this text output.
 
-### 7.5b Parse the JSON report (C4 loop-back)
+### 7.5b Parse the JSON report
 
 ```
 report = mcp__plugin_core-dev_chainbench__chainbench_report({ format: "json" })
-# C4 shape:
+# Expected shape:
 #   { summary: { total_tests, passed, failed, assertions: { passed, failed } },
 #     tests: [ { status, pass, fail, ... } ] }
 

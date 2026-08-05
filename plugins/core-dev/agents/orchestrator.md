@@ -347,7 +347,7 @@ advances it to `"completed"` is `/core-dev:merge`.
 
 ---
 
-## 6. Pipeline variant branching (RI-18, RI-19)
+## 6. Pipeline variant branching
 
 state.pipeline_variant determines which loop the Orchestrator runs.
 

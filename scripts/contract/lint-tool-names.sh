@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# scripts/contract/lint-tool-names.sh — C1 tool-name drift gate (M2.a).
+# scripts/contract/lint-tool-names.sh — tool-name drift gate.
 #
 # Asserts that every `mcp__<server>__<tool>` reference in the plugin's agent
-# and command prompts names a tool present in the C1 SSoT schema
+# and command prompts names a tool present in the schema
 # (scripts/contract/agent-mcp.schema.json). This catches shim/renamed/hallucinated
 # tool names before they reach a running agent.
 #
@@ -71,12 +71,12 @@ for d in dirs:
                         unknown.append((path, lineno, name))
 
 if unknown:
-    print(f"tool-name drift: {len(unknown)} reference(s) not in the C1 schema:")
+    print(f"tool-name drift: {len(unknown)} reference(s) not in the schema:")
     for path, lineno, name in unknown:
         rel = os.path.relpath(path, os.path.dirname(os.path.dirname(schema_path)))
         print(f"  {rel}:{lineno}  {name}")
     sys.exit(0 if report_only else 1)
 
 print(f"OK: {seen} tool reference(s) + {wildcards} server-level wildcard grant(s), "
-      f"all present in the C1 schema ({len(names)} tools).")
+      f"all present in the schema ({len(names)} tools).")
 PY

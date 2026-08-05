@@ -51,7 +51,7 @@ These 10 are exported as-is to the golden-set; 20 more are authored by the plan.
 No production symbol is mutated, so no caller/callee fan-out applies to the deliverable. stablenet-knowledge is used
 *as subject of measurement* (the harness grades stablenet-knowledge tool outputs) and *as verifier* (re-resolve every
 golden-set anchor via `cks.context.find_symbol` at run start, flagging drift). Golden-set policy
-mandates ≥1 question per concurrency invariant (RI-11): `consensus/wbft/core.currentMutex` and the
+mandates ≥1 question per concurrency invariant (invariant 11, `plugins/core-dev/domains/go-stablenet/invariants.md`): `consensus/wbft/core.currentMutex` and the
 `pool.loop()`-only mutation of txpool maps.
 
 ## 1.7 Impact analysis (indirect)
@@ -78,4 +78,4 @@ mandates ≥1 question per concurrency invariant (RI-11): `consensus/wbft/core.c
 2. Manifest: new Q&A manifest schema (different unit-of-measurement than end-to-end pipelines).
 3. AI client: pluggable `Driver` protocol — `claude-cli` impl for live; `replay-fixture` for CI determinism.
 4. Entry point: Python CLI now; optional `/coding-agent:ckg-bench` slash wrapper later.
-5. 20 new golden-set questions: 11 invariant-anchored (RI-1..RI-11) + 6 hotspot + 3 cherry-pick boundary.
+5. 20 new golden-set questions: 11 invariant-anchored (invariants 1..11) + 6 hotspot + 3 cherry-pick boundary.

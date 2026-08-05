@@ -33,7 +33,7 @@ commit_hash="$(git -C "${repo_root}" rev-parse --short HEAD 2>/dev/null || echo 
 commit_subject="$(git -C "${repo_root}" log -1 --pretty=%s 2>/dev/null || echo unknown)"
 changed_count="$(git -C "${repo_root}" show --stat HEAD 2>/dev/null | tail -1 || echo '0 changed')"
 
-ts="$(date -u +%FT%TZ)"
+timestamp="$(date -u +%FT%TZ)"
 
 # Try to extract the ticket id from the commit subject ("STABLE-1234: ...").
 ticket_id="$(printf '%s' "${commit_subject}" | grep -oE '^[A-Z]+-[0-9]+' || true)"
@@ -63,7 +63,7 @@ fi
 for ws in "${target_workspaces[@]}"; do
   mkdir -p "${ws}logs"
   printf '%s [INFO] hook=on-commit hash=%s subject="%s" stat=%s\n' \
-    "${ts}" "${commit_hash}" "${commit_subject}" "${changed_count}" \
+    "${timestamp}" "${commit_hash}" "${commit_subject}" "${changed_count}" \
     >> "${ws}logs/impl.log" 2>/dev/null || true
 done
 

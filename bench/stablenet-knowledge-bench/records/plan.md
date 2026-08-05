@@ -13,7 +13,7 @@ No go-stablenet production code is modified. All paths below are relative to rep
 - New files: `golden-set/G01.yaml … G30.yaml`, `golden-set/index.yaml`
 - Schema reuses cks-eval YAML (file + start_line + end_line + symbol + intent), adds:
   `sha_pin`, `difficulty`, `invariant_refs`, `language`, `bucket`, `expected_keywords`.
-- Composition: 10 from cks-eval (SN01–SN10) + 11 RI-1..RI-11 invariant probes + 6 hotspot probes + 3 cherry-pick boundary probes.
+- Composition: 10 from cks-eval (SN01–SN10) + 11 invariant probes (invariants 1..11) + 6 hotspot probes + 3 cherry-pick boundary probes.
 - Dependencies: [Step 1]
 - Verification: `validate_golden.py` resolves every entry via stablenet-knowledge `find_symbol` against indexed_head and asserts file+overlap; 30/30 must pass.
 
@@ -75,7 +75,7 @@ No go-stablenet production code is modified. All paths below are relative to rep
 ## Verification Plan
 - Unit tests per step (stdlib `unittest`). Integration: 2-question × 4-method replay run (deterministic, CI).
 - Live smoke: 1-question × 4-method `claude_cli` run + stablenet-knowledge-health precheck (manual, gated on indexed_head==HEAD).
-- `go build` / `go test -race` / ChainBench: **not applicable** — no Go production changes (record skip explicitly per RI-13).
+- `go build` / `go test -race` / ChainBench: **not applicable** — no Go production changes (record the skip explicitly).
 - AC mapping: AC#1→Step 9; AC#2→Step 8; AC#3→Step 8 delta table; AC#4→Step 9 rerun + Step 2 drift re-resolution.
 
 ## Risks

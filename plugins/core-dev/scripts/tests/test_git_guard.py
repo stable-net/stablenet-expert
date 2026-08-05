@@ -3,6 +3,8 @@
 
 Run:  python3 plugins/core-dev/scripts/tests/test_git_guard.py
 """
+from __future__ import annotations
+
 import importlib.util
 import io
 import json

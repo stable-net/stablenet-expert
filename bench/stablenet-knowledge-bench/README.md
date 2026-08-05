@@ -114,7 +114,8 @@ python3 .stablenet-expert/bench/stablenet-knowledge-bench/run.py \
 
 Composition:
 - **G01–G10** (10): Seeded from cks-eval scenario anchors (SN01–SN10)
-- **G11–G21** (11): One question per invariant RI-1..RI-11
+- **G11–G21** (11): One question per StableNet invariant 1..11
+  (`plugins/core-dev/domains/go-stablenet/invariants.md` — the 11 numbered entries; these are domain invariants, not review issues)
 - **G22–G27** (6): Hotspot probes for recent bugfix commits
   (race in newRoundChangeTimer c37994e9b, WBFT justification forgery 9978930ba,
   zero-balance alloc 3eada119e, AnzeonTipEnv refresh 98f05c2a0,
@@ -180,4 +181,4 @@ only), so questions can be cross-referenced.
 
 No go-stablenet production code is modified by this harness.
 `go build ./...` and `go test -race ./...` are not applicable here.
-ChainBench is not applicable. (Per RI-13: skip explicitly recorded.)
+ChainBench is not applicable. (The skip is recorded explicitly.)

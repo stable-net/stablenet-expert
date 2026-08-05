@@ -22,8 +22,9 @@ emit() {
 INSTALLED_PLUGINS="$HOME/.claude/plugins/installed_plugins.json"
 SETTINGS="$HOME/.claude/settings.json"
 
-if ! command -v python3 >/dev/null 2>&1; then
-  emit "check-mcp-conflicts" "warn" "python3 not available — cannot run this check"
+python_bin="${STABLENET_EXPERT_PYTHON:-python3}"
+if ! command -v "$python_bin" >/dev/null 2>&1; then
+  emit "check-mcp-conflicts" "warn" "no Python interpreter available — cannot run this check"
   exit 0
 fi
 if [ ! -f "$INSTALLED_PLUGINS" ]; then
@@ -35,7 +36,7 @@ if [ ! -f "$SETTINGS" ]; then
   exit 0
 fi
 
-python3 - "$INSTALLED_PLUGINS" "$SETTINGS" <<'PYEOF'
+"$python_bin" - "$INSTALLED_PLUGINS" "$SETTINGS" <<'PYEOF'
 import json, os, re, sys
 from collections import defaultdict
 

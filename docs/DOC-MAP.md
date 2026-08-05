@@ -24,6 +24,7 @@
 | [SETUP.md](SETUP.md) | 설치 레퍼런스 | 빌드·env·Ollama·인덱스·smoke test·트러블슈팅 |
 | [agent-architecture-and-plugin-guide.md](agent-architecture-and-plugin-guide.md) | 아키텍처 레퍼런스 | Claude Code query 루프 + 6-요소 플러그인 계약 |
 | [bench-abc-mode-definitions.md](bench-abc-mode-definitions.md) | 벤치 계약 | A/B/C 3-way regime 정의·공정성 규칙·측정 축 |
+| [GLOSSARY.md](GLOSSARY.md) | 용어집 | 약어·짧은 식별자 전체(cks/ckg/ckv·WBFT·SSoT·D-1~3·폐기된 RI-nn 등) |
 | [adr/README.md](adr/README.md) | ADR 인덱스 | 아래 ADR 목록 + 템플릿 |
 
 ### ADR (`adr/`)
@@ -44,6 +45,8 @@
 | [ADR-0012](adr/ADR-0012-doctor-step-order-revision.md) | doctor 스텝 재구성: 공통 환경 체크 + MCP 연결성 체크 + 결정/실행 분리 + MCP 값 비노출 | Accepted · 구현됨 (`commands/doctor.md`, `check-environment.sh`/`check-mcp-connectivity.sh`/`set-mcp-env.sh` 신규, 기존 `check-mcp-conflicts.sh`의 URL 노출도 정정) |
 | [ADR-0013](adr/ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md) | jira-gateway 폐기, 공식 Atlassian MCP로 전환 (ADR-0006 인바운드 절 개정) | Accepted · 설계만 (구현 미착수) |
 | [ADR-0014](adr/ADR-0014-plugin-setup-script-contract.md) | 플러그인 setup 스크립트 계약 — doctor가 스킬 대신 설치 경로의 `scripts/setup.py`로 위임(설치 직후 재시작 없이 셋업) | Accepted · 구현됨 (`core-dev/scripts/setup.py --json`, `doctor.md` Step 4) |
+| [ADR-0015](adr/ADR-0015-python-interpreter-selection.md) | Python 인터프리터 선택 — 버전 게이트 없음, 동의 후 설치, `STABLENET_EXPERT_PYTHON` 절대경로로 참조(PATH 무변경) | Accepted · 구현됨 (`install-python.sh`, `check-environment.sh`, 호출부 11군데) |
+| [ADR-0016](adr/ADR-0016-naming-and-abbreviations.md) | 명명·약어 규칙 — 새 약어 금지, 불가피하면 첫 등장 풀이 + GLOSSARY 등재, 리포 밖을 가리키는 ID 금지 | Accepted · 문서/스크립트 적용 완료 (GLOSSARY.md 신설, `C1`/`C4` 정리, 벤치 문서의 불변식 참조 복원); 에이전트 지시문의 `RI-nn` 정리는 후속 PR |
 
 ## Tier 3 — 상태 / 잔여작업
 

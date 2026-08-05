@@ -284,7 +284,7 @@ conc = mcp__plugin_core-dev_stablenet-knowledge__cks_context_concurrency_impact(
 ```
 
 `concurrency_impact` returns the modules reached over goroutine/channel/lock
-edges (both directions) — the Evaluator reads this for its `-race` scope (RI-21).
+edges (both directions) — the Evaluator reads this for its `-race` scope.
 
 Persist as `related-code.json.ckg` with the per-seed subgraphs under
 `ckg.subgraphs` and the concurrency results under `ckg.concurrency_impact`.
@@ -419,7 +419,7 @@ A separate "Verification Plan" section in plan.md:
 - Unit tests (per step)
 - Integration tests (cross-package)
 - go build verification: required after every step
-- go test -race scope: derived from CKG concurrency_impact (RI-21)
+- go test -race scope: derived from CKG concurrency_impact
 - ChainBench: required when scope.modules touches consensus/governance/state
 - Acceptance criteria coverage (mapping from ticket-parsed.json)
 ```

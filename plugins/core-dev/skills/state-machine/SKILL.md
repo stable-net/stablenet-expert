@@ -228,7 +228,7 @@ core-dev 파이프라인의 상태 전이를 관리한다. 이 skill은 `Read`, 
 
    **ANALYSIS → PLANNING**:
    - `Bash`: `test -f {workspace_dir}/analysis.md && test -f {workspace_dir}/related-code.json && echo OK`
-   - **아티팩트 완전성 검증 (RI-13)**:
+   - **아티팩트 완전성 검증**:
      - analysis.md 내용 길이 > 200 자 (빈 파일 차단)
      - related-code.json을 파싱하여 분석 페이로드가 비어있지 않은지 확인 —
        `pack`/`ckv`/`ckg`/`impacts` 중 **최소 하나가 비어있지 않음**. (구 스키마의 `results`
@@ -397,7 +397,7 @@ core-dev 파이프라인의 상태 전이를 관리한다. 이 skill은 `Read`, 
      - `Bash`: `cd {repo_root} && git diff --name-only` 로 uncommitted 파일 확인
      - 결과를 checkpoint 형태로 구성하여 반환
 
-   **current_state == "ANALYSIS" / "PLANNING" / "DESIGN"** (RI-02 대응):
+   **current_state == "ANALYSIS" / "PLANNING" / "DESIGN"** (중단된 단계 복구):
    - 해당 단계의 아티팩트 존재 여부 확인:
      - ANALYSIS: analysis.md 또는 related-code.json 부분 존재 시 → "partial" 표시
      - PLANNING: plan.md 부분 존재 시 → "partial"

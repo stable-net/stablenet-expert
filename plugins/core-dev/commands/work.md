@@ -13,7 +13,7 @@ Jira 티켓 기반 자동화 작업을 시작한다.
 ## 0. 인자 형식
 
 - 기본: `/core-dev:work STABLE-1234`
-- 로컬 테스트(RI-03): `/core-dev:work STABLE-1234 --local ./test-ticket.json`
+- 로컬 테스트: `/core-dev:work STABLE-1234 --local ./test-ticket.json`
   - `--local <path>`: MCP 호출 대신 지정 파일을 ticket.json으로 직접 사용
   - Phase 2 (Jira Gateway MCP) 완료 전 Phase 1 테스트 용도
 
@@ -113,7 +113,7 @@ Jira 티켓 기반 자동화 작업을 시작한다.
 ## 5. Jira 티켓 읽기 + 민감정보 필터
 
 ```
-5.1. --local 옵션 사용 시 (RI-03 로컬 테스트)
+5.1. --local 옵션 사용 시 (로컬 테스트)
    ticket_path = 옵션 값
    bash: test -f {ticket_path} || echo "FILE_NOT_FOUND"
    not found → 중단
@@ -243,7 +243,7 @@ Jira 티켓 기반 자동화 작업을 시작한다.
 - [ ] git 레포가 아닐 때 명확한 에러 메시지
 - [ ] 기존 in_progress 작업 발견 시 복구 모드 진입
 - [ ] BLOCKED 작업 발견 시 유저 확인 후 재개/새 작업/중단 선택
-- [ ] `--local` 옵션으로 MCP 없이 테스트 가능 (RI-03)
+- [ ] `--local` 옵션으로 MCP 없이 테스트 가능
 - [ ] sensitive_check 결과(CLEAN/REDACTED/BLOCKED)별 동작 분기
 - [ ] `.stablenet-expert/tickets/` 하위에 올바른 폴더 생성 (timestamp 포함)
 - [ ] state.json이 TICKET_INTAKE 상태로 초기화 + sensitive_check 정보 포함

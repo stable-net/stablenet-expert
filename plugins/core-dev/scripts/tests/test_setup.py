@@ -163,5 +163,55 @@ class TestPluginRepoGuard(unittest.TestCase):
             self.assertIn("REPO-ROOT", r.stdout)
 
 
+class TestJSONOutput(unittest.TestCase):
+    """--json is what /stablenet-expert:doctor drives the fix interaction from.
+
+    It exists because delegating by skill name cannot reach a plugin installed in
+    the same session — Claude Code registers a plugin's commands at startup — while
+    running this script by path can. The contract the caller depends on is pinned
+    here: the fields it reads, and that a secret's value is never among them.
+    """
+
+    def test_shape_and_no_secret_value(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            (tmp / ".claude").mkdir()
+            (tmp / ".claude" / "settings.local.json").write_text(json.dumps(
+                {"env": {"JIRA_API_TOKEN": "super-secret-token-value"}}))
+            r = _run(tmp, "--check", "--json")
+            payload = json.loads(r.stdout)
+
+            for field in ("plugin", "project", "rows", "missing", "auto_fixable"):
+                self.assertIn(field, payload, f"caller reads {field}")
+            for row in payload["rows"]:
+                for field in ("key", "description", "how_to_find", "status",
+                              "auto_fixable", "secret"):
+                    self.assertIn(field, row, f"caller reads row.{field}")
+
+            self.assertNotIn("super-secret-token-value", r.stdout,
+                             "a secret's value must never reach the caller's transcript")
+            secrets = [row for row in payload["rows"] if row["secret"]]
+            self.assertTrue(secrets, "JIRA_API_TOKEN should be marked secret")
+            for row in secrets:
+                self.assertNotIn("value", row)
+
+    def test_json_suppresses_the_text_report(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            r = _run(tmp, "--check", "--json")
+            self.assertNotIn("KEY", r.stdout, "text table must not be mixed into JSON stdout")
+            json.loads(r.stdout)   # parses as a whole — nothing appended around it
+
+    def test_missing_key_carries_its_description_and_hint(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            payload = json.loads(_run(tmp, "--check", "--json").stdout)
+            missing = [row for row in payload["rows"] if row["status"] == "missing"]
+            self.assertTrue(missing, "a bare temp dir resolves nothing")
+            for row in missing:
+                self.assertTrue(row["description"], f"{row['key']} needs a description to offer")
+                self.assertFalse(row["auto_fixable"], "missing values cannot be written unattended")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

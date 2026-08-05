@@ -296,6 +296,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="also register granular permissions.allow (plugin MCP + read-only bash + "
                          "pipeline write path) and permissions.deny (secret files)")
     ap.add_argument("--project", default=None, help="domain pack project_id (else auto-detect)")
+    ap.add_argument("--json", action="store_true",
+                    help="emit the check result as JSON on stdout instead of the text report; "
+                         "for callers that drive the fix interaction themselves (see "
+                         "/stablenet-expert:doctor). Never carries a secret's value.")
     args = ap.parse_args(argv)
 
     overrides: dict[str, str] = {}
@@ -329,8 +333,38 @@ def main(argv: list[str] | None = None) -> int:
                 if ans:
                     resolved[key] = (ans, "set")
 
-    # Report.
     chainbench_mcp = shutil.which("chainbench-mcp")
+
+    # --json: the machine-readable face of --check. A caller (doctor) needs three
+    # things per key that the text report only half-carries: what the value is FOR
+    # (desc), where to get it (hint), and whether this key can be written without
+    # asking the user for anything (auto_fixable). Secrets never carry a value here
+    # — the flag exists so a caller can present choices, not so it can read tokens.
+    if args.json:
+        rows = []
+        for key, where, desc, hint in REQUIRED:
+            val, src = resolved[key]
+            rows.append({
+                "key": key,
+                "kind": where,
+                "description": desc,
+                "how_to_find": hint,
+                "status": "missing" if val is None else src,
+                "auto_fixable": val is not None and src != "project",
+                "secret": where == SECRET,
+            })
+        print(json.dumps({
+            "plugin": "core-dev",
+            "project": str(repo_root),
+            "rows": rows,
+            "missing": [r["key"] for r in rows if r["status"] == "missing"],
+            "auto_fixable": [r["key"] for r in rows if r["auto_fixable"]],
+            "chainbench_mcp": chainbench_mcp or None,
+            "repo_root_env": rre,
+        }, indent=2))
+        return 0 if not [r for r in rows if r["status"] == "missing"] else 1
+
+    # Report.
     print(f"core-dev setup — project: {repo_root}")
     print(f"  {'KEY':<18} {'STATUS':<10} SOURCE / VALUE")
     missing = []

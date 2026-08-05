@@ -38,7 +38,7 @@ If something fails, skip to [§9 Troubleshooting](#9-troubleshooting).
 | Claude Code | Hosts the plugin | (CLI/IDE) |
 | Atlassian (Jira) Cloud account + official Atlassian MCP plugin | Source of tickets — see §4.1 for install + OAuth login, not an env var | `claude mcp list` |
 | Ollama + `bge-m3` | Required for full stablenet-knowledge retrieval (semantic + intent) | `ollama list` |
-| Python 3 (3.12 권장) | core-dev 훅 4종(`git-guard`/`doc-guard`/`session-context`/`on-stop`), doctor의 check 스크립트, 각 플러그인의 `scripts/setup.py` — 없으면 doctor가 플러그인 셋업 자체를 못 한다([ADR-0015](adr/ADR-0015-python-interpreter-selection.md)) | `python3 --version` |
+| Python 3.12+ | core-dev 훅 4종(`git-guard`/`doc-guard`/`session-context`/`on-stop`), doctor의 check 스크립트, 각 플러그인의 `scripts/setup.py` — 없으면 doctor가 플러그인 셋업 자체를 못 한다([ADR-0015](adr/ADR-0015-python-interpreter-selection.md)) | `python3 --version` |
 
 A note on optionality:
 

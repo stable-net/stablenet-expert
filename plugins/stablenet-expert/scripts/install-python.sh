@@ -19,8 +19,19 @@
 # STABLENET_EXPERT_PYTHON.
 set -u
 
-TARGET_VERSION="3.12"   # matches .github/workflows/ci.yml
-FLOOR_VERSION="3.10"    # below this the test suite cannot run (`dict | None` evaluated at runtime)
+# Both numbers are 3.12 today, but they answer different questions and will diverge when the
+# supported version moves. Bump them deliberately, not together by reflex:
+#
+#   SUPPORTED_VERSION -- what this marketplace is tested against, and what gets installed when
+#     nothing suitable is present. Must be a version that still receives upstream support; check
+#     `brew info python@<v>` for a deprecation notice before raising or keeping it.
+#   ACCEPT_VERSION -- the oldest interpreter already on a machine that we will use as-is instead
+#     of installing another. Kept equal to SUPPORTED_VERSION on purpose: 3.9 was the obvious
+#     candidate for a lower value (macOS ships it) and was rejected because it is end-of-life and
+#     Homebrew disables python@3.9 on 2026-10-15. Lower it only for a version that is still
+#     supported upstream.
+SUPPORTED_VERSION="3.12"
+ACCEPT_VERSION="3.12"
 
 usage() {
   printf 'usage: %s (--check | --install)\n' "$(basename "$0")" >&2
@@ -37,7 +48,7 @@ interpreter_version() {
   "$1" -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null
 }
 
-# Print the path of an already-installed interpreter that meets FLOOR_VERSION, if there is one.
+# Print the path of an already-installed interpreter that meets ACCEPT_VERSION, if there is one.
 # Searched newest-first so a machine with several versions yields the best available.
 find_existing_interpreter() {
   local candidate resolved version
@@ -45,7 +56,7 @@ find_existing_interpreter() {
     resolved="$(command -v "$candidate" 2>/dev/null)" || continue
     version="$(interpreter_version "$resolved")" || continue
     [ -n "$version" ] || continue
-    if version_ge "$version" "$FLOOR_VERSION"; then
+    if version_ge "$version" "$ACCEPT_VERSION"; then
       printf '%s' "$resolved"
       return 0
     fi
@@ -66,24 +77,24 @@ choose_channel() {
 
 describe_channel() {
   case "$1" in
-    brew) printf 'brew install python@%s' "$TARGET_VERSION" ;;
+    brew) printf 'brew install python@%s' "$SUPPORTED_VERSION" ;;
     uv)
       if command -v uv >/dev/null 2>&1; then
-        printf 'uv python install %s' "$TARGET_VERSION"
+        printf 'uv python install %s' "$SUPPORTED_VERSION"
       else
-        printf 'curl -LsSf https://astral.sh/uv/install.sh | sh   (installs uv into ~/.local/bin, no sudo)\n  then: uv python install %s' "$TARGET_VERSION"
+        printf 'curl -LsSf https://astral.sh/uv/install.sh | sh   (installs uv into ~/.local/bin, no sudo)\n  then: uv python install %s' "$SUPPORTED_VERSION"
       fi
       ;;
   esac
 }
 
 install_via_brew() {
-  brew install "python@$TARGET_VERSION" >&2 || return 1
+  brew install "python@$SUPPORTED_VERSION" >&2 || return 1
   # Homebrew deliberately does not relink `python3`; it exposes the versioned name only, which is
   # exactly the isolation this script wants.
   local prefix
   prefix="$(brew --prefix 2>/dev/null)" || return 1
-  local path="$prefix/bin/python$TARGET_VERSION"
+  local path="$prefix/bin/python$SUPPORTED_VERSION"
   [ -x "$path" ] && printf '%s' "$path"
 }
 
@@ -96,17 +107,17 @@ install_via_uv() {
     export PATH
   fi
   command -v uv >/dev/null 2>&1 || return 1
-  uv python install "$TARGET_VERSION" >&2 || return 1
+  uv python install "$SUPPORTED_VERSION" >&2 || return 1
 
   # Resolve the installed interpreter. `uv python find` is the documented way; the glob is a
   # fallback so a change in uv's CLI surface degrades to a slower lookup instead of a failure.
   local path
-  path="$(uv python find "$TARGET_VERSION" 2>/dev/null)"
+  path="$(uv python find "$SUPPORTED_VERSION" 2>/dev/null)"
   if [ -n "$path" ] && [ -x "$path" ]; then
     printf '%s' "$path"
     return 0
   fi
-  for path in "$HOME"/.local/share/uv/python/*"$TARGET_VERSION"*/bin/"python$TARGET_VERSION"; do
+  for path in "$HOME"/.local/share/uv/python/*"$SUPPORTED_VERSION"*/bin/"python$SUPPORTED_VERSION"; do
     [ -x "$path" ] && { printf '%s' "$path"; return 0; }
   done
   return 1
@@ -125,7 +136,7 @@ channel="$(choose_channel)"
 
 if [ "$mode" = "--check" ]; then
   printf 'No interpreter >= %s found. Would install Python %s via %s:\n\n  %s\n\n' \
-    "$FLOOR_VERSION" "$TARGET_VERSION" "$channel" "$(describe_channel "$channel")"
+    "$ACCEPT_VERSION" "$SUPPORTED_VERSION" "$channel" "$(describe_channel "$channel")"
   printf 'Your existing python3 (%s) is left untouched; PATH is not modified.\n' \
     "$(command -v python3 2>/dev/null || printf 'none')"
   exit 0

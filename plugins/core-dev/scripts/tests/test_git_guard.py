@@ -9,6 +9,7 @@ import importlib.util
 import io
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -116,6 +117,84 @@ class TestExistingRulesUnchanged(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
             self.assertEqual(_decision(_run_hook("git reset --hard HEAD~1", d)), "ask")
+
+
+def _repo(root: Path, name: str, branch=None) -> Path:
+    """A real one-commit repo, optionally checked out on a feature branch."""
+    path = root / name
+    path.mkdir(parents=True)
+    run = lambda *a: subprocess.run(["git", "-C", str(path)] + list(a),
+                                    capture_output=True, check=True)
+    run("init", "-q")
+    run("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q",
+        "--allow-empty", "-m", "x")
+    if branch:
+        run("checkout", "-q", "-b", branch)
+    return path
+
+
+class TestCommitGuardHonoursCd(unittest.TestCase):
+    """`cd <path> && git commit` must be judged against the tree git will really touch.
+
+    Reading the branch from the hook's own cwd was wrong in both directions: it denied
+    legitimate commits in a feature worktree when the hook sat in a checkout on main, and it
+    let a commit onto main through whenever the hook's cwd happened to be on a branch.
+    """
+
+    def test_cd_into_feature_worktree_is_allowed_from_a_main_checkout(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            on_main = _repo(d, "on-main")
+            feature = _repo(d, "on-feature", branch="feat/work")
+            self.assertIsNone(_run_hook(f"cd {feature} && git commit -m x", on_main))
+
+    def test_cd_into_a_main_checkout_is_denied_from_a_feature_worktree(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            on_main = _repo(d, "on-main")
+            feature = _repo(d, "on-feature", branch="feat/work")
+            self.assertEqual(
+                _decision(_run_hook(f"cd {on_main} && git commit -m x", feature)), "deny")
+
+    def test_commit_without_cd_still_uses_the_hook_cwd(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            on_main = _repo(d, "on-main")
+            self.assertEqual(_decision(_run_hook("git commit -m x", on_main)), "deny")
+
+    def test_unresolvable_cd_falls_back_to_the_hook_cwd(self):
+        """A path with substitution or globbing is not resolved -- fall back rather than skip,
+        so an unparseable command cannot be used to slip past the guard."""
+        with tempfile.TemporaryDirectory() as d:
+            on_main = _repo(Path(d), "on-main")
+            for cmd in ("cd $HOME && git commit -m x",
+                        'cd "$SOME/dir" && git commit -m x',
+                        "cd /nonexistent-xyz && git commit -m x"):
+                with self.subTest(cmd=cmd):
+                    self.assertEqual(_decision(_run_hook(cmd, on_main)), "deny")
+
+    def test_path_containing_the_word_git_is_not_truncated(self):
+        """A cd target like /home/me/github/repo contains "git"; splitting on the bare
+        substring would cut the path in half and lose the directory."""
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            on_main = _repo(d, "on-main")
+            feature = _repo(d, "github-work", branch="feat/work")
+            self.assertIsNone(_run_hook(f"cd {feature} && git commit -m x", on_main))
+
+    def test_last_cd_before_git_wins(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            on_main = _repo(d, "on-main")
+            feature = _repo(d, "on-feature", branch="feat/work")
+            self.assertIsNone(
+                _run_hook(f"cd /tmp && cd {feature} && git add -A && git commit -m x", on_main))
+
+    def test_git_dash_C_still_skips_the_check(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            on_main = _repo(d, "on-main")
+            self.assertIsNone(_run_hook(f"git -C {on_main} commit -m x", on_main))
 
 
 if __name__ == "__main__":

@@ -40,12 +40,41 @@ def emit(decision, reason):
     }))
 
 
-def _git(args):
+def _git(args, cwd=None):
     try:
-        out = subprocess.run(["git"] + args, capture_output=True, text=True, timeout=2)
+        out = subprocess.run(["git"] + args, capture_output=True, text=True,
+                             timeout=2, cwd=cwd)
         return out.stdout.strip()
     except Exception:
         return ""
+
+
+def _effective_cwd(cmd):
+    """Directory the git invocation in `cmd` will actually run in.
+
+    A command like `cd /some/worktree && git commit ...` runs git somewhere other than this
+    hook's own cwd. Reading the branch from the hook's cwd was wrong in both directions: it
+    denied legitimate commits made in a feature worktree from a checkout sitting on main, and
+    it let a commit onto main slip through whenever the hook's own cwd happened to be on a
+    feature branch. Honour a leading `cd` so the guard judges the tree git will really touch.
+
+    Only a `cd` that precedes the git call is considered, and only a literal path -- anything
+    with substitution or globbing is left alone and the hook falls back to its own cwd, which
+    is the conservative direction (it still checks *a* repository rather than skipping).
+    """
+    # Cut at the git *command*, not at the substring "git" -- a path like
+    # /Users/me/Work/github/repo contains it and would truncate mid-path.
+    git_at = re.search(r'(^|[;&|])\s*git(\s|$)', cmd)
+    head = cmd[:git_at.start()] if git_at else cmd
+    match = None
+    for match in re.finditer(r'(?:^|[;&|]\s*)cd\s+([^;&|]+?)\s*(?=[;&|]|$)', head):
+        pass          # keep the last cd before git -- later ones win
+    if not match:
+        return None
+    path = match.group(1).strip().strip('"').strip("'")
+    if not path or any(ch in path for ch in "$`*?~"):
+        return None
+    return path if os.path.isdir(path) else None
 
 
 def _workspaces():
@@ -141,12 +170,14 @@ def main():
              "branch and open a PR; merge to the default branch happens via review.")
         return 0
 
-    # --- deny: commit while ON a protected branch (cwd tree only; -C skips) ---
+    # --- deny: commit while ON a protected branch (the tree git will actually touch; -C skips) ---
     if re.search(r'\bgit\b[^;&|]*\bcommit\b', cmd) and not re.search(r'\bgit\s+-C\b', cmd):
-        branch = _git(["rev-parse", "--abbrev-ref", "HEAD"])
+        target_dir = _effective_cwd(cmd)
+        branch = _git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=target_dir)
         if branch in PROTECTED:
+            where = f" in {target_dir}" if target_dir else ""
             emit("deny",
-                 f"Committing directly on '{branch}' is blocked. Create a feature branch "
+                 f"Committing directly on '{branch}'{where} is blocked. Create a feature branch "
                  f"first (git checkout -b <branch>) and commit there.")
             return 0
 

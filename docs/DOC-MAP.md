@@ -43,6 +43,7 @@
 | [ADR-0011](adr/ADR-0011-stablenet-expert-doctor-interactive-setup.md) | stablenet-expert:doctor 2단계 (대화형 수정 + 플러그인별 setup 위임) | Superseded by ADR-0012 (스텝 구조 변경) |
 | [ADR-0012](adr/ADR-0012-doctor-step-order-revision.md) | doctor 스텝 재구성: 공통 환경 체크 + MCP 연결성 체크 + 결정/실행 분리 + MCP 값 비노출 | Accepted · 구현됨 (`commands/doctor.md`, `check-environment.sh`/`check-mcp-connectivity.sh`/`set-mcp-env.sh` 신규, 기존 `check-mcp-conflicts.sh`의 URL 노출도 정정) |
 | [ADR-0013](adr/ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md) | jira-gateway 폐기, 공식 Atlassian MCP로 전환 (ADR-0006 인바운드 절 개정) | Accepted · 설계만 (구현 미착수) |
+| [ADR-0014](adr/ADR-0014-plugin-setup-script-contract.md) | 플러그인 setup 스크립트 계약 — doctor가 스킬 대신 설치 경로의 `scripts/setup.py`로 위임(설치 직후 재시작 없이 셋업) | Accepted · 구현됨 (`core-dev/scripts/setup.py --json`, `doctor.md` Step 4) |
 
 ## Tier 3 — 상태 / 잔여작업
 

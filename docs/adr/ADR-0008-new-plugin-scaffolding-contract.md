@@ -45,6 +45,10 @@ lint/CI가 `core-dev`에 하드코딩돼 있던 문제(예전 WORKLIST 항목)�
   (`mcp__plugin_<name>_<server>__*`)를 기본으로 한다 — 개별 도구 나열은 ADR-0005 이후 겪은
   namespace 리네임 취약점을 그대로 반복하므로 지양(WORKLIST §B 참고).
 - `README.md` — 플러그인별 README(마켓플레이스 루트 README와 별개, `core-dev/README.md`가 선례).
+- `scripts/setup.py` — 설정할 환경값이 있다면 필수(ADR-0014 계약: stdlib only,
+  `--check`/`--fix`/`--json`). `stablenet-expert:doctor`가 이 스크립트를 설치 경로로 직접
+  실행해 셋업을 위임하므로, 이것이 있어야 **설치한 세션에서 바로** 셋업이 끝난다. 설정할 값이
+  없는 플러그인은 두지 않아도 되며, 그 경우 doctor는 셋업 불필요로 간주한다.
 - `.claude-plugin/marketplace.json`의 `plugins[]`에 항목 추가.
 - MCP 도구를 쓴다면 `scripts/contract/agent-mcp.schema.json`의 `providers`에 등록 — 이 스키마는
   플러그인별로 쪼개지 않고 **전 플러그인 공유 SSoT로 유지**한다. 지금 provider 키가 서버 이름이지

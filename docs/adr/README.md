@@ -20,6 +20,7 @@
 | [ADR-0011](ADR-0011-stablenet-expert-doctor-interactive-setup.md) | `stablenet-expert:doctor` 2단계 (대화형 수정 + 플러그인별 setup 위임) | Superseded by ADR-0012 (2026-08-03) | 설계만 — `midnight-expert:doctor`의 위임/대화형수정 패턴 채택, `core-dev`의 기존 setup remediation(ADR-0002/0004) 재사용(재구현 안 함). 위임/자체수정 원칙은 ADR-0012에 유지, 스텝 구조만 대체됨 |
 | [ADR-0012](ADR-0012-doctor-step-order-revision.md) | `doctor` 스텝 재구성: 공통 환경 체크 + MCP 연결성 체크 + 결정/실행 분리 + MCP 값 비노출 | Accepted (2026-08-03) | 구현됨 — `scripts/check-environment.sh`·`check-mcp-connectivity.sh`·`set-mcp-env.sh` 신규, `commands/doctor.md` 전면 재작성(0-5 6단계), `scripts/check-setup-delegates.sh` 제거·Step 4에 인라인 흡수, `docs/SETUP.md` §9.9 MCP dedup 설명 정정, MCP 연결 값(URL/IP/토큰)이 체크 출력·대화에 노출되지 않도록 정정 |
 | [ADR-0013](ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md) | `jira-gateway` 폐기, 공식 Atlassian MCP로 전환 (ADR-0006 인바운드 절 개정) | Accepted (2026-08-04) | 설계만 — 코드 마이그레이션은 별도 작업. 인바운드 서버단 필터링 보장을 감수하고 상실하는 것으로 명시적 결정, 아웃바운드(`pr-sanitize`)는 무관하게 유지 |
+| [ADR-0014](ADR-0014-plugin-setup-script-contract.md) | 플러그인 setup 스크립트 계약 (`--check`/`--fix`/`--json`) + doctor의 경로 기반 위임 | Accepted (2026-08-05) | 구현됨 — `core-dev/scripts/setup.py`에 `--json` 추가(용도 설명·시크릿 비노출 계약, `test_setup.py::TestJSONOutput`이 고정), `commands/doctor.md` Step 4를 스킬 호출에서 스크립트 실행으로 교체. ADR-0011 §2.2 위임 원칙은 유지하고 수단만 교체 |
 
 의존 관계: ADR-0001 ← ADR-0002 ← ADR-0004 (도메인팩 → setup/doctor → remediation 라우팅).
 ADR-0005는 ADR-0001(도메인팩)을 전제로 한다. ADR-0006·ADR-0007은 독립이며, `HANDOFF.md`(2026-06-05

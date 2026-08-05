@@ -144,27 +144,49 @@ different kinds of actions with different safety profiles, don't treat them unif
   bypasses this conversation, and invoking it as a tool call would put its prompt/stdin/stdout
   right back into that same conversation.
 
-**Setup delegation only works for a plugin whose commands were already registered when this
-session started** — Claude Code reads a plugin's `commands/`/`skills/` at session startup, not
-live, so a plugin installed or enabled *during this same doctor run* has no invokable
-`/<plugin>:setup` (or `Skill(skill: "<plugin>:setup", ...)`) until the session restarts.
-Confirmed live (2026-08-04): invoking it right after an install fails with
-`Unknown skill: <plugin>:setup`, not a graceful "not ready yet" — so don't attempt it. Branch on
-whether the plugin was already `pass` in Step 1 **before** this run touched it:
+**Delegate by running the plugin's setup script, not by invoking its skill.** Claude Code
+registers a plugin's `commands/`/`skills/` at session startup, so `Skill(skill: "<plugin>:setup")`
+fails with `Unknown skill` for anything installed during this run (confirmed live 2026-08-04).
+A script has no such constraint — `Bash` only needs a path, and `installPath` is written to
+`~/.claude/plugins/installed_plugins.json` the moment the install completes. Per ADR-0014 every
+plugin in this marketplace ships `scripts/setup.py` with `--check`, `--fix`, and `--json` for
+exactly this reason, so **a plugin installed in Step 4 gets its setup in the same session.**
 
-- **Already installed+enabled before this run** (a pre-existing `pass` row, or one you didn't
-  touch in Step 4): its commands were registered at session start, so delegation is safe right
-  now. Check whether it ships `commands/setup.md` (`Read` `<installPath>/commands/setup.md` —
-  `installPath` is in `~/.claude/plugins/installed_plugins.json`) and, if so, ask: "`<plugin>`
-  has its own environment setup — run it now?" → yes invokes
-  `Skill(skill: "<plugin>:setup", args: "--check")` and folds that skill's own report into this
-  command's output verbatim (don't summarize or reinterpret it — it's that plugin's authoritative
-  diagnosis, per ADR-0011 §2.2: this command has no MCP/env knowledge of any other plugin's
-  requirements).
-- **Installed or enabled by Step 4 in this same run**: do **not** attempt the Skill invocation —
-  it will fail. Instead say plainly: "`<plugin>` was just installed — restart Claude Code, then
-  run `/<plugin>:setup` yourself (or re-run `/stablenet-expert:doctor` after restarting, and
-  delegation will work on that pass since the plugin will then already be registered)."
+For each plugin processed, resolve its path and check:
+
+```bash
+P=$(python3 -c "import json,pathlib; print(json.load(open(pathlib.Path.home()/'.claude/plugins/installed_plugins.json'))['plugins']['<plugin>@stablenet-expert'][0]['installPath'])")
+python3 "$P/scripts/setup.py" --check --json
+```
+
+The JSON carries one row per required key: `key`, `description` (what the value is *for*),
+`how_to_find`, `status`, `auto_fixable`, `secret`. That is the plugin's own authoritative
+account of its requirements — this command has no env knowledge of any other plugin (ADR-0011
+§2.2) and must not second-guess it.
+
+Then split the rows and act on each kind differently:
+
+- **`auto_fixable` rows** — the value is already resolvable (detected on this machine, or
+  present in global settings). Offer them together in one `AskUserQuestion` (multi-select),
+  one option per key, using the row's `description` as the option description so the user can
+  see what each value is for rather than guessing from the variable name. On confirmation:
+  `python3 "$P/scripts/setup.py" --fix`. Report which keys it wrote, from the script's own output.
+- **`missing` rows that are not secret** — nothing to write unattended; the user has to supply
+  the value. Print the key, its `description`, and its `how_to_find` verbatim, and give them the
+  command to run themselves: `python3 "$P/scripts/setup.py" --fix --set KEY=VALUE`.
+- **`missing` rows that are `secret: true`** — same as above except the value must never enter
+  this conversation. Point at `set-mcp-env.sh` per the rules earlier in this step; do not offer
+  `--set` for a secret and do not run it yourself.
+
+`--check --json` never carries a secret's value, so reading it here is safe; `--fix` only writes
+values that were already resolvable, so it cannot invent or expose one either.
+
+If a plugin has no `scripts/setup.py` (a third-party plugin, or one predating ADR-0014), fall
+back to reading `<installPath>/commands/setup.md`: if it exists and the plugin was already
+registered at session start, `Skill(skill: "<plugin>:setup", args: "--check")` still works and
+its report should be folded in verbatim. If the plugin was installed during this run and has no
+script, say plainly that its setup needs a restart first — that is now the exception, not the
+rule.
 
 This is per-plugin, done as each plugin is processed — not a separate pass over every enabled
 plugin at the end.
@@ -223,9 +245,10 @@ Finish with a summary:
   timeout — any HTTP response (even an error status) counts as "reachable", since the goal is
   distinguishing "the server process is up" from "connection refused/timed out", not validating
   auth or protocol correctness.
-- Step 4 delegation only works for plugins that ship `commands/setup.md` — a plugin without one is
-  treated as needing no further setup, which is only true if it genuinely has none (see ADR-0011
-  §2.2 for the "new plugins should write their own setup" expectation this rests on).
+- Step 4 delegation reaches a plugin only if it ships `scripts/setup.py` (ADR-0014) or was
+  already registered at session start and ships `commands/setup.md`. A plugin with neither is
+  treated as needing no further setup, which is only true if it genuinely has none (ADR-0011
+  §2.2).
 - `set-mcp-env.sh` only covers values referenced as `${VAR}` in a plugin's `.mcp.json` — a
   plugin that hardcodes a literal URL/IP in its own `.mcp.json` (instead of an env var
   reference) isn't something this command can fix; that plugin's `.mcp.json` itself needs
@@ -235,7 +258,9 @@ Finish with a summary:
   item, the multi-select call itself errors. If Steps 0-2 leave exactly one actionable item, ask
   about it as a plain two-option question (do it now / later) instead of forcing a multi-select
   with a single checkbox.
-- Setup delegation (Step 4) cannot reach a plugin installed/enabled earlier in the *same* Step 4
-  — see Step 4's branch on this. This isn't a workaround-able quirk, it's how Claude Code
-  registers plugin commands (session-startup only), so don't try to be clever about retrying the
-  Skill call within the same run — it will not succeed until after a restart.
+- The session-startup registration limit is real but no longer blocking: `Skill(skill:
+  "<plugin>:setup")` still cannot reach a plugin installed in this run, which is why Step 4
+  delegates through `scripts/setup.py` by path instead. Don't reintroduce the Skill call as the
+  primary path — it will not succeed until after a restart. The script route does not replace a
+  restart for the plugin's *other* surfaces: its MCP servers, agents, and slash commands still
+  need one, so keep saying so.

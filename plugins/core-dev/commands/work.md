@@ -225,7 +225,7 @@ Jira 티켓 기반 자동화 작업을 시작한다.
 - [ ] 기존 in_progress 작업 발견 시 복구 모드 진입
 - [ ] BLOCKED 작업 발견 시 유저 확인 후 재개/새 작업/중단 선택
 - [ ] `--local` 옵션으로 MCP 없이 테스트 가능
-- [ ] sensitive_check 결과(CLEAN/REDACTED/BLOCKED)별 동작 분기
+- [ ] sensitive_check 에 "NOT_SCANNED"(기본) / "LOCAL_BYPASS"(--local) 기록 — 인바운드 필터는 없다(5.3)
 - [ ] `.stablenet-expert/tickets/` 하위에 올바른 폴더 생성 (timestamp 포함)
 - [ ] state.json이 TICKET_INTAKE 상태로 초기화 + sensitive_check 정보 포함
 - [ ] template-parse 결과로 pipeline_variant 결정

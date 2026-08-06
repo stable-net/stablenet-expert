@@ -224,7 +224,13 @@ core-dev 파이프라인의 상태 전이를 관리한다. 이 skill은 `Read`, 
 
    **TICKET_INTAKE → ANALYSIS**:
    - `Bash`: `test -f {workspace_dir}/ticket.json && echo OK` → OK 인지 확인
-   - state.states.TICKET_INTAKE.sensitive_check 의 result가 "CLEAN" 또는 "REDACTED" 인지 확인 (BLOCKED은 차단)
+   - state.states.TICKET_INTAKE.sensitive_check 의 result 확인 — **"BLOCKED" 만 차단**한다.
+     통과: "CLEAN"/"REDACTED"(analyze 의 로컬 스캔), "NOT_SCANNED"(work — 인바운드 필터가
+     없다, ADR-0013), "LOCAL_BYPASS"(work --local).
+     허용 목록이 아니라 차단 목록인 이유: 이 게이트가 막아야 하는 것은 *치명적 민감정보가
+     탐지된 티켓*이지 *스캔하지 않은 티켓*이 아니다. 허용 목록이면 진입점이 새 결과값을
+     쓸 때마다 파이프라인이 조용히 멈춘다 — 실제로 "LOCAL_BYPASS" 가 그렇게 막혀 있었고,
+     jira-gateway 폐기로 "NOT_SCANNED" 가 생기면서 정상 경로까지 막혔다.
 
    **ANALYSIS → PLANNING**:
    - `Bash`: `test -f {workspace_dir}/analysis.md && test -f {workspace_dir}/related-code.json && echo OK`
@@ -442,7 +448,7 @@ core-dev 파이프라인의 상태 전이를 관리한다. 이 skill은 `Read`, 
 
 | From → To | 핵심 조건 |
 |-----------|----------|
-| TICKET_INTAKE → ANALYSIS | ticket.json 존재 + sensitive_check CLEAN/REDACTED |
+| TICKET_INTAKE → ANALYSIS | ticket.json 존재 + sensitive_check 가 BLOCKED 이 아님 |
 | ANALYSIS → PLANNING | analysis.md (>200자) + related-code.json (pack/ckv/ckg/impacts 중 ≥1 비어있지 않음) + **(bugfix) reproduction.json & reproduction_confirmed==true & red_confirmed==true** |
 | PLANNING → DESIGN | plan.md 존재 + ## Step 헤더 ≥1 |
 | DESIGN → IMPLEMENTATION | design-v{N}.md 존재 + revision ≤ max_design_revisions |

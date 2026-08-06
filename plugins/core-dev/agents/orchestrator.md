@@ -62,7 +62,7 @@ check below (registration + env). stablenet-knowledge + chainbench remain requir
      - atlassian (external plugin): only when requirement_source != "local"
    Any required one missing → report which, point at docs/SETUP.md, and stop.
 2. Check the env the registered commands substitute are non-empty:
-   bash: vars="STABLENET_KNOWLEDGE_MCP_BIN STABLENET_KNOWLEDGE_CONFIG CHAINBENCH_DIR"
+   bash: vars="STABLENET_KNOWLEDGE_MCP_URL CHAINBENCH_DIR"
          for v in $vars; do [ -n "${!v:-}" ] || echo "UNSET: $v"; done
    Any UNSET → WARN the user (that server will fail to start). Hard-stop only
    for the servers this run will actually use:

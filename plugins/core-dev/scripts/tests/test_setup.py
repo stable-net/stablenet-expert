@@ -24,9 +24,18 @@ SETUP_PY = _SCRIPTS / "setup.py"
 _CLEAN_ENV = {"PATH": os.environ.get("PATH", "")}
 
 
-def _run(cwd: Path, *flags: str) -> subprocess.CompletedProcess:
+def _run(cwd: Path, *flags: str, home: Path | None = None) -> subprocess.CompletedProcess:
+    """Run setup.py in `cwd`.
+
+    HOME points at an empty directory by default. setup.py falls back to the *global*
+    ~/.claude/settings.json when a key is not resolved locally, so without this a developer
+    who has CHAINBENCH_DIR in their own settings sees different results from CI. That went
+    unnoticed while REQUIRED held several keys -- some were always unresolvable -- and
+    surfaced the moment it held one.
+    """
+    env = dict(_CLEAN_ENV, HOME=str(home or (cwd / "_isolated_home")))
     return subprocess.run([sys.executable, str(SETUP_PY), *flags],
-                          cwd=str(cwd), capture_output=True, text=True, env=_CLEAN_ENV)
+                          cwd=str(cwd), capture_output=True, text=True, env=env)
 
 
 def _plugin_root(tmp: Path, packs: dict) -> Path:

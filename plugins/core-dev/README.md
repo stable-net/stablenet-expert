@@ -91,9 +91,8 @@ processes inherit them.
 # Jira needs no variables — the Atlassian MCP plugin authenticates over OAuth and Claude Code
 # keeps the credential. `/stablenet-expert:doctor` installs and authenticates it.
 
-# stablenet-knowledge — the code-knowledge service (sibling repo; see ../../docs/SETUP.md to build)
-export STABLENET_KNOWLEDGE_MCP_BIN="$HOME/Work/code-knowledge-system/bin/stablenet-knowledge-mcp"
-export STABLENET_KNOWLEDGE_CONFIG="$HOME/Work/code-knowledge-system/cks.yaml"
+# stablenet-knowledge — a remote HTTP service; ask whoever runs it for the URL
+export STABLENET_KNOWLEDGE_MCP_URL="http://<host>:<port>/mcp"
 
 # chainbench — the deterministic test runner (sibling repo)
 export CHAINBENCH_DIR="$HOME/Work/chainbench"

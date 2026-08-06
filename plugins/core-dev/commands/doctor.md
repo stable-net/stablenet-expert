@@ -19,7 +19,7 @@ bash: python3 ${CLAUDE_PLUGIN_ROOT}/scripts/doctor.py --plugin-root "${CLAUDE_PL
 
 보고: 활성 플러그인 버전, 프로젝트/repo(`git rev-parse`), project_id+사용가능 팩, `repo_root_env`,
 env(process + `.claude/settings*.json`, 시크릿 마스킹, **restart_needed**=settings엔 있으나 현재 env엔
-없음), STABLENET_KNOWLEDGE_CONFIG 존재, permissions/allowlist. 이 출력을 사용자 보고에 그대로 포함한다.
+없음), permissions/allowlist. 이 출력을 사용자 보고에 그대로 포함한다.
 
 ## 2. 라이브 MCP 프로브 (이 명령이 직접 — §1 스크립트로는 못 보는 실연결)
 
@@ -48,7 +48,7 @@ stablenet-knowledge 도구를 로드(미인식이면 ToolSearch 1회)한 뒤:
    스크립트는 이를 결정론적으로 출력하므로 doctor 보고의 "다음 행동" 절은 그 목록이다. 예: fresh repo →
    `setup --fix`(repo_root_env+env), `setup --fix --set`(시크릿), `setup --autonomous`(allowlist).
 2. **§2 라이브 MCP 결과는 스크립트가 못 보므로, 같은 `REMEDIATION` 키로 라우팅**해 동일 형식으로 덧붙인다:
-   - stablenet-knowledge not serviceable → `stablenet_knowledge_not_serviceable` (manual: ckv/Ollama 기동 또는 `STABLENET_KNOWLEDGE_CONFIG` 재배선 + 재시작)
+   - stablenet-knowledge not serviceable → `stablenet_knowledge_not_serviceable` (manual: 서버 기동 확인 또는 `STABLENET_KNOWLEDGE_MCP_URL` 재배선 + 재시작)
    - `source_root ≠ repo_root` → `source_root_mismatch` (manual: 현재 repo를 인덱싱하도록 재설정 + 재시작)
    - index stale → `index_stale` (manual: 재인덱싱 — ⚠ *의도된 base 인덱스면 하지 말 것*, 사용자 확인)
    - MCP 미연결 → `mcp_unreachable` / `stablenet_knowledge_mcp_not_built` / `chainbench_not_installed`

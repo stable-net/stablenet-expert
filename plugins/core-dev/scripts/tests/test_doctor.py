@@ -60,6 +60,48 @@ class TestDetectProjectId(unittest.TestCase):
             self.assertIsNone(pid)
 
 
+class TestTextReport(unittest.TestCase):
+    """The default output path had no test, which is how a stale key reference shipped:
+    render() still read out["stablenet_knowledge_config"] after the section was removed, so
+    `doctor.py` with no flags died with a KeyError while `--json` stayed green.
+
+    A structural assertion on the JSON does not cover render() -- the two read the payload
+    independently -- so the text path needs its own smoke test."""
+
+    def _run(self, *extra):
+        with tempfile.TemporaryDirectory() as d:
+            root = _make_plugin_root(Path(d), {"go-stablenet": "GO_STABLENET_ROOT"})
+            return subprocess.run(
+                [sys.executable, str(DOCTOR_PY), "--plugin-root", str(root), *extra],
+                cwd=d, capture_output=True, text=True)
+
+    def test_default_output_renders_without_crashing(self):
+        r = self._run()
+        self.assertEqual(r.stderr, "", "the text report must not raise")
+        self.assertIn("core-dev doctor", r.stdout)
+        self.assertIn("env:", r.stdout)
+        self.assertIn("permissions:", r.stdout)
+
+    def test_exit_code_reflects_the_verdict_not_a_crash(self):
+        """1 has to mean ATTENTION. A traceback also exits non-zero, so a caller reading only
+        the status cannot tell a diagnosis from a broken script -- hence checking stderr too."""
+        r = self._run()
+        self.assertIn(r.returncode, (0, 1))
+        self.assertNotIn("Traceback", r.stderr)
+
+    def test_every_section_the_renderer_reads_is_present_in_json(self):
+        """Pins the two paths together: whatever render() pulls out of the payload must be a
+        key --json also emits, so removing a section cannot break one and not the other."""
+        import re
+        source = DOCTOR_PY.read_text()
+        render_src = source[source.index("def render("):]
+        render_src = render_src[:render_src.index("\ndef ", 1)] if "\ndef " in render_src[1:] else render_src
+        keys = set(re.findall(r'out\["(\w+)"\]', render_src))
+        payload = json.loads(self._run("--json").stdout)
+        for k in keys:
+            self.assertIn(k, payload, f"render() reads out[{k!r}] but --json does not emit it")
+
+
 class TestSmoke(unittest.TestCase):
     def test_json_report_structure(self):
         with tempfile.TemporaryDirectory() as d:

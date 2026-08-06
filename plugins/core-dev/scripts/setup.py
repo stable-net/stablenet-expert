@@ -20,6 +20,8 @@ Modes:
   --set K=V      provide a value explicitly (repeatable); wins over detection
   --interactive  prompt on stdin for any value still missing (human terminal use)
   --force        overwrite values already present in settings (default: keep them)
+  --with-plugins with --fix, also install/authenticate external plugin dependencies
+                 (opt-in: installs into the user's Claude Code and opens a browser)
 
 Stdlib only. Run from inside the project where you use core-dev.
 """
@@ -34,6 +36,11 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+# Dependency modules. setup.py owns the contract surface; each module owns one
+# dependency's state logic. Importable because running a script puts its directory
+# on sys.path[0].
+from setup_checks import atlassian
 
 # (key, where, description, how-to-find)
 PUBLIC = "settings.json"
@@ -92,6 +99,20 @@ AUTONOMOUS_DENY = [
     "Read(.secrets)",
     "Read(.claude/settings.local.json)",
 ]
+
+
+
+def _row_ready(row: dict) -> bool:
+    """Is this dependency usable as-is?
+
+    For an env value that means "resolved" -- a value detected but not yet written to
+    settings still counts, matching the pre-existing exit-code contract (only `missing`
+    made --check fail). For anything else, readiness is the module's own verdict, carried
+    as `auto_fixable`: there is nothing left to fix exactly when nothing is wrong.
+    """
+    if row["row_kind"] == "env":
+        return row["status"] != "missing"
+    return not row["auto_fixable"]
 
 
 def _repo_root() -> Path:
@@ -296,6 +317,12 @@ def main(argv: list[str] | None = None) -> int:
                     help="also register granular permissions.allow (plugin MCP + read-only bash + "
                          "pipeline write path) and permissions.deny (secret files)")
     ap.add_argument("--project", default=None, help="domain pack project_id (else auto-detect)")
+    ap.add_argument("--with-plugins", action="store_true",
+                    help="with --fix, also install and authenticate external plugin "
+                         "dependencies (the Atlassian MCP). Opt-in because it reaches "
+                         "outside this project -- it installs into the user's Claude Code "
+                         "and opens a browser for an OAuth consent. --check always reports "
+                         "on them; only acting needs this flag.")
     ap.add_argument("--json", action="store_true",
                     help="emit the check result as JSON on stdout instead of the text report; "
                          "for callers that drive the fix interaction themselves (see "
@@ -346,23 +373,34 @@ def main(argv: list[str] | None = None) -> int:
             val, src = resolved[key]
             rows.append({
                 "key": key,
+                # row_kind tells the caller what sort of thing this is, because the three
+                # sorts need different handling: an env value can be written unattended, an
+                # external plugin needs an install plus a browser consent. Without it a
+                # caller would have to infer the difference from the key name.
+                "row_kind": "env",
                 "kind": where,
                 "description": desc,
                 "how_to_find": hint,
                 "status": "missing" if val is None else src,
                 "auto_fixable": val is not None and src != "project",
+                "opens_browser": False,
                 "secret": where == SECRET,
             })
+        rows.append(atlassian.row(atlassian.check()))
         print(json.dumps({
             "plugin": "core-dev",
             "project": str(repo_root),
             "rows": rows,
             "missing": [r["key"] for r in rows if r["status"] == "missing"],
             "auto_fixable": [r["key"] for r in rows if r["auto_fixable"]],
+            # Anything not yet usable, whatever its row_kind. "missing" alone does not
+            # cover it: an installed-but-unauthenticated plugin is present and still
+            # unusable, so a caller checking only `missing` would call the setup done.
+            "not_ready": [r["key"] for r in rows if not _row_ready(r)],
             "chainbench_mcp": chainbench_mcp or None,
             "repo_root_env": rre,
         }, indent=2))
-        return 0 if not [r for r in rows if r["status"] == "missing"] else 1
+        return 0 if all(_row_ready(r) for r in rows) else 1
 
     # Report.
     print(f"core-dev setup — project: {repo_root}")
@@ -429,6 +467,32 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"\nwrote {len(w_pub)} key(s) to .claude/settings.json: {', '.join(w_pub) or '(none)'}")
     print(f"wrote {len(w_sec)} key(s) to .claude/settings.local.json: {', '.join(w_sec) or '(none)'}")
+
+    # External plugin dependency. Last, because it is the only step that can block on a
+    # human: it opens a browser for the OAuth grant. Doing the settings writes first means
+    # a user who abandons the consent still keeps everything else this run resolved.
+    if args.with_plugins:
+        before = atlassian.check()
+        if before["status"] == atlassian.READY:
+            print(f"atlassian MCP: {before['detail']}")
+        else:
+            print(f"atlassian MCP: {before['detail']} -- installing/authenticating "
+                  f"(a browser window will open; {atlassian.LOGIN_TIMEOUT_SECONDS}s to consent)")
+            result = atlassian.fix()
+            print(f"atlassian MCP: {result['detail']}")
+            if result["status"] != atlassian.READY:
+                # Not fatal to the rest of setup, but never silent: a caller that reports
+                # "done" here would send the user off to restart into a broken pipeline.
+                print(f"atlassian MCP: NOT READY ({result['status']}) -- "
+                      f"finish it yourself with: claude mcp login {atlassian.SERVER}")
+    else:
+        # Not asked to act on it, but say where it stands: a --fix that printed only its
+        # settings writes would read as "setup complete" while the pipeline's ticket source
+        # is still unusable.
+        state = atlassian.check()
+        if state["status"] != atlassian.READY:
+            print(f"atlassian MCP: {state['detail']} -- not touched "
+                  f"(re-run with --with-plugins, or: claude mcp login {atlassian.SERVER})")
     if rre and not pin_rre:
         print(f"skipped {rre} (cwd is the plugin repo, not a target project)")
     if missing:

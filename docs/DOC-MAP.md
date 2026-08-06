@@ -47,6 +47,7 @@
 | [ADR-0014](adr/ADR-0014-plugin-setup-script-contract.md) | 플러그인 setup 스크립트 계약 — doctor가 스킬 대신 설치 경로의 `scripts/setup.py`로 위임(설치 직후 재시작 없이 셋업) | Accepted · 구현됨 (`core-dev/scripts/setup.py --json`, `doctor.md` Step 4) |
 | [ADR-0015](adr/ADR-0015-python-interpreter-selection.md) | Python 인터프리터 선택 — 버전 게이트 없음, 동의 후 설치, `STABLENET_EXPERT_PYTHON` 절대경로로 참조(PATH 무변경) | Accepted · 구현됨 (`install-python.sh`, `check-environment.sh`, 호출부 11군데) |
 | [ADR-0016](adr/ADR-0016-naming-and-abbreviations.md) | 명명·약어 규칙 — 새 약어 금지, 불가피하면 첫 등장 풀이 + GLOSSARY 등재, 리포 밖을 가리키는 ID 금지 | Accepted · 문서/스크립트 적용 완료 (GLOSSARY.md 신설, `C1`/`C4` 정리, 벤치 문서의 불변식 참조 복원); 에이전트 지시문의 `RI-nn` 정리는 후속 PR |
+| [ADR-0017](adr/ADR-0017-setup-external-plugin-dependencies.md) | 외부 플러그인 의존을 setup 계약에 포함 — `row_kind`/`opens_browser`/`not_ready`, `--with-plugins` opt-in, Atlassian MCP 설치·인증 | Accepted · 구현됨 (`setup_checks/atlassian.py`, doctor Step 4) |
 
 ## Tier 3 — 상태 / 잔여작업
 

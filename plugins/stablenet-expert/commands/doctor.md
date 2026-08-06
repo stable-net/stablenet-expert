@@ -183,12 +183,42 @@ plugin_path=$("$python_bin" -c "import json,pathlib; print(json.load(open(pathli
 "$python_bin" "$plugin_path/scripts/setup.py" --check --json
 ```
 
-The JSON carries one row per required key: `key`, `description` (what the value is *for*),
-`how_to_find`, `status`, `auto_fixable`, `secret`. That is the plugin's own authoritative
-account of its requirements — this command has no env knowledge of any other plugin (ADR-0011
-§2.2) and must not second-guess it.
+The JSON carries one row per requirement: `key`, `row_kind`, `description` (what the value is
+*for*), `how_to_find`, `status`, `auto_fixable`, `opens_browser`, `secret`. That is the plugin's
+own authoritative account of its requirements — this command has no env knowledge of any other
+plugin (ADR-0011 §2.2) and must not second-guess it.
 
-Then split the rows and act on each kind differently:
+Read `not_ready` rather than `missing` when deciding whether the plugin is set up. They differ:
+an external plugin that is installed but not authenticated is not "missing" and is not usable
+either, so a caller checking only `missing` would call the setup done and send the user off to
+restart into a pipeline that cannot read a ticket.
+
+**Branch on `row_kind` first — the kinds are not interchangeable:**
+
+- **`row_kind: "env"`** — a settings value. Handled by the three cases below.
+- **`row_kind: "plugin"`** — an external Claude Code plugin this one depends on (today: the
+  official Atlassian MCP, which is where the pipeline gets its ticket). Fixing it installs into
+  the *user's* Claude Code and opens a browser for an OAuth consent, which is why the row
+  carries `opens_browser`. Offer it in the same multi-select as the rest, but say in the option
+  description that a browser will open — a consent window appearing unannounced is not a side
+  effect to spring on someone. On confirmation, add `--with-plugins`:
+
+  ```bash
+  "$python_bin" "$plugin_path/scripts/setup.py" --fix --with-plugins
+  ```
+
+  `--fix` alone deliberately leaves external plugins untouched (it still *reports* them), so
+  never pass `--with-plugins` for a row the user did not pick.
+
+  The script re-reads the state from the CLI after acting instead of assuming the attempt
+  worked, so trust what it prints. A `status` that comes back as anything other than
+  `authenticated` means the consent was not completed — say so plainly in the Step 5 summary
+  and repeat the command the script offers (`claude mcp login plugin:atlassian:atlassian`).
+  Do not run that yourself: it needs a terminal, and a Bash tool call does not give it one.
+  A `status` of `unknown` means the script could not consult the `claude` CLI at all — report
+  that as a broken CLI, not as a missing plugin.
+
+Then split the `env` rows and act on each kind differently:
 
 - **`auto_fixable` rows** — the value is already resolvable (detected on this machine, or
   present in global settings). Offer them together in one `AskUserQuestion` (multi-select),

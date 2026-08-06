@@ -155,6 +155,12 @@ this repo's own marketplace (`stablenet-expert`) and is **not** installed by the
 it's a separate, one-time setup on your own machine, and (since it's OAuth/identity-based) every
 team member authenticates with their **own** Atlassian account, not a shared token.
 
+> **Or let doctor do it.** `/stablenet-expert:doctor` reports this plugin's state alongside
+> everything else and, if you pick it, runs the install and the OAuth login for you
+> ([ADR-0017](adr/ADR-0017-setup-external-plugin-dependencies.md)). The steps below are the
+> manual equivalent — useful when you want to do it yourself, or when doctor reports that the
+> consent did not complete.
+
 **Install the plugin** (skip the `marketplace add` if you've already added
 `claude-plugins-official` for something else):
 

@@ -48,6 +48,7 @@
 | [ADR-0015](adr/ADR-0015-python-interpreter-selection.md) | Python 인터프리터 선택 — 지원 버전 3.12 단일(3.9는 EOL·brew disable 예정이라 제외), 동의 후 설치, `STABLENET_EXPERT_PYTHON` 절대경로로 참조(PATH 무변경) | Accepted · 구현됨 (`install-python.sh`, `check-environment.sh`, 호출부 11군데) |
 | [ADR-0016](adr/ADR-0016-naming-and-abbreviations.md) | 명명·약어 규칙 — 새 약어 금지, 불가피하면 첫 등장 풀이 + GLOSSARY 등재, 리포 밖을 가리키는 ID 금지 | Accepted · 문서/스크립트 적용 완료 (GLOSSARY.md 신설, `C1`/`C4` 정리, 벤치 문서의 불변식 참조 복원); 에이전트 지시문의 `RI-nn` 정리는 후속 PR |
 | [ADR-0017](adr/ADR-0017-setup-external-plugin-dependencies.md) | 외부 플러그인 의존을 setup 계약에 포함 — `row_kind`/`opens_browser`/`not_ready`, `--with-plugins` opt-in, Atlassian MCP 설치·인증 | Accepted · 구현됨 (`setup_checks/atlassian.py`, doctor Step 4) |
+| [ADR-0018](adr/ADR-0018-setup-scope-and-uninstall.md) | 설정 스코프(env=user, repo_root_env=project)와 회수 — `--fix`가 쓴 키·값을 매니페스트에 기록하고 `--uninstall`이 그것만 제거 | Accepted · 구현됨 (`setup_checks/manifest.py`, `--scope`/`--uninstall`) |
 
 ## Tier 3 — 상태 / 잔여작업
 

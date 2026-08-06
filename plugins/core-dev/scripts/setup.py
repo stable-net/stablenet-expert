@@ -14,12 +14,22 @@ auto-detection of sibling repos. Anything still missing is reported (use --fix
 with --set, or --interactive to be prompted). settings.local.json is added to
 .gitignore so the token is never committed.
 
+Where values go: env values land in the *user* settings (~/.claude/settings.json) so they
+apply to every project -- they describe this machine, not this checkout. The active pack's
+repo_root_env is the exception and stays project-local. --scope project forces both local.
+
+Uninstall: --fix records what it wrote (key *and* value) in a manifest beside the settings,
+so --uninstall can take back exactly that and nothing else. A value changed since we wrote
+it is kept and reported.
+
 Modes:
   --check        report status, exit 1 if any REQUIRED value is unresolved (default)
   --fix          write resolved values into the settings files (idempotent merge)
   --set K=V      provide a value explicitly (repeatable); wins over detection
   --interactive  prompt on stdin for any value still missing (human terminal use)
   --force        overwrite values already present in settings (default: keep them)
+  --scope        user (default) | project -- where env values are written
+  --uninstall    remove what --fix wrote (dry run; --yes to apply)
   --with-plugins with --fix, also install/authenticate external plugin dependencies
                  (opt-in: installs into the user's Claude Code and opens a browser)
 
@@ -40,7 +50,7 @@ from pathlib import Path
 # Dependency modules. setup.py owns the contract surface; each module owns one
 # dependency's state logic. Importable because running a script puts its directory
 # on sys.path[0].
-from setup_checks import atlassian
+from setup_checks import atlassian, manifest
 
 # (key, where, description, how-to-find)
 PUBLIC = "settings.json"
@@ -280,6 +290,114 @@ def _ensure_gitignored(repo_root: Path, rel: str) -> None:
         fh.write(f"# core-dev local secrets\n{line}\n")
 
 
+
+def _strip_env(path: Path, keys: list[str]) -> list[str]:
+    """Delete `keys` from a settings file's env block. Returns what was actually removed."""
+    doc = _load_json(path)
+    env = doc.get("env")
+    if not isinstance(env, dict):
+        return []
+    gone = [k for k in keys if env.pop(k, None) is not None]
+    if gone:
+        doc["env"] = env
+        path.write_text(json.dumps(doc, indent=2) + "\n")
+    return gone
+
+
+def _strip_permissions(path: Path, allow: list[str], deny: list[str]) -> tuple[list[str], list[str]]:
+    doc = _load_json(path)
+    perms = doc.get("permissions")
+    if not isinstance(perms, dict):
+        return [], []
+    out = []
+    for name, wanted in (("allow", allow), ("deny", deny)):
+        current = perms.get(name)
+        if not isinstance(current, list):
+            out.append([]); continue
+        removed = [e for e in wanted if e in current]
+        perms[name] = [e for e in current if e not in wanted]
+        out.append(removed)
+    if out[0] or out[1]:
+        doc["permissions"] = perms
+        path.write_text(json.dumps(doc, indent=2) + "\n")
+    return out[0], out[1]
+
+
+def _uninstall(claude_dir: Path, env_dir: Path, repo_root: Path, args) -> int:
+    """Take back what --fix wrote, and only that.
+
+    Dry run by default. Removing settings on someone's machine is not the kind of thing to do
+    on the strength of a flag that could have been a typo, and the plan is the whole value of
+    the manifest -- seeing "3 to remove, 1 changed by you" before anything happens is what
+    makes this safe to run.
+    """
+    plans = []
+    for d in ({env_dir, claude_dir} if env_dir != claude_dir else {claude_dir}):
+        plan = manifest.plan_removal(d, lambda name, base=d: _load_json(base / name))
+        plan["dir"] = d
+        plans.append(plan)
+    plans.sort(key=lambda p: str(p["dir"]))
+
+    if not any(p["manifest_exists"] for p in plans):
+        print("no manifest found — nothing recorded, so nothing is removed.")
+        print("  A manifest is written by --fix. Without one there is no way to tell which")
+        print("  settings this plugin wrote and which you set yourself, and guessing would")
+        print("  mean deleting your values. Remove what you recognise by hand.")
+        return 0
+
+    total_remove = total_changed = 0
+    for plan in plans:
+        if not plan["manifest_exists"]:
+            continue
+        d = plan["dir"]
+        print(f"\n{d}:")
+        env = plan["env"]
+        for row in env["remove"]:
+            print(f"  remove  {row['key']:<24} ({row['file']})")
+        for row in env["changed"]:
+            print(f"  KEEP    {row['key']:<24} ({row['file']}) — value changed since we wrote it")
+        for row in env["absent"]:
+            print(f"  (gone)  {row['key']:<24} ({row['file']})")
+        perms = plan["permissions"]
+        if perms["allow"] or perms["deny"]:
+            print(f"  remove  {len(perms['allow'])} allow / {len(perms['deny'])} deny entr(ies)")
+        total_remove += len(env["remove"]) + len(perms["allow"]) + len(perms["deny"])
+        total_changed += len(env["changed"])
+
+    if not args.yes:
+        print(f"\ndry run — nothing changed. {total_remove} item(s) would be removed"
+              + (f", {total_changed} kept because you changed them" if total_changed else "")
+              + ".\nre-run with --uninstall --yes to apply.")
+        return 0
+
+    for plan in plans:
+        if not plan["manifest_exists"]:
+            continue
+        d = plan["dir"]
+        by_file: dict[str, list[str]] = {}
+        for row in plan["env"]["remove"]:
+            by_file.setdefault(row["file"], []).append(row["key"])
+        for file_name, keys in by_file.items():
+            gone = _strip_env(d / file_name, keys)
+            print(f"removed {len(gone)} key(s) from {d / file_name}: {', '.join(gone) or '(none)'}")
+        perms = plan["permissions"]
+        if perms["allow"] or perms["deny"]:
+            a, dn = _strip_permissions(d / "settings.local.json", perms["allow"], perms["deny"])
+            print(f"removed {len(a)} allow / {len(dn)} deny entr(ies) from "
+                  f"{d / 'settings.local.json'}")
+        manifest.path_for(d).unlink(missing_ok=True)
+
+    print("\nsettings taken back. Two things are deliberately left to you:")
+    print(f"  - the Atlassian MCP plugin, if setup installed it. It is shared -- you may use it")
+    print(f"    for your own Jira work, and another plugin may need it. To drop it anyway:")
+    print(f"      claude mcp logout {atlassian.SERVER}")
+    print(f"      claude plugin uninstall {atlassian.PLUGIN}")
+    print("  - the .gitignore line for .claude/settings.local.json, which is harmless and may")
+    print("    predate this plugin.")
+    print("\nThen: claude plugin uninstall core-dev@stablenet-expert")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Check/register core-dev settings")
     ap.add_argument("--check", action="store_true", help="report only (default)")
@@ -292,6 +410,16 @@ def main(argv: list[str] | None = None) -> int:
                     help="also register granular permissions.allow (plugin MCP + read-only bash + "
                          "pipeline write path) and permissions.deny (secret files)")
     ap.add_argument("--project", default=None, help="domain pack project_id (else auto-detect)")
+    ap.add_argument("--scope", choices=("user", "project"), default="user",
+                    help="where env values are written: user (default, ~/.claude/settings.json, "
+                         "applies everywhere) or project (this repo's .claude/). The active "
+                         "pack's repo_root_env is always project-local either way.")
+    ap.add_argument("--uninstall", action="store_true",
+                    help="remove what --fix wrote, using the provenance manifest. Values that "
+                         "changed since we wrote them are left alone and reported. Add --yes to "
+                         "skip the dry run.")
+    ap.add_argument("--yes", action="store_true",
+                    help="with --uninstall, actually remove (default is a dry run)")
     ap.add_argument("--with-plugins", action="store_true",
                     help="with --fix, also install and authenticate external plugin "
                          "dependencies (the Atlassian MCP). Opt-in because it reaches "
@@ -313,10 +441,27 @@ def main(argv: list[str] | None = None) -> int:
         overrides[k.strip()] = v.strip()
 
     repo_root = _repo_root()
+    # Where settings go. Two different questions live here, so they get two different answers
+    # rather than one --scope flag covering both:
+    #
+    #   env values (CHAINBENCH_DIR, ...) describe *this machine* -- one chainbench checkout,
+    #     one knowledge server -- so they belong in the user-global settings and apply to every
+    #     project. That also matches scripts/set-mcp-env.sh, which has defaulted to user scope
+    #     all along; setup.py writing project-only was the odd one out.
+    #   repo_root_env answers "which checkout is the target", which is per project by
+    #     definition, so it stays local. A project file overrides the global one, so someone
+    #     with two checkouts can still pin each.
+    #
+    # --scope project forces both into the project, for a machine shared by several people or
+    # a checkout that must not touch the global file.
     claude_dir = repo_root / ".claude"
+    env_dir = claude_dir if args.scope == "project" else Path.home() / ".claude"
     detected = _detect(repo_root)
     persisted = _persisted(claude_dir)
     rre = _repo_root_env(_plugin_root(), repo_root, args.project)
+
+    if args.uninstall:
+        return _uninstall(claude_dir, env_dir, repo_root, args)
 
     resolved: dict[str, tuple[str | None, str]] = {}
     for key, _where, _desc, _hint in REQUIRED:
@@ -415,6 +560,8 @@ def main(argv: list[str] | None = None) -> int:
         w_allow = _merge_allow(claude_dir / "settings.local.json", AUTONOMOUS_ALLOW)
         w_deny = _merge_deny(claude_dir / "settings.local.json", AUTONOMOUS_DENY)
         _ensure_gitignored(repo_root, ".claude/settings.local.json")
+        manifest.record_permissions(claude_dir, w_allow, w_deny)
+        manifest.record_gitignore(claude_dir, ".claude/settings.local.json")
         print(f"\nregistered {len(w_allow)} permission(s) to .claude/settings.local.json allow"
               + (f": {', '.join(w_allow)}" if w_allow else " (already present)"))
         print(f"registered {len(w_deny)} permission(s) to .claude/settings.local.json deny"
@@ -435,13 +582,30 @@ def main(argv: list[str] | None = None) -> int:
     if pin_rre:
         public_vals[rre] = str(repo_root)   # pin active pack's repo_root_env to this repo
 
-    w_pub = _merge_env(claude_dir / "settings.json", public_vals, args.force)
-    w_sec = _merge_env(claude_dir / "settings.local.json", secret_vals, args.force)
-    if w_sec:
-        _ensure_gitignored(repo_root, ".claude/settings.local.json")
+    # repo_root_env is per project by definition, so it stays in the project file whatever
+    # --scope says; the rest follows the scope.
+    pinned = {rre: public_vals.pop(rre)} if pin_rre and rre in public_vals else {}
 
-    print(f"\nwrote {len(w_pub)} key(s) to .claude/settings.json: {', '.join(w_pub) or '(none)'}")
-    print(f"wrote {len(w_sec)} key(s) to .claude/settings.local.json: {', '.join(w_sec) or '(none)'}")
+    w_pub = _merge_env(env_dir / "settings.json", public_vals, args.force)
+    w_sec = _merge_env(env_dir / "settings.local.json", secret_vals, args.force)
+    w_pin = _merge_env(claude_dir / "settings.json", pinned, args.force) if pinned else []
+    if w_sec and env_dir == claude_dir:
+        _ensure_gitignored(repo_root, ".claude/settings.local.json")
+        manifest.record_gitignore(claude_dir, ".claude/settings.local.json")
+
+    # Record what was written, keyed to the directory it went into, so --uninstall run from
+    # either scope takes back exactly what that scope holds.
+    manifest.record_env(env_dir, "settings.json", {k: public_vals[k] for k in w_pub})
+    manifest.record_env(env_dir, "settings.local.json", {k: secret_vals[k] for k in w_sec})
+    if w_pin:
+        manifest.record_env(claude_dir, "settings.json", {k: pinned[k] for k in w_pin})
+
+    where = "~/.claude" if env_dir != claude_dir else ".claude"
+    print(f"\nwrote {len(w_pub)} key(s) to {where}/settings.json: {', '.join(w_pub) or '(none)'}")
+    print(f"wrote {len(w_sec)} key(s) to {where}/settings.local.json: {', '.join(w_sec) or '(none)'}")
+    if pinned:
+        print(f"wrote {len(w_pin)} key(s) to .claude/settings.json (project-local): "
+              f"{', '.join(w_pin) or '(none)'}")
 
     # External plugin dependency. Last, because it is the only step that can block on a
     # human: it opens a browser for the OAuth grant. Doing the settings writes first means

@@ -222,8 +222,6 @@ def render(out: dict) -> str:
     L.append("  env:")
     for k, e in out["env"].items():
         L.append(f"    {k:<18} {e['status']:<14} process={e['process'] or '-'}  settings={e['settings'] or '-'}")
-    c = out["stablenet_knowledge_config"]
-    L.append(f"  stablenet_knowledge_config : {c['path'] or '-'}  exists={c['exists']}  (source_root/freshness: live probe)")
     pm = out["permissions"]
     L.append(f"  permissions: defaultMode={pm['defaultMode']} plugin_allowlisted={pm['plugin_allowlisted']} (allow={pm['allow_count']})")
     if out["restart_needed"]:

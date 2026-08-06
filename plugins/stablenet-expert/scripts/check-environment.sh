@@ -93,27 +93,28 @@ fi
 # ANY plugin it installs -- the repair mechanism itself is gone, not just one feature. Hence
 # `critical` when absent, and hence install-python.sh is bash-only.
 #
-# No hard version gate: every runtime script here carries `from __future__ import annotations`, so
-# they run on 3.9. Only the test suite needs 3.10+ (`dict | None` at runtime), and CI pins 3.12.
-# Reporting `info` rather than `warn` below is deliberate -- an old-but-working interpreter is not
-# a defect, it just can't run the tests locally.
-python_recommended="3.12"  # matches .github/workflows/ci.yml
-python_floor="3.10"        # below this the test suite cannot run
-if command -v python3 >/dev/null 2>&1; then
-  python_version="$(python3 -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null)"
+# The supported version is 3.12 and nothing older (ADR-0015). 3.9 was considered as a floor --
+# macOS still ships it -- and rejected: it is end-of-life upstream and Homebrew disables its
+# formula on 2026-10-15, so a floor there would mean testing only on an unsupported runtime and
+# would stop being installable within weeks.
+#
+# Below 3.12 is reported but never blocks: doctor offers the install, it does not demand it.
+python_supported="3.12"    # what install-python.sh installs; also .github/workflows/ci.yml
+if command -v "${STABLENET_EXPERT_PYTHON:-python3}" >/dev/null 2>&1; then
+  python_version="$("${STABLENET_EXPERT_PYTHON:-python3}" -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null)"
   if [ -z "$python_version" ]; then
     emit "python3" "warn" "found on PATH but 'python3 -c' failed -- the interpreter looks broken"
     all_pass=false
-  elif version_ge "$python_version" "$python_floor"; then
+  elif version_ge "$python_version" "$python_supported"; then
     emit "python3" "pass" "$python_version"
   else
-    emit "python3" "info" \
-      "$python_version -- hooks and doctor scripts run fine; the test suite needs >= $python_floor (CI uses $python_recommended). Install alongside with scripts/install-python.sh; your system python3 is left untouched"
+    emit "python3" "warn" \
+      "$python_version -- this marketplace supports >= $python_supported. Run scripts/install-python.sh to install it alongside; your system python3 and PATH are left untouched (the path is recorded as STABLENET_EXPERT_PYTHON)"
     all_pass=false
   fi
 else
   emit "python3" "critical" \
-    "not found -- doctor cannot run any plugin's setup.py without it (ADR-0014). Install with scripts/install-python.sh (installs $python_recommended)"
+    "not found -- doctor cannot run any plugin's setup.py without it (ADR-0014). Install with scripts/install-python.sh (installs $python_supported)"
   all_pass=false
 fi
 

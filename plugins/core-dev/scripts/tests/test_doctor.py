@@ -68,9 +68,13 @@ class TestSmoke(unittest.TestCase):
                 [sys.executable, str(DOCTOR_PY), "--plugin-root", str(root), "--json"],
                 cwd=d, capture_output=True, text=True)
             out = json.loads(r.stdout)
-            for key in ("plugin", "project", "domain_pack", "env", "stablenet_knowledge_config",
+            for key in ("plugin", "project", "domain_pack", "env",
                         "permissions", "verdict", "issues", "restart_needed", "remediations"):
                 self.assertIn(key, out)
+            # No stablenet_knowledge_config section: the server is remote (HTTP), so this
+            # machine has no config yaml to stat. Its health is probed live by the command
+            # through cks_ops_health, against the host that actually serves the index.
+            self.assertNotIn("stablenet_knowledge_config", out)
             self.assertEqual(out["plugin"]["active_version"], "9.9.9")
             self.assertEqual(out["domain_pack"]["project_id"], "go-stablenet")
             self.assertEqual(out["domain_pack"]["repo_root_env"], "GO_STABLENET_ROOT")
@@ -86,7 +90,7 @@ class TestSmoke(unittest.TestCase):
             self.assertEqual(doctor._mask("TEST_ONLY_TOKEN", "supersecret"), "********")
         finally:
             doctor.SECRETS.discard("TEST_ONLY_TOKEN")
-        self.assertEqual(doctor._mask("STABLENET_KNOWLEDGE_CONFIG", "/path"), "/path")
+        self.assertEqual(doctor._mask("CHAINBENCH_DIR", "/path"), "/path")
 
 
 class TestRemediationTable(unittest.TestCase):

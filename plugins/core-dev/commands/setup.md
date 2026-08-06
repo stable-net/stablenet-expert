@@ -21,7 +21,7 @@ argument-hint: "[--check | --fix] [--autonomous] [--project <id>]   (생략 시 
 
 스크립트 `${CLAUDE_PLUGIN_ROOT}/scripts/setup.py` 가 실제 점검·기록을 수행한다(stdlib only).
 
-> 점검 항목: `STABLENET_KNOWLEDGE_MCP_BIN`, `STABLENET_KNOWLEDGE_CONFIG`, `CHAINBENCH_DIR`,
+> 점검 항목: `CHAINBENCH_DIR`,
 > Atlassian MCP 플러그인(설치·인증 상태), 그리고
 > `chainbench-mcp` PATH·`permissions` 권고.
 

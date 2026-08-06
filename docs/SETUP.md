@@ -238,15 +238,14 @@ is a long-lived process, not something Claude Code launches per session):
 export STABLENET_KNOWLEDGE_MCP_URL="http://127.0.0.1:8930/mcp"   # or the LAN IP if not loopback
 ```
 
-`STABLENET_KNOWLEDGE_MCP_BIN`/`STABLENET_KNOWLEDGE_CONFIG` (binary path / `mcp.yaml` path) are
-**not** used for the actual connection — `/core-dev:doctor`/`/core-dev:setup` read them for local
-sanity checks (binary exists, config file exists and parses) independent of whatever URL you're
-actually pointed at. Set them too since doctor checks for them, but they're diagnostics, not wiring:
+That URL is the whole wiring. There is nothing else to export: the server runs elsewhere, so
+this machine has no binary to point at and no `mcp.yaml` to validate.
 
-```bash
-export STABLENET_KNOWLEDGE_MCP_BIN="$HOME/Work/stablenet-knowledge-mcp/bin/system-mcp"
-export STABLENET_KNOWLEDGE_CONFIG="$HOME/Work/stablenet-knowledge-mcp/projects/stablenet/mcp.yaml"
-```
+`STABLENET_KNOWLEDGE_MCP_BIN` and `STABLENET_KNOWLEDGE_CONFIG` used to be set here for local
+sanity checks. They are gone — they described a stdio deployment that `.mcp.json` no longer
+declares, and on a machine that only *talks to* the index they either point at nothing or at an
+unrelated checkout. Index health is checked live against the server that is actually serving,
+via `cks_ops_health`.
 
 ### 4.3 Ollama + bge-m3 (required for full retrieval)
 

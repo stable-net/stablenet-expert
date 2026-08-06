@@ -329,7 +329,7 @@ flowchart LR
 |------|-----|------|
 | ~~**Jira Gateway MCP 언어 = Go**~~ | 처음 TypeScript로 시작 → 다른 TS 사용처가 없어 Go로 전환. **폐기됨(ADR-0013)** — 서버 자체를 공식 Atlassian MCP로 대체 | (삭제됨) |
 | **도구 이름 SSoT 스키마 + lint** | stablenet-knowledge의 실제 도구 이름과 agent/command 마크다운의 도구 참조가 따로 드리프트하기 쉬움 → 스키마를 단일 소스로 두고 lint로 기계 검증 | `scripts/contract/agent-mcp.schema.json` + `scripts/contract/lint-tool-names.sh` |
-| **자체 stablenet-knowledge-mcp shim 폐기** | 자체 in-tree 구현이 외부 stablenet-knowledge(code-knowledge-system)와 표면(도구 이름·응답 스키마)이 어긋남. 외부가 더 풍부한 도메인 시스템을 제공하므로 in-tree 코드를 통째 삭제하고 외부 바이너리(`${STABLENET_KNOWLEDGE_MCP_BIN}`)에 위임 | `plugins/core-dev/.mcp.json`의 `stablenet-knowledge` 항목 |
+| **자체 stablenet-knowledge-mcp shim 폐기** | 자체 in-tree 구현이 외부 stablenet-knowledge(code-knowledge-system)와 표면(도구 이름·응답 스키마)이 어긋남. 외부가 더 풍부한 도메인 시스템을 제공하므로 in-tree 코드를 통째 삭제하고 외부 서비스에 위임. 이후 stdio(바이너리 경로)에서 **원격 HTTP**(`${STABLENET_KNOWLEDGE_MCP_URL}`)로 전환됐다 | `plugins/core-dev/.mcp.json`의 `stablenet-knowledge` 항목 |
 | ~~**ADF→Markdown 자체 구현**~~ | **불필요해짐(ADR-0013)** — `getJiraIssue(responseContentFormat:"markdown")`가 서버 쪽에서 변환한다 | (삭제됨) |
 | **Jira transition 3-tier lookup** | 워크플로 transition 이름은 프로젝트마다 다르다 → name → status name → statusCategory key 순으로 case-insensitive 매칭해, 별도 설정 파일 없이 프로젝트별 차이를 흡수. 서버가 하던 일을 호출부가 이어받았다(ADR-0013) | `plugins/core-dev/skills/jira-via-atlassian/SKILL.md` §3 |
 | **bge-m3 임베딩 (다국어)** | nomic 계열은 영어 전용인데 사용자가 한국어를 쓴다 → 다국어 임베더가 필요. 1024-dim은 bge-large와 동일해 향후 스왑 시 스키마 마이그레이션이 불필요 | `docs/SETUP.md §4.3` |

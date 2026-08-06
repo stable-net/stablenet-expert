@@ -47,10 +47,6 @@ PUBLIC = "settings.json"
 SECRET = "settings.local.json"
 
 REQUIRED = [
-    ("STABLENET_KNOWLEDGE_MCP_BIN", PUBLIC, "stablenet-knowledge MCP binary",
-     "build the sibling stablenet-knowledge-mcp repo (see its README) -> bin/stablenet-knowledge-mcp"),
-    ("STABLENET_KNOWLEDGE_CONFIG", PUBLIC, "stablenet-knowledge config yaml (ckg/ckv paths)",
-     "sibling stablenet-knowledge-mcp repo's cks-stablenet.yaml or cks.yaml"),
     ("CHAINBENCH_DIR", PUBLIC, "chainbench checkout directory",
      "sibling chainbench repo's checkout path"),
 ]
@@ -125,21 +121,12 @@ def _first_existing(*paths: Path) -> str | None:
 
 def _detect(repo_root: Path) -> dict[str, str]:
     """Best-effort auto-detection of path-style values from sibling repos."""
-    base = repo_root.parent  # e.g. .../github/, sibling to code-knowledge-system
-    cks = base / "code-knowledge-system"
-    se = base / "stablenet-expert"
+    base = repo_root.parent  # e.g. .../github/, sibling to chainbench
     found: dict[str, str] = {}
 
-    v = _first_existing(cks / "bin" / "stablenet-knowledge-mcp")
-    if v:
-        found["STABLENET_KNOWLEDGE_MCP_BIN"] = v
-    # stablenet-knowledge config: prefer a stablenet-scoped config, else a generic cks.yaml
-    if cks.is_dir():
-        for name in ("cks-stablenet.yaml", "cks.yaml"):
-            v = _first_existing(cks / name)
-            if v:
-                found["STABLENET_KNOWLEDGE_CONFIG"] = v
-                break
+    # Nothing to detect for stablenet-knowledge: it is a remote HTTP server, so the only value
+    # it needs is STABLENET_KNOWLEDGE_MCP_URL, which no amount of looking at this filesystem can
+    # discover. It comes from whoever runs the server.
     v = _first_existing(base / "chainbench")
     if v:
         found["CHAINBENCH_DIR"] = v

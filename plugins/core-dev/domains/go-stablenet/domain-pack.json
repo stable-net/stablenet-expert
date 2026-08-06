@@ -9,7 +9,6 @@
     "priority": 10
   },
   "knowledge": {
-    "stablenet_knowledge_config_env": "STABLENET_KNOWLEDGE_CONFIG",
     "_note": "domain knowledge lives in this project's stablenet-knowledge index (guidance.* / policy/stablenet.yaml / domain entries); the pack carries only the search-independent backstop + path classifier"
   },
   "invariants": "invariants.md",

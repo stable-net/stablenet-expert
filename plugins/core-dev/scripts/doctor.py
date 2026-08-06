@@ -24,7 +24,7 @@ from pathlib import Path
 # OAuth and keeps its credential in Claude Code's own store (ADR-0013), so there is
 # nothing here to mask or to check.
 SECRETS: set[str] = set()
-ENV_KEYS = ["STABLENET_KNOWLEDGE_CONFIG", "STABLENET_KNOWLEDGE_MCP_BIN", "CHAINBENCH_DIR"]
+ENV_KEYS = ["CHAINBENCH_DIR"]
 
 # Single-source fix table (ADR doctor-remediation-2026-06-26). Maps every finding
 # kind -> {action, command, klass}. klass classifies who resolves it:
@@ -44,8 +44,6 @@ REMEDIATION = {
                             "action": "pass --project <id> to doctor and setup"},
     "repo_root_env_unset": {"klass": "setup",   "command": "/core-dev:setup --fix",
                             "action": "pin the active pack's repo_root_env, then restart the session"},
-    "stablenet_knowledge_config_missing_file": {"klass": "external", "command": "see docs/SETUP.md",
-                            "action": "fix STABLENET_KNOWLEDGE_CONFIG path or rebuild the stablenet-knowledge index"},
     "env_unset":           {"klass": "setup",   "command": "/core-dev:setup --fix",
                             "action": "detect & write the missing path env vars, then restart"},
     "env_secret_unset":    {"klass": "setup",   "command": "/core-dev:setup --fix --set <KEY>=<value>",
@@ -56,15 +54,13 @@ REMEDIATION = {
                             "action": "register a granular allowlist (only if you want unattended runs)"},
     # --- routed by commands/doctor.md from LIVE MCP probes (script cannot see these) ---
     "stablenet_knowledge_not_serviceable": {"klass": "manual",  "command": "",
-                            "action": "start ckv/Ollama or rewire STABLENET_KNOWLEDGE_CONFIG, then restart the session"},
+                            "action": "check the stablenet-knowledge server is up and STABLENET_KNOWLEDGE_MCP_URL points at it, then restart"},
     "source_root_mismatch": {"klass": "manual", "command": "",
                             "action": "reconfigure the stablenet-knowledge config to index THIS repo, then restart"},
     "index_stale":         {"klass": "manual",  "command": "",
                             "action": "reindex — but skip if this is an intended base index (confirm first)"},
     "mcp_unreachable":     {"klass": "manual",  "command": "",
                             "action": "verify the MCP server is installed/enabled; restart Claude Code"},
-    "stablenet_knowledge_mcp_not_built":   {"klass": "external", "command": "see docs/SETUP.md",
-                            "action": "build stablenet-knowledge-mcp (make) so STABLENET_KNOWLEDGE_MCP_BIN resolves"},
     "chainbench_not_installed": {"klass": "external", "command": "see docs/SETUP.md",
                             "action": "install chainbench so chainbench-mcp is on PATH"},
 }
@@ -163,16 +159,12 @@ def diagnose(plugin_root: Path | None, project_id_override) -> dict:
                        f"{k} unset — repo_root falls back to git rev-parse; setup --fix can pin it")
     out["env"] = env_report
 
-    # --- stablenet-knowledge config (presence only) ---
-    # source_root / indexed_head coherence is probed LIVE by the command via
-    # cks_ops_health (authoritative); the yaml schema nests it under backends and
-    # varies, so we do not parse it here.
-    cks_cfg = os.environ.get("STABLENET_KNOWLEDGE_CONFIG") or senv.get("STABLENET_KNOWLEDGE_CONFIG")
-    cks = {"path": cks_cfg, "exists": bool(cks_cfg and Path(cks_cfg).is_file()),
-           "note": "source_root / freshness checked live by the command (cks_ops_health)"}
-    if cks_cfg and not Path(cks_cfg).is_file():
-        _add_issue(out, "stablenet_knowledge_config_missing_file", f"STABLENET_KNOWLEDGE_CONFIG points to a missing file: {cks_cfg}")
-    out["stablenet_knowledge_config"] = cks
+    # stablenet-knowledge runs as a remote HTTP server (.mcp.json declares only
+    # STABLENET_KNOWLEDGE_MCP_URL), so there is no local config yaml or binary on this machine to
+    # check for. Its health -- source_root coherence, index freshness -- is probed live by the
+    # command via cks_ops_health, which is authoritative and reaches the server that is actually
+    # serving. A local file check here could only ever describe a machine that is not the one
+    # running the index.
 
     # --- permissions / allowlist ---
     perms = settings.get("permissions", {})

@@ -210,7 +210,38 @@ class TestJSONOutput(unittest.TestCase):
             self.assertTrue(missing, "a bare temp dir resolves nothing")
             for row in missing:
                 self.assertTrue(row["description"], f"{row['key']} needs a description to offer")
+
+            # The "unattended" rule is about *values*: nobody can write an env var whose
+            # value is unknown, so offering to is a bug. It does not generalise to other
+            # row kinds -- a missing plugin is missing in a different sense (not installed)
+            # and installing it asks the user for no value at all.
+            for row in [r for r in missing if r["row_kind"] == "env"]:
                 self.assertFalse(row["auto_fixable"], "missing values cannot be written unattended")
+
+    def test_non_env_rows_declare_their_kind_and_side_effects(self):
+        """doctor branches on row_kind, and must be able to warn before a fix does something
+        visible (an OAuth browser window). Both facts have to travel in the row."""
+        with tempfile.TemporaryDirectory() as td:
+            payload = json.loads(_run(Path(td), "--check", "--json").stdout)
+            for row in payload["rows"]:
+                self.assertIn(row["row_kind"], ("env", "plugin"), row["key"])
+                self.assertIn("opens_browser", row, f"{row['key']} must say if it is visible")
+            plugin_rows = [r for r in payload["rows"] if r["row_kind"] == "plugin"]
+            self.assertTrue(plugin_rows, "the Atlassian dependency should be reported")
+
+    def test_not_ready_is_reported_alongside_missing(self):
+        """`missing` alone cannot express every unusable state -- an installed-but-
+        unauthenticated plugin is present and still unusable -- so the caller gets a second
+        list. Only its shape is asserted here: whether the Atlassian plugin happens to be
+        installed on the machine running the tests is not this test's business, and
+        test_atlassian.py pins that behaviour against an injected CLI."""
+        with tempfile.TemporaryDirectory() as td:
+            payload = json.loads(_run(Path(td), "--check", "--json").stdout)
+            self.assertIn("not_ready", payload)
+            keys = {r["key"] for r in payload["rows"]}
+            self.assertTrue(set(payload["not_ready"]) <= keys, "not_ready must name rows")
+            for key in payload["missing"]:
+                self.assertIn(key, payload["not_ready"], "missing implies not ready")
 
 
 if __name__ == "__main__":

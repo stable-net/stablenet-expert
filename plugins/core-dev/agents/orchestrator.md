@@ -114,8 +114,8 @@ it as a stuck pipeline and report.
 | current_state     | Action                                               |
 +-------------------+------------------------------------------------------+
 | TICKET_INTAKE     | Verify ticket.json + sensitive_check.result.         |
-|                   | If CLEAN/REDACTED → transition→ANALYSIS, dispatch    |
-|                   | Planner. If BLOCKED → terminal block report.         |
+|                   | BLOCKED → terminal block report. Anything else →    |
+|                   | transition→ANALYSIS, dispatch Planner.               |
 +-------------------+------------------------------------------------------+
 | ANALYSIS          | full/bugfix: Dispatch Analyzer agent (situation +    |
 |                   | reproduction + root cause). review_only/release:     |

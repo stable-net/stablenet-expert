@@ -51,16 +51,8 @@ REQUIRED = [
      "build the sibling stablenet-knowledge-mcp repo (see its README) -> bin/stablenet-knowledge-mcp"),
     ("STABLENET_KNOWLEDGE_CONFIG", PUBLIC, "stablenet-knowledge config yaml (ckg/ckv paths)",
      "sibling stablenet-knowledge-mcp repo's cks-stablenet.yaml or cks.yaml"),
-    ("JIRA_GATEWAY_BIN", PUBLIC, "jira-gateway MCP binary",
-     "build packages/jira-gateway-mcp in this repo (go build) -> bin/jira-gateway-mcp"),
-    ("JIRA_BASE_URL", PUBLIC, "Jira site URL, e.g. https://your.atlassian.net",
-     "your organization's Atlassian site URL"),
-    ("JIRA_USER_EMAIL", PUBLIC, "Jira account email",
-     "the email of the Atlassian account the API token below belongs to"),
     ("CHAINBENCH_DIR", PUBLIC, "chainbench checkout directory",
      "sibling chainbench repo's checkout path"),
-    ("JIRA_API_TOKEN", SECRET, "Jira API token (secret)",
-     "create one at https://id.atlassian.com/manage-profile/security/api-tokens"),
 ]
 
 # --autonomous: granular permissions.allow (ADR §5.2) — the plugin's own MCP tools,
@@ -72,7 +64,7 @@ REQUIRED = [
 AUTONOMOUS_ALLOW = [
     "mcp__plugin_core-dev_stablenet-knowledge__*",
     "mcp__plugin_core-dev_chainbench__*",
-    "mcp__plugin_core-dev_jira-gateway__*",
+    "mcp__plugin_atlassian_atlassian__*",
     "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
     "Bash(git rev-parse:*)", "Bash(git show:*)", "Bash(git branch:*)",
     "Bash(ls:*)", "Bash(cat:*)", "Bash(grep:*)", "Bash(rg:*)", "Bash(find:*)",
@@ -92,7 +84,7 @@ AUTONOMOUS_ALLOW = [
 
 # --autonomous also registers permissions.deny: secret files the agent must never
 # read via the Read tool, even while the allowlist above is active (defense-in-depth;
-# mirrors gsd-core's installer denies). settings.local.json holds JIRA_API_TOKEN.
+# mirrors gsd-core's installer denies).
 AUTONOMOUS_DENY = [
     "Read(.env)",
     "Read(.env.*)",
@@ -148,10 +140,6 @@ def _detect(repo_root: Path) -> dict[str, str]:
             if v:
                 found["STABLENET_KNOWLEDGE_CONFIG"] = v
                 break
-    v = _first_existing(se / "packages" / "jira-gateway-mcp" / "bin" / "jira-gateway-mcp",
-                        repo_root / "packages" / "jira-gateway-mcp" / "bin" / "jira-gateway-mcp")
-    if v:
-        found["JIRA_GATEWAY_BIN"] = v
     v = _first_existing(base / "chainbench")
     if v:
         found["CHAINBENCH_DIR"] = v

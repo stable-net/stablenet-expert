@@ -46,21 +46,4 @@ jobs:
             python -m unittest discover -s "$d"
           done
 
-  # Go packages under packages/ (jira-gateway-mcp today, more may join later —
-  # each must be a go.work member). Discovered by go.mod, not hardcoded by name.
-  go-packages:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.work
-          cache-dependency-path: packages/*/go.sum
-      - name: build + test each package
-        run: |
-          set -e
-          for gomod in packages/*/go.mod; do
-            dir="$(dirname "$gomod")"
-            echo "=== $dir ==="
-            (cd "$dir" && go build ./... && go test ./...)
           done

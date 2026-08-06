@@ -51,17 +51,29 @@ for prov in schema["providers"].values():
 # or be a bare server-level wildcard (mcp__plugin_core-dev_chainbench__*),
 # which grants every tool on that server and is always valid — nothing to
 # look up, since it isn't naming one specific tool.
-token = re.compile(r'mcp__[A-Za-z0-9_-]+__([A-Za-z0-9_.]+|\*)')
+token = re.compile(r'mcp__([A-Za-z0-9_-]+)__([A-Za-z0-9_.]+|\*)')
+
+# Servers this repository does not own. The schema is the contract for *our* MCP servers;
+# an external plugin defines its own tools and can rename them without consulting us, so
+# asserting its names against our schema would be asserting something we cannot know
+# (ADR-0013 §2.1 removed the jira-gateway provider on exactly this reasoning rather than
+# replacing it with an Atlassian block). Drift in these names shows up as a failing call,
+# not as a lint error.
+EXTERNAL_SERVERS = {"plugin_atlassian_atlassian"}
 
 unknown = []
 seen = 0
 wildcards = 0
+external = 0
 for d in dirs:
     for path in sorted(glob.glob(os.path.join(d, "*.md"))):
         with open(path) as fh:
             for lineno, line in enumerate(fh, 1):
                 for m in token.finditer(line):
-                    name = m.group(1)
+                    server, name = m.group(1), m.group(2)
+                    if server in EXTERNAL_SERVERS:
+                        external += 1
+                        continue
                     if name == "*":
                         wildcards += 1
                         continue
@@ -78,5 +90,6 @@ if unknown:
     sys.exit(0 if report_only else 1)
 
 print(f"OK: {seen} tool reference(s) + {wildcards} server-level wildcard grant(s), "
-      f"all present in the schema ({len(names)} tools).")
+      f"all present in the schema ({len(names)} tools); "
+      f"{external} reference(s) to external servers skipped.")
 PY

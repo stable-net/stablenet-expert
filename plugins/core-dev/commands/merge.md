@@ -130,7 +130,7 @@ argument-hint: "<JIRA-ID, 예: STABLE-1234>"
          steps_in의 각 step에 대해:
            body += "  - {step.description}\n"
 
-     body += "\nJira: {JIRA_BASE_URL}/browse/{ticket_id}\n"
+     body += "\nJira: {jira_site_url}/browse/{ticket_id}\n"   # site URL from cloudId resolution
      body += "PR: #{pr_number}\n"
 
 4.3. 게시 전 sanitize(P7-7)
@@ -185,14 +185,15 @@ PR_BODY_EOF
 
 ```
 6.1. Jira: status → Complete
-     mcp__plugin_core-dev_jira-gateway__jira_update_status(ticket_id, "Complete")
+     transition ticket_id to "Complete" via the `jira-via-atlassian` skill §3
+     (getTransitionsForJiraIssue -> three-tier match -> transitionJiraIssue)
      실패 시: 경고 + Jira를 수동으로 갱신하라는 제안 출력.
 
 6.2. Jira: merge 해시로 코멘트
      comment_body = "Merged. Commit: {merge_hash}\nBranch: {branch} (deleted)"
      # 코멘트도 sanitize한다.
      result = pr-sanitize.scan(text=comment_body, context="jira_merge_comment")
-     mcp__plugin_core-dev_jira-gateway__jira_add_comment(ticket_id, result.text)
+     mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(cloudId, ticket_id, result.text)
 
 6.3. 로컬 브랜치 동기화
      # default_branch = 레포의 실제 기본 브랜치(origin/HEAD) — "main"이라고 절대 가정하지 않는다

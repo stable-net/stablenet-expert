@@ -10,7 +10,8 @@ argument-hint: "[--check | --fix] [--autonomous] [--project <id>]   (생략 시 
 대화형 입력**으로 채워 넣는다.
 
 - 경로·공개값 → `{repo_root}/.claude/settings.json` 의 `env`
-- 시크릿(`JIRA_API_TOKEN`) → `{repo_root}/.claude/settings.local.json` (자동 .gitignore)
+- 시크릿 → `{repo_root}/.claude/settings.local.json` (자동 .gitignore). 현재 시크릿 항목은 없다 —
+  Jira 는 OAuth 로 인증하고 자격증명은 Claude Code 가 보관한다(ADR-0013).
 - **활성 도메인팩의 `repo_root_env`(예 `GO_STABLENET_ROOT`) → 현재 repo 루트로 `settings.json` 에 자동 기록**
   (현재 폴더에서 실행 시; project_id 모호하면 `--project <id>`).
 - **`--autonomous`**: granular `permissions.allow`(플러그인 MCP + read-only bash + 파이프라인 write path:
@@ -20,8 +21,8 @@ argument-hint: "[--check | --fix] [--autonomous] [--project <id>]   (생략 시 
 
 스크립트 `${CLAUDE_PLUGIN_ROOT}/scripts/setup.py` 가 실제 점검·기록을 수행한다(stdlib only).
 
-> 점검 항목: `STABLENET_KNOWLEDGE_MCP_BIN`, `STABLENET_KNOWLEDGE_CONFIG`, `JIRA_GATEWAY_BIN`, `JIRA_BASE_URL`,
-> `JIRA_USER_EMAIL`, `CHAINBENCH_DIR`, `JIRA_API_TOKEN`(secret), 그리고
+> 점검 항목: `STABLENET_KNOWLEDGE_MCP_BIN`, `STABLENET_KNOWLEDGE_CONFIG`, `CHAINBENCH_DIR`,
+> Atlassian MCP 플러그인(설치·인증 상태), 그리고
 > `chainbench-mcp` PATH·`permissions` 권고.
 
 ---
@@ -56,7 +57,7 @@ argument-hint: "[--check | --fix] [--autonomous] [--project <id>]   (생략 시 
      받은 값으로 재실행:
      bash: python3 ${CLAUDE_PLUGIN_ROOT}/scripts/setup.py --fix \
              --set KEY1=VALUE1 --set KEY2=VALUE2 ...
-     # JIRA_API_TOKEN 등 시크릿도 --set 로 전달 → 스크립트가 settings.local.json 에 기록하고
+     # 시크릿이 생기면 --set 로 전달 → 스크립트가 settings.local.json 에 기록하고
      #   .claude/settings.local.json 을 .gitignore 에 추가한다.
      # 사용자가 터미널에서 직접 채우고 싶어 하면 안내: `! python3 .../setup.py --fix --interactive`
 

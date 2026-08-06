@@ -1,7 +1,7 @@
 ---
 description: 자유 텍스트 요구사항 기반 작업 시작. 요구사항 intake → ticket.json 합성 → Orchestrator 디스패치. Jira 불필요.
 argument-hint: "\"<요구사항 텍스트>\"  [--type feature|bugfix|code_review|release] [--auto-merge]"
-allowed-tools: Read, Write, Edit, Bash, Agent, TodoWrite, mcp__plugin_core-dev_stablenet-knowledge, mcp__plugin_core-dev_chainbench, mcp__plugin_core-dev_jira-gateway
+allowed-tools: Read, Write, Edit, Bash, Agent, TodoWrite, mcp__plugin_core-dev_stablenet-knowledge, mcp__plugin_core-dev_chainbench, mcp__plugin_atlassian_atlassian
 ---
 
 # /core-dev:analyze

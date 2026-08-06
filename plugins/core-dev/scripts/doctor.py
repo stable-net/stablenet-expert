@@ -5,7 +5,7 @@ Deterministic checks only (no LLM, no MCP): active plugin version, project/repo,
 active domain pack + project_id, env vars (process env + .claude/settings*.json,
 secrets masked, restart-needed detection), stablenet-knowledge config source_root, and
 permissions/allowlist. The `/core-dev:doctor` command runs this, then adds the
-LIVE MCP health probes (stablenet-knowledge/chainbench/jira) and the final verdict.
+LIVE MCP health probes (stablenet-knowledge/chainbench) and the final verdict.
 
     python3 doctor.py --plugin-root "$CLAUDE_PLUGIN_ROOT" [--project-id ID] [--json]
 
@@ -20,9 +20,11 @@ import os
 import subprocess
 from pathlib import Path
 
-SECRETS = {"JIRA_API_TOKEN"}
-ENV_KEYS = ["STABLENET_KNOWLEDGE_CONFIG", "STABLENET_KNOWLEDGE_MCP_BIN", "CHAINBENCH_DIR",
-            "JIRA_BASE_URL", "JIRA_USER_EMAIL", "JIRA_API_TOKEN"]
+# Jira no longer contributes an env key: the official Atlassian MCP authenticates over
+# OAuth and keeps its credential in Claude Code's own store (ADR-0013), so there is
+# nothing here to mask or to check.
+SECRETS: set[str] = set()
+ENV_KEYS = ["STABLENET_KNOWLEDGE_CONFIG", "STABLENET_KNOWLEDGE_MCP_BIN", "CHAINBENCH_DIR"]
 
 # Single-source fix table (ADR doctor-remediation-2026-06-26). Maps every finding
 # kind -> {action, command, klass}. klass classifies who resolves it:

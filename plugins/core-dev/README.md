@@ -23,7 +23,7 @@ It is built on two ideas:
 
 ```
 Jira ticket (STABLE-xxxx)
-   │  jira-gateway MCP  ── sensitive-info filter (secrets blocked before they reach the LLM)
+   │  Atlassian MCP (official plugin, OAuth)
    ▼
 TICKET_INTAKE → ANALYSIS → PLANNING → DESIGN → IMPLEMENTATION → EVALUATION → COMPLETION
                    │                                                │
@@ -43,18 +43,23 @@ Four isolated agents do the work; the **orchestrator** is the only one that sees
 | **implementer** | Branch isolation, one commit per atomic step, build handoff |
 | **evaluator** | 4-stage verification: unit (+`-race`), lint/format, security scan, chainbench integration |
 
-It talks to three MCP servers: **jira-gateway** (in the `stablenet-expert` repo, a
-sensitive-info proxy in front of Jira), **stablenet-knowledge** (`code-knowledge-system`, a sibling repo that
-composes semantic + graph retrieval), and **chainbench** (a sibling repo, the deterministic
-test runner). The agent-facing tool surface is frozen in
+It declares two MCP servers of its own — **stablenet-knowledge** (`code-knowledge-system`, a
+sibling repo that composes semantic + graph retrieval) and **chainbench** (a sibling repo, the
+deterministic test runner) — and reads Jira through the **official Atlassian MCP plugin**, an
+external dependency that `/stablenet-expert:doctor` installs and authenticates for you
+([ADR-0013](../../docs/adr/ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md)). The agent-facing tool surface is frozen in
 [`../../scripts/contract/agent-mcp.schema.json`](../../scripts/contract/agent-mcp.schema.json)
 and enforced by [`../../scripts/contract/lint-tool-names.sh`](../../scripts/contract/lint-tool-names.sh).
 
-**Security model.** Sensitive data is blocked *before it reaches the model*, not after. All
-inbound Jira content passes through the jira-gateway filter (regex + entropy + allowlist →
-`REDACTED`/`BLOCKED`); all outbound text (PR bodies, commit bodies, Jira comments) passes
-through the `pr-sanitize` skill using the same
+**Security model.** Outbound text (PR bodies, commit bodies, Jira comments) passes through
+the `pr-sanitize` skill before it is published, using
 [`../../packages/sensitive-guard/patterns.json`](../../packages/sensitive-guard/patterns.json).
+
+Inbound Jira content is **not** filtered. The retired `jira-gateway` server screened tickets
+and comments before the model saw them; the official Atlassian MCP has no such stage, and
+that protection was given up knowingly when it was adopted — see
+[ADR-0013](../../docs/adr/ADR-0013-retire-jira-gateway-adopt-atlassian-mcp.md) §2.3 for what
+was traded for what. Treat a ticket body as untrusted input that the model will read in full.
 
 ---
 
@@ -83,10 +88,8 @@ forwards into the MCP servers. Export them in your shell profile so Claude Code'
 processes inherit them.
 
 ```bash
-# Jira (required) — token: https://id.atlassian.com/manage-profile/security/api-tokens
-export JIRA_BASE_URL="https://your-domain.atlassian.net"
-export JIRA_USER_EMAIL="you@example.com"
-export JIRA_API_TOKEN="atlassian_api_token_here"
+# Jira needs no variables — the Atlassian MCP plugin authenticates over OAuth and Claude Code
+# keeps the credential. `/stablenet-expert:doctor` installs and authenticates it.
 
 # stablenet-knowledge — the code-knowledge service (sibling repo; see ../../docs/SETUP.md to build)
 export STABLENET_KNOWLEDGE_MCP_BIN="$HOME/Work/code-knowledge-system/bin/stablenet-knowledge-mcp"
@@ -99,7 +102,7 @@ export CHAINBENCH_DIR="$HOME/Work/chainbench"
 | Requirement | Why |
 |-------------|-----|
 | Claude Code | Hosts the plugin |
-| Atlassian (Jira) Cloud | Source of tickets |
+| Atlassian (Jira) Cloud + the official Atlassian MCP plugin | Source of tickets — installed and authenticated by `/stablenet-expert:doctor` |
 | `gh` CLI ≥ 2.50 | PR create / comment / merge |
 | `code-knowledge-system` (stablenet-knowledge) + Ollama + `bge-m3` | Code retrieval (RAG + graph-RAG). Without it, stablenet-knowledge runs **degraded** and the pipeline still works at lower retrieval quality |
 | `chainbench` | Evaluator Stage 4 (integration). Skippable; Stage 4 fails loudly if absent |

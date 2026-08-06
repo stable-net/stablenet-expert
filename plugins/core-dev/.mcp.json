@@ -1,15 +1,5 @@
 {
   "mcpServers": {
-    "jira-gateway": {
-      "command": "${JIRA_GATEWAY_BIN}",
-      "args": [],
-      "env": {
-        "JIRA_BASE_URL": "${JIRA_BASE_URL}",
-        "JIRA_API_TOKEN": "${JIRA_API_TOKEN}",
-        "JIRA_USER_EMAIL": "${JIRA_USER_EMAIL}",
-        "PATTERNS_PATH": "${CLAUDE_PLUGIN_ROOT}/patterns.json"
-      }
-    },
     "stablenet-knowledge": {
       "type": "http",
       "url": "${STABLENET_KNOWLEDGE_MCP_URL}"

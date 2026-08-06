@@ -121,7 +121,7 @@ class TestAutonomousIndependentOfFix(unittest.TestCase):
         joined = " ".join(setup.AUTONOMOUS_ALLOW)
         for forbidden in ("gh pr merge", "git tag", "git merge", "Bash(git:*)", "Bash(gh:*)"):
             self.assertNotIn(forbidden, joined)
-        # deny shields secrets (incl. the settings file that stores JIRA_API_TOKEN)
+        # deny shields secrets (the settings file that would hold any future token)
         self.assertIn("Read(.env)", setup.AUTONOMOUS_DENY)
         self.assertIn("Read(.claude/settings.local.json)", setup.AUTONOMOUS_DENY)
 
@@ -176,8 +176,6 @@ class TestJSONOutput(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
             (tmp / ".claude").mkdir()
-            (tmp / ".claude" / "settings.local.json").write_text(json.dumps(
-                {"env": {"JIRA_API_TOKEN": "super-secret-token-value"}}))
             r = _run(tmp, "--check", "--json")
             payload = json.loads(r.stdout)
 
@@ -188,12 +186,14 @@ class TestJSONOutput(unittest.TestCase):
                               "auto_fixable", "secret"):
                     self.assertIn(field, row, f"caller reads row.{field}")
 
-            self.assertNotIn("super-secret-token-value", r.stdout,
-                             "a secret's value must never reach the caller's transcript")
-            secrets = [row for row in payload["rows"] if row["secret"]]
-            self.assertTrue(secrets, "JIRA_API_TOKEN should be marked secret")
-            for row in secrets:
-                self.assertNotIn("value", row)
+            # No row is secret today -- Jira moved to OAuth (ADR-0013) and nothing else
+            # here holds a credential. The contract still has to hold for whatever secret
+            # comes next, so the invariant is asserted over whatever rows claim to be one.
+            for row in payload["rows"]:
+                self.assertIn("secret", row, f"{row['key']} must declare it")
+                if row["secret"]:
+                    self.assertNotIn("value", row,
+                                     "a secret's value must never reach the caller")
 
     def test_json_suppresses_the_text_report(self):
         with tempfile.TemporaryDirectory() as td:

@@ -11,9 +11,10 @@ tools:
   - Write
   - Edit
   - Bash
-  - mcp__plugin_core-dev_jira-gateway__*
+  - mcp__plugin_atlassian_atlassian__*
 skills:
   - state-machine
+  - jira-via-atlassian
 ---
 
 # Orchestrator Agent
@@ -51,18 +52,17 @@ usable), not merely registered — a non-serviceable stablenet-knowledge (ckv/em
 makes the Planner transition to BLOCKED rather than run a degraded design.
 
 First read `state.requirement_source` (state.json). When it is `"local"` (free-text
-`/core-dev:analyze` entry) jira-gateway is NOT used by this run — skip every jira
+`/core-dev:analyze` entry) Jira is NOT used by this run — skip every jira
 check below (registration + env). stablenet-knowledge + chainbench remain required.
 
 ```
 1. Read .mcp.json (via ${CLAUDE_PLUGIN_ROOT}/.mcp.json). Confirm the servers
    this run uses are registered:
      - always: stablenet-knowledge, chainbench
-     - jira-gateway: only when requirement_source != "local"
+     - atlassian (external plugin): only when requirement_source != "local"
    Any required one missing → report which, point at docs/SETUP.md, and stop.
 2. Check the env the registered commands substitute are non-empty:
    bash: vars="STABLENET_KNOWLEDGE_MCP_BIN STABLENET_KNOWLEDGE_CONFIG CHAINBENCH_DIR"
-         [ "{requirement_source}" != "local" ] && vars="$vars JIRA_BASE_URL JIRA_API_TOKEN JIRA_USER_EMAIL"
          for v in $vars; do [ -n "${!v:-}" ] || echo "UNSET: $v"; done
    Any UNSET → WARN the user (that server will fail to start). Hard-stop only
    for the servers this run will actually use:
@@ -165,7 +165,7 @@ When the Evaluator reports all stages green:
    Failure → report to user, do NOT mark COMPLETED.
 
 3. Assemble PR body (sections appended in order; sanitize each)
-     ## Jira → {JIRA_BASE_URL}/browse/{ticket_id}
+     ## Jira → {jira_site_url}/browse/{ticket_id}   (site URL from getAccessibleAtlassianResources)
               (requirement_source == "local" → omit this line; instead add
                "## Requirement → (local) {ticket.summary}")
      ## Summary → first paragraph of analysis.md
@@ -228,9 +228,11 @@ When the Evaluator reports all stages green:
 6. Jira updates (failures are warnings, not fatal)
    SKIP this entire step when requirement_source == "local" (no Jira ticket).
    Otherwise:
-   mcp__plugin_core-dev_jira-gateway__jira_add_comment(ticket_id,
-     "PR created: {pr_url}")
-   mcp__plugin_core-dev_jira-gateway__jira_update_status(ticket_id, "In Review")
+   Load the `jira-via-atlassian` skill first — it carries the cloudId resolution and the
+   three-tier transition matching these two calls depend on.
+   mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(
+     cloudId, ticket_id, "PR created: {pr_url}")
+   transition ticket_id to "In Review"  (skill §3: match name -> status -> category)
 
 7. state.json
    states.COMPLETION.pr_url = pr_url
@@ -276,7 +278,7 @@ Orchestrator updates the existing PR rather than creating a new one:
    bash: gh pr edit {pr_number} --add-reviewer "<reviewer_login>"   (per reviewer)
 
 5. Jira note (best-effort):
-   jira_add_comment(ticket_id, "Review feedback addressed in {commit_range}")
+   addCommentToJiraIssue(cloudId, ticket_id, "Review feedback addressed in {commit_range}")
 
 6. State stays at COMPLETION (the PR remains the COMPLETION artifact).
    Do NOT regress to ANALYSIS or set COMPLETED — wait for either another
@@ -369,9 +371,9 @@ Differences from "full":
   directly to a terminal handler:
 
   ```
-  1. Post review-report.md as a Jira comment via jira_add_comment
+  1. Post review-report.md as a Jira comment via addCommentToJiraIssue
      (truncate to <= 30k chars; attach the file path otherwise).
-  2. jira_update_status(ticket_id, "Done") if the project's workflow has
+  2. transition ticket_id to "Done" (jira-via-atlassian §3) if the project's workflow has
      a single "review delivered" state. If unsure, leave the status as-is.
   3. state.current_state = "COMPLETED"
   ```
@@ -400,7 +402,7 @@ Differences from "full":
      push requires user confirmation.
   3. Update CHANGELOG.md (entry per included STABLE-xxx from
      release-summary.md).
-  4. jira_update_status(ticket_id, "Done")
+  4. transition ticket_id to "Done" (jira-via-atlassian §3)
   5. state.current_state = "COMPLETED"
   ```
 

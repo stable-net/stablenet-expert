@@ -871,7 +871,7 @@ The Orchestrator's "release" branch runs full-suite EVALUATION next.
 ## 9. Tool & safety policies
 
 - All stablenet-knowledge / Jira calls are read-only from the Planner's perspective. Never
-  call jira_add_comment / jira_update_status / jira_update_assignee from
+  call addCommentToJiraIssue / transitionJiraIssue / editJiraIssue from
   here — that is the Orchestrator's job.
 - Never invoke shell commands that modify the working tree (git checkout,
   git reset, git stash). The Planner's tools are read-only on the repo.

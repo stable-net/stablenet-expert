@@ -42,7 +42,7 @@
 │   ┌──────────────────┬───────────────────┼──────────────────┐                  │
 │   ▼                  ▼                    ▼                  ▼                  │
 │ ┌────────────┐  ┌──────────┐      ┌──────────────┐                            │
-│ │jira-gateway│  │   stablenet-knowledge    │      │  chainbench  │   ← MCP 서버 3종            │
+│ │ atlassian  │  │   stablenet-knowledge    │      │  chainbench  │   ← MCP 3종(atlassian=외부) │
 │ │ (in-tree)  │  │ (외부)   │      │   (외부)      │                            │
 │ └────────────┘  └────┬─────┘      └──────────────┘                            │
 └─────────────────────┼──────────────────────────────────────────────────────┘
@@ -77,7 +77,7 @@ flowchart TB
         CA -.->|MCP 프로토콜| MCPC
     end
 
-    JG["jira-gateway MCP<br/>(in-tree · 입력 보안)"]
+    JG["Atlassian MCP<br/>(외부 공식 플러그인 · OAuth)"]
     stablenet-knowledge["stablenet-knowledge MCP<br/>(외부 · 코드 이해)"]
     CB["chainbench MCP<br/>(외부 · 출력 검증)"]
 
@@ -121,7 +121,7 @@ flowchart TB
   │   텍스트)     │   차단)     │          │ 상태 전이로 에이전트 디스패치          │
   └──────────────┘            │          ▼                                    │
         ▲                     │  ┌───────────────────────────────────────┐   │
-        │ jira-gateway MCP    │  │ ANALYSIS → PLANNING → DESIGN           │   │
+        │ Atlassian MCP(외부) │  │ ANALYSIS → PLANNING → DESIGN           │   │
         │ (민감정보가 LLM에    │  │   ▲ planner (요구사항 분석 + 설계)       │   │
         │  닿기 전에 차단)     │  │   │                                     │   │
         │                     │  │   │  ┌──────────┐                       │   │
@@ -157,7 +157,7 @@ flowchart TB
 ```mermaid
 flowchart TD
     REQ["유저 요구사항<br/>Jira 티켓 / 자유 텍스트"]
-    REQ -->|"jira-gateway: 시크릿을 LLM 전에 차단"| INTAKE["TICKET_INTAKE"]
+    REQ -->|"Atlassian MCP(외부): 인바운드 필터 없음"| INTAKE["TICKET_INTAKE"]
     INTAKE --> ANALYSIS["ANALYSIS"]
     ANALYSIS --> PLANNING["PLANNING"]
     PLANNING --> DESIGN["DESIGN"]
@@ -233,7 +233,7 @@ coding-agent가 외부와 상호작용하는 통로는 (Claude Code의 MCP 클�
 
 ```
    ┌────────────────┐   ┌────────────────┐   ┌────────────────┐
-   │  jira-gateway  │   │      stablenet-knowledge       │   │   chainbench   │
+   │  atlassian(외부)│   │      stablenet-knowledge       │   │   chainbench   │
    │   (입력 보안)   │   │  (코드 이해)    │   │   (출력 검증)   │
    ├────────────────┤   ├────────────────┤   ├────────────────┤
    │ Jira 내용을     │   │ RAG + graph-RAG │   │ 실제 체인 띄워  │
@@ -252,7 +252,7 @@ flowchart LR
     AG["coding-agent<br/>에이전트들"]
 
     subgraph IN["입력 보안"]
-        JG["jira-gateway (in-tree, Go)<br/>Jira 내용 → 시크릿 REDACT/BLOCK"]
+        JG["Atlassian MCP (외부 플러그인)<br/>OAuth · 인바운드 필터 없음"]
     end
     subgraph UNDERSTAND["코드 이해"]
         stablenet-knowledge["stablenet-knowledge (외부)<br/>RAG + graph-RAG<br/>planner 전용"]
@@ -275,10 +275,10 @@ flowchart LR
 > 그래서 같은 입력이면 백엔드는 항상 같은 결과를 준다.
 
 > **보안은 양방향 대칭**
-> 입력은 jira-gateway가 LLM에 닿기 *전에* 막고(`packages/sensitive-guard/patterns.json` 정규식+엔트로피),
+> 입력 필터는 없다 — `jira-gateway` 폐기와 함께 감수한 손실이다(ADR-0013 §2.3). 출력만 막는다:
 > 출력(PR 본문·커밋·Jira 댓글)은 `pr-sanitize`가 같은 패턴으로 스크럽한 뒤 내보낸다.
 
-에이전트가 쓸 수 있는 도구 표면(총 47개 — stablenet-knowledge 15 + chainbench 26 + jira-gateway 6)은
+에이전트가 쓸 수 있는 도구 표면(이 리포 소유 41개 — stablenet-knowledge 15 + chainbench 26; Atlassian은 외부라 계약 대상 아님)은
 [`scripts/contract/agent-mcp.schema.json`](../scripts/contract/agent-mcp.schema.json)에
 고정(SSoT)되고, [`scripts/contract/lint-tool-names.sh`](../scripts/contract/lint-tool-names.sh)로 drift를 검출한다.
 
@@ -327,11 +327,11 @@ flowchart LR
 
 | 결정 | Why | 위치 |
 |------|-----|------|
-| **Jira Gateway MCP 언어 = Go** | 처음 TypeScript로 시작 → 다른 TS 사용처가 없어 Go로 전환. 단일 바이너리, 빠른 시작, geth 생태계와 동일 언어 | `packages/jira-gateway-mcp/go.mod` |
+| ~~**Jira Gateway MCP 언어 = Go**~~ | 처음 TypeScript로 시작 → 다른 TS 사용처가 없어 Go로 전환. **폐기됨(ADR-0013)** — 서버 자체를 공식 Atlassian MCP로 대체 | (삭제됨) |
 | **도구 이름 SSoT 스키마 + lint** | stablenet-knowledge의 실제 도구 이름과 agent/command 마크다운의 도구 참조가 따로 드리프트하기 쉬움 → 스키마를 단일 소스로 두고 lint로 기계 검증 | `scripts/contract/agent-mcp.schema.json` + `scripts/contract/lint-tool-names.sh` |
 | **자체 stablenet-knowledge-mcp shim 폐기** | 자체 in-tree 구현이 외부 stablenet-knowledge(code-knowledge-system)와 표면(도구 이름·응답 스키마)이 어긋남. 외부가 더 풍부한 도메인 시스템을 제공하므로 in-tree 코드를 통째 삭제하고 외부 바이너리(`${STABLENET_KNOWLEDGE_MCP_BIN}`)에 위임 | `plugins/core-dev/.mcp.json`의 `stablenet-knowledge` 항목 |
-| **ADF→Markdown 자체 구현 (HTML 비경유)** | HTML 변환 라이브러리를 경유하는 대안은 의존성이 하나 더 붙음. ADF를 직접 파싱하는 쪽이 의존성 그래프가 가벼움 | `packages/jira-gateway-mcp/internal/jira/adf.go` |
-| **Jira transition 3-tier lookup** | 워크플로 transition 이름은 프로젝트마다 다르다 → name → status name → statusCategory key 순으로 case-insensitive 매칭해, 별도 설정 파일 없이 프로젝트별 차이를 흡수 | `packages/jira-gateway-mcp/internal/jira/client.go TransitionIssue` |
+| ~~**ADF→Markdown 자체 구현**~~ | **불필요해짐(ADR-0013)** — `getJiraIssue(responseContentFormat:"markdown")`가 서버 쪽에서 변환한다 | (삭제됨) |
+| **Jira transition 3-tier lookup** | 워크플로 transition 이름은 프로젝트마다 다르다 → name → status name → statusCategory key 순으로 case-insensitive 매칭해, 별도 설정 파일 없이 프로젝트별 차이를 흡수. 서버가 하던 일을 호출부가 이어받았다(ADR-0013) | `plugins/core-dev/skills/jira-via-atlassian/SKILL.md` §3 |
 | **bge-m3 임베딩 (다국어)** | nomic 계열은 영어 전용인데 사용자가 한국어를 쓴다 → 다국어 임베더가 필요. 1024-dim은 bge-large와 동일해 향후 스왑 시 스키마 마이그레이션이 불필요 | `docs/SETUP.md §4.3` |
 | **MCP pre-flight 3-layer** | 단일 SessionStart 훅이 없어, 세 지점(orchestrator 초입, work.md의 jira 실패 분기, planner의 stablenet-knowledge 헬스체크)으로 나눠 분담 | `plugins/core-dev/agents/{orchestrator,planner,evaluator}.md` |
 | **L3 invariant backstop을 skill로** | Claude Code에 SessionStart 주입 기능이 없어, planner+evaluator에 늘 grant되는 skill로 invariant 요약(~500토큰)을 always-on으로 유지 | `plugins/core-dev/skills/stablenet-invariants/SKILL.md` |

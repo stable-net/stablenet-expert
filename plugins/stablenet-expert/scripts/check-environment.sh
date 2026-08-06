@@ -19,7 +19,7 @@ version_ge() {
 
 all_pass=true
 
-# Go >= 1.25 -- jira-gateway + sibling stablenet-knowledge-mcp/chainbench Go wire
+# Go >= 1.25 -- sibling stablenet-knowledge-mcp/chainbench Go wire
 if command -v go >/dev/null 2>&1; then
   go_version="$(go version | grep -oE 'go[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1 | sed 's/^go//')"
   if [ -n "$go_version" ] && version_ge "$go_version" "1.25"; then

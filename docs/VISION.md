@@ -45,7 +45,7 @@ thesis는 두 층위로 구분된다:
 - **Binary = deterministic, Session = LLM**: 외부 백엔드(stablenet-knowledge·chainbench) 바이너리는 LLM 호출이
   **0**이고 결정론적 작업만 한다. 모든 *판단*은 coding-agent 세션 레이어에 모인다.
   같은 입력이면 백엔드는 항상 같은 결과를 준다. (출처: [OVERVIEW.md](OVERVIEW.md) §5)
-- **보안은 양방향 대칭**: 입력은 jira-gateway가 LLM에 닿기 *전에* 막고, 출력은 pr-sanitize가
+- **보안은 출력 방향**: 입력 필터는 `jira-gateway` 폐기와 함께 사라졌고(ADR-0013 §2.3), 출력은 pr-sanitize가
   같은 패턴으로 스크럽한 뒤 내보낸다. (출처: [OVERVIEW.md](OVERVIEW.md) §5)
 - **추측 대신 근거**: planner는 낯선 거대 코드베이스를 추측하지 않고 stablenet-knowledge에 물어 실제 코드에
   근거한 설계를 한다. (출처: [OVERVIEW.md](OVERVIEW.md) §4 기둥 B)

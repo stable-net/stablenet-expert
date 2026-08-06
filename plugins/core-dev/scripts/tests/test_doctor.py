@@ -78,7 +78,14 @@ class TestSmoke(unittest.TestCase):
             self.assertIn("GO_STABLENET_ROOT", out["env"])
 
     def test_secret_masked(self):
-        self.assertEqual(doctor._mask("JIRA_API_TOKEN", "supersecret"), "********")
+        # SECRETS is empty now that Jira authenticates over OAuth (ADR-0013): the
+        # masking helper still has to work, so it is exercised against a name that
+        # *would* be a secret if one were ever added back.
+        doctor.SECRETS.add("TEST_ONLY_TOKEN")
+        try:
+            self.assertEqual(doctor._mask("TEST_ONLY_TOKEN", "supersecret"), "********")
+        finally:
+            doctor.SECRETS.discard("TEST_ONLY_TOKEN")
         self.assertEqual(doctor._mask("STABLENET_KNOWLEDGE_CONFIG", "/path"), "/path")
 
 

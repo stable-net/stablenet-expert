@@ -157,8 +157,7 @@ planned once there is more than one plugin to audit against.
 ```
 stablenet-expert/
 ├── .claude-plugin/marketplace.json   # marketplace manifest
-├── packages/                         # shared, independently-buildable components
-│   ├── jira-gateway-mcp/             # Go MCP: Jira proxy with sensitive-info filter
+├── packages/                         # shared components
 │   └── sensitive-guard/patterns.json # sensitive-information policy (SSoT)
 ├── scripts/contract/                 # agent-facing MCP tool contract (SSoT) + drift lint
 ├── plugins/

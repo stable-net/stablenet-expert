@@ -494,7 +494,7 @@ status =
   "PASS" otherwise
 ```
 
-Patterns reused by `jira-gateway-mcp` / `stablenet-knowledge-mcp` filter engines (`packages/sensitive-guard/patterns.json`)
+Patterns shared with the `stablenet-knowledge-mcp` filter engine (`packages/sensitive-guard/patterns.json`)
 do not appear here — those guard data flowing to the LLM. Stage 3 is about
 defensive coding, not data exfiltration.
 

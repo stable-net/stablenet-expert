@@ -88,8 +88,8 @@ concrete action, e.g.:
 - `Pull the bge-m3 model (ollama pull bge-m3)` (from a Step 0 `warn` row)
 - `Install Python 3.12 alongside your current interpreter` (from the Step 0 `python3` row —
   `critical` if none exists, `info` if one exists but predates 3.10)
-- `Walk me through setting JIRA_API_TOKEN` (from a Step 2 `critical` row — see Step 4 for why
-  this always means "point at `set-mcp-env.sh`", never "type the value here")
+- `Install and authenticate the Atlassian MCP plugin` (from a `row_kind: "plugin"` row — say
+  that a browser opens for the OAuth consent)
 
 If Steps 0-2 were all `pass`, skip straight to Step 5 — there's nothing to select.
 
@@ -134,8 +134,8 @@ different kinds of actions with different safety profiles, don't treat them unif
   kind of hard-to-reverse, environment-affecting action that needs its own explicit confirmation,
   not a bulk multi-select nod. Print the platform-appropriate install command (from
   `docs/SETUP.md` §1) and let the user run it themselves.
-- **MCP env not configured** (Step 2 `critical` items — `JIRA_API_TOKEN`,
-  `STABLENET_KNOWLEDGE_MCP_URL`, `CKS_MCP_URL`, anything else naming a URL/IP/token): `set-mcp-env.sh`
+- **MCP env not configured** (Step 2 `critical` items — `STABLENET_KNOWLEDGE_MCP_URL`,
+  `CKS_MCP_URL`, anything else naming a URL/IP/token): `set-mcp-env.sh`
   only covers the *mechanics* of persisting a value — it says nothing about where that value
   actually comes from, and this command has no business hardcoding that (it's exactly the
   domain knowledge ADR-0011 §2.2 says belongs to the owning plugin, not here). Before pointing

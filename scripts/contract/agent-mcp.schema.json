@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/stable-net/stablenet-expert/scripts/contract/agent-mcp.schema.json",
   "title": "Agent-facing MCP contract (single source of truth)",
-  "description": "Single source of truth for every tool the core-dev plugin calls. Providers: stablenet-knowledge (our .mcp.json alias for the code-knowledge-system MCP; registered tools keep their cks_* names), chainbench, jira-gateway. ckv/ckg are dev-only and intentionally NOT in this contract. Each provider's conformance test validates its registered tools against this file; scripts/contract/lint-tool-names.sh asserts every mcp__server__tool reference in the agent/command prompts is a tool name listed here.",
+  "description": "Single source of truth for every tool the core-dev plugin calls. Providers: stablenet-knowledge (our .mcp.json alias for the code-knowledge-system MCP; registered tools keep their cks_* names), chainbench. Jira is reached through the external official Atlassian MCP plugin, whose tools this repository does not define a contract for. ckv/ckg are dev-only and intentionally NOT in this contract. Each provider's conformance test validates its registered tools against this file; scripts/contract/lint-tool-names.sh asserts every mcp__server__tool reference in the agent/command prompts is a tool name listed here.",
   "providers": {
     "stablenet-knowledge": {
       "server": "stablenet-knowledge",
@@ -253,42 +253,6 @@
           "input": { "properties": { "network": { "type": "string" }, "address": { "type": "string" }, "from_block": { "type": ["string", "number"] }, "to_block": { "type": ["string", "number"] }, "topics": { "type": "array" }, "abi": { "type": "string" }, "event": { "type": "string" }, "node_id": { "type": "string" } }, "required": ["network"] }
         }
       }
-    },
-    "jira-gateway": {
-      "server": "jira-gateway",
-      "namespace": "jira_",
-      "tools": {
-        "jira_read_ticket": {
-          "owner": "jira-gateway",
-          "description": "Read a Jira ticket. Returns fields + _filter_metadata.scan_result (CLEAN/REDACTED/BLOCKED).",
-          "input": { "properties": { "ticket_id": { "type": "string" } }, "required": ["ticket_id"] }
-        },
-        "jira_read_comments": {
-          "owner": "jira-gateway",
-          "description": "Read a ticket's comments.",
-          "input": { "properties": { "ticket_id": { "type": "string" } }, "required": ["ticket_id"] }
-        },
-        "jira_search": {
-          "owner": "jira-gateway",
-          "description": "Search tickets (JQL).",
-          "input": { "properties": { "jql": { "type": "string" }, "max_results": { "type": "number" } }, "required": ["jql"] }
-        },
-        "jira_add_comment": {
-          "owner": "jira-gateway",
-          "description": "Add a comment to a ticket.",
-          "input": { "properties": { "ticket_id": { "type": "string" }, "body": { "type": "string" } }, "required": ["ticket_id", "body"] }
-        },
-        "jira_update_status": {
-          "owner": "jira-gateway",
-          "description": "Transition a ticket's status.",
-          "input": { "properties": { "ticket_id": { "type": "string" }, "status": { "type": "string" } }, "required": ["ticket_id", "status"] }
-        },
-        "jira_update_assignee": {
-          "owner": "jira-gateway",
-          "description": "Reassign a ticket.",
-          "input": { "properties": { "ticket_id": { "type": "string" }, "assignee": { "type": "string" } }, "required": ["ticket_id", "assignee"] }
-        }
-      }
     }
-  }
+}
 }

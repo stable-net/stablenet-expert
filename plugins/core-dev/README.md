@@ -71,7 +71,7 @@ was traded for what. Treat a ticket body as untrusted input that the model will 
 ```
 
 Restart Claude Code, then run `/help` — you should see `/core-dev:work-with-jira`,
-`/core-dev:review`, `/core-dev:status`, and `/core-dev:merge`.
+`/core-dev:review-jira`, `/core-dev:status`, and `/core-dev:merge`.
 
 > **Local development install.** To run from a clone instead, point your user config at the
 > plugin directory:
@@ -125,7 +125,7 @@ bash ../../scripts/contract/lint-tool-names.sh    # exits 0 when prompt tool nam
 | `/core-dev:work-with-jira STABLE-1234` | Start from a Jira ticket: reads it, then runs the full pipeline to a PR. Needs the Atlassian MCP |
 | `/core-dev:work-with-prompt "<requirement>"` | Start from a requirement you type. Same pipeline, no Jira |
 | `/core-dev:status [STABLE-1234]` | Progress of one ticket, or all active workspaces |
-| `/core-dev:review <PR-URL>` | Collect PR comments → classify → re-enter the pipeline in bugfix mode |
+| `/core-dev:review-jira STABLE-1234` | Collect that ticket's PR comments → classify → re-enter the pipeline in bugfix mode |
 | `/core-dev:merge STABLE-1234` | The only command that touches `main`: squash-merge (refuses unless approved + green + mergeable), then close the Jira ticket |
 | `/core-dev:doctor` | Read-only environment diagnostics |
 | `/core-dev:setup` | Check/register the settings the plugin needs |

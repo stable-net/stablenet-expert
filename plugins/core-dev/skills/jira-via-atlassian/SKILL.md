@@ -88,7 +88,26 @@ days later by a human wondering why their board is wrong.
 This is the same three-tier rule `jira-gateway`'s `TransitionIssue` applied, kept so that
 existing project workflows keep working across the migration.
 
-## 4. Before posting anything
+## 4. Finding the ticket a PR belongs to
+
+A PR URL does not carry a ticket id, so callers that start from a PR (`/core-dev:merge <PR-URL>`,
+and anything reviewing a PR) have to derive one. In order, first hit wins:
+
+1. **Branch name** — `headRefName` from `gh pr view`, first `/[A-Z]+-\d+/` match
+   (`feature/STABLE-1234` -> `STABLE-1234`)
+2. **PR body** — first `/[A-Z]+-\d+/` match
+
+**When neither matches, do not prompt.** What the caller does instead depends on whether the
+ticket is essential to it: a merge proceeds without one and reports that Jira was not updated,
+while a command whose whole job is the ticket should stop and say so. Asking mid-flow turns an
+unattended run into a blocked one for something that is often genuinely absent — plenty of PRs
+have no ticket.
+
+This rule lives here rather than in one command because two of them need it and a copy in each
+would drift; it is also the same question the rest of this skill answers — what to know before
+calling Jira.
+
+## 5. Before posting anything
 
 Comments and PR bodies go through `pr-sanitize` first. The retired server filtered inbound
 Jira content on the way in; the official plugin does not

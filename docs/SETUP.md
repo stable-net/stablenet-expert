@@ -311,7 +311,7 @@ Claude Code's plugin loader discovers `plugins/core-dev/.claude-plugin/plugin.js
 ### 5.2 Verify Claude Code picks it up
 
 Restart Claude Code and run `/help`; you should see `/core-dev:work-with-jira`,
-`/core-dev:work-with-prompt`, `/core-dev:review`, `/core-dev:status`,
+`/core-dev:work-with-prompt`, `/core-dev:review-jira`, `/core-dev:status`,
 `/core-dev:merge`.
 
 Open the MCP status panel (or run `claude mcp list`); **`stablenet-knowledge`, `chainbench`, and
@@ -479,7 +479,7 @@ Once the smoke test passes:
 4. When the Evaluator reaches Stage 4 (ChainBench), it fails loudly if your
    chainbench MCP isn't wired up — a configuration problem, not a pipeline bug.
 5. After EVALUATION_PASS, the Orchestrator creates a PR.
-6. If reviewers leave comments, run `/core-dev:review <PR-URL>`.
+6. If reviewers leave comments, run `/core-dev:review-jira STABLE-XXXX`.
 7. When ready, run `/core-dev:merge STABLE-XXXX` — the only command that
    touches `main`; it refuses unless the PR is approved, checks are green, and
    it's mergeable.
@@ -534,7 +534,7 @@ retrieval quality is just lower until the embedder is back.
 
 The merge command checks: (1) PR approved, (2) all status checks succeeded,
 (3) GitHub reports `mergeable: MERGEABLE`. If CHANGES_REQUESTED, run
-`/core-dev:review <PR-URL>`. If CONFLICTING, resolve on the branch and push.
+`/core-dev:review-jira <TICKET>`. If CONFLICTING, resolve on the branch and push.
 
 ### 9.6 `Evaluator Stage 4: ChainBench MCP interface mismatch`
 

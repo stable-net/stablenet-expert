@@ -275,9 +275,20 @@ while "chainbench needs this" is one subject the user can accept or decline as a
 search for something to answer. If only one server needs anything, ask a single question —
 `AskUserQuestion` requires at least two *options*, not two questions, and a lone tab reads fine.
 
-A row that is not tied to any server — the active pack's `repo_root_env` — is not asked about at
-all. There is nothing to choose: it is the checkout setup was run from, and `setup.py` refuses
-it outright when that is not a repository (`NOT-A-REPO`). Report what it did, do not offer it.
+A row that is not tied to any server — the active pack's `repo_root_env`, e.g.
+`GO_STABLENET_ROOT` — gets a fourth question when `setup.py` reports `NOT-A-REPO` or `MISMATCH`,
+because in those cases it wrote nothing and the value has to come from the user. Ask for the path
+(header: `Project repo`), then set it the same way as any other value:
+
+```bash
+"$python_bin" "$plugin_path/scripts/setup.py" --repo "<path>" --fix
+```
+
+The pipeline reads this variable to find the checkout it builds and tests (`evaluator.md` §2,
+`implementer.md` §1), so a path given here is used — it is not merely recorded.
+
+When `setup.py` pinned it successfully, say what it wrote and ask nothing: there was no choice to
+make.
 
 Within each tab, the rows still split by kind:
 
@@ -286,11 +297,26 @@ Within each tab, the rows still split by kind:
   `description` as the option description so the user can see what each value is for rather
   than guessing from the variable name. Use `multiSelect: true` when a tab holds more than one.
 
-  **Show `resolved_value` in the option too.** "Shall I set CHAINBENCH_DIR?" is not a question
-  anyone can answer: detection can land on a stale checkout, and approving a value you cannot
-  see is not consent. When `value_withheld` is true the row deliberately carries no value — it
-  is an endpoint or a credential — so say "already set, value not shown" rather than implying
-  nothing is configured.
+  **Show `resolved_value` in the option, and always offer to change it.** Two options per key:
+  *use `<value>`* and *enter a different value*. The second is an `AskUserQuestion` "Other",
+  which takes free text. Detection lands on stale checkouts and a leftover process environment
+  carries values nobody chose, so "shall I set CHAINBENCH_DIR?" without showing the value is not
+  a question anyone can answer.
+
+  When `value_withheld` is true the row is a credential and carries no value. Do not ask for it
+  here — point at `set-mcp-env.sh`, which prompts with hidden input in the user's own terminal.
+  Addresses and paths are not credentials and are asked for normally.
+
+  **Write through `--set`, and let the script judge the value:**
+
+  ```bash
+  "$python_bin" "$plugin_path/scripts/setup.py" --fix --set KEY=VALUE
+  ```
+
+  `setup_checks/validate.py` checks the shape (a URL that parses, a directory that exists) and
+  refuses anything that looks like a credential, exiting 2 with a reason that never repeats the
+  value. Report that reason as-is and ask again — do not decide for yourself whether a value is
+  acceptable, and do not re-print a value the script just refused.
 
   A row whose `status` is `env` is **not** persisted: the value exists in this session's process
   environment and nowhere on disk, so it vanishes at restart while Claude Code reads `${VAR}`

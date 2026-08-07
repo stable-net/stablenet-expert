@@ -1,6 +1,6 @@
 ---
 description: 3-way 비교 벤치 실행. 동일 태스크를 A(stablenet-knowledge)/B(code-only)/C(code+skills) 모드로 자율 실행하고 토큰·비용·정확성·안전성을 비교. token limit 고려 배치+재개.
-argument-hint: "<manifest.json> | <experiment-id> --continue"
+argument-hint: "<manifest.json 경로> | <experiment-id>   (id 는 중단된 실험을 --continue 로 이어받을 때)"
 ---
 
 # /core-dev:bench

@@ -1,6 +1,6 @@
 ---
-description: core-dev 동작에 필요한 settings.json 설정을 점검하고, 빠졌으면 자동탐지·대화형으로 등록한다.
-argument-hint: "[--check | --fix] [--autonomous] [--project <id>]   (생략 시 점검 후 등록 제안)"
+description: core-dev 가 쓰는 settings 값을 점검하고 등록한다. 제거는 --uninstall.
+argument-hint: "[--check | --fix | --uninstall] [--autonomous] [--scope user|project]   (생략 시 점검만)"
 ---
 
 # /core-dev:setup
@@ -9,7 +9,9 @@ argument-hint: "[--check | --fix] [--autonomous] [--project <id>]   (생략 시 
 환경값이 프로젝트 설정에 등록돼 있는지 **점검**하고, 빠진 값은 **자동탐지 → 못 찾으면
 대화형 입력**으로 채워 넣는다.
 
-- 경로·공개값 → `{repo_root}/.claude/settings.json` 의 `env`
+- 경로·공개값 → **`~/.claude/settings.json` 의 `env`**(user 스코프 기본). 이 값들은 머신을
+  서술하므로(체크아웃 하나, 서버 하나) 프로젝트마다 다시 넣을 이유가 없다. `--scope project`
+  를 주면 `{repo_root}/.claude/` 로 대신 쓴다 — 공용 머신이거나 전역 파일을 건드리면 안 될 때.
 - 시크릿 → `{repo_root}/.claude/settings.local.json` (자동 .gitignore). 현재 시크릿 항목은 없다 —
   Jira 는 OAuth 로 인증하고 자격증명은 Claude Code 가 보관한다(ADR-0013).
 - **활성 도메인팩의 `repo_root_env`(예 `GO_STABLENET_ROOT`) → 현재 repo 루트로 `settings.json` 에 자동 기록**
@@ -18,10 +20,17 @@ argument-hint: "[--check | --fix] [--autonomous] [--project <id>]   (생략 시 
   Write/Edit·go/make 빌드·feature-branch git·gh pr create)와 `permissions.deny`(`.env*`·`.secrets`·
   `settings.local.json` Read 차단)를 `settings.local.json` 에 등록(무프롬프트 opt-in).
   merge/tag/release 는 allowlist 에 없다 — `/core-dev:merge` 게이트와 git-guard hook 이 유지된다.
+- **`--uninstall`**: `--fix` 가 쓴 것을 되돌린다. 쓸 때마다 키와 **값**을 매니페스트
+  (`.claude/.stablenet-expert-managed.json`)에 남겨두므로, **값이 그대로인 항목만** 지운다.
+  사용자가 나중에 고친 값은 남기고 보고한다 — 남의 수정을 되돌리는 것이 낡은 키를 남기는 것보다
+  나쁘다(ADR-0018). 기본은 드라이런이고 `--yes` 를 붙여야 실제로 지운다.
+  플러그인 제거 **전에** 실행해야 한다: `claude plugin uninstall` 이 끝나면 무엇이 이 플러그인
+  것이었는지 아는 스크립트도 함께 사라진다.
+
+> 점검 항목: `STABLENET_KNOWLEDGE_MCP_URL`, `CHAINBENCH_DIR`,
 
 스크립트 `${CLAUDE_PLUGIN_ROOT}/scripts/setup.py` 가 실제 점검·기록을 수행한다(stdlib only).
 
-> 점검 항목: `CHAINBENCH_DIR`,
 > Atlassian MCP 플러그인(설치·인증 상태), 그리고
 > `chainbench-mcp` PATH·`permissions` 권고.
 

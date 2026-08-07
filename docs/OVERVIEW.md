@@ -31,7 +31,7 @@
 │                                                                                │
 │   ┌────────────────────────────────────────────────────────────────────────┐ │
 │   │  coding-agent  (Claude Code 플러그인 = "하네스")                           │ │
-│   │  · /work /analyze /review /merge /status /bench  슬래시 커맨드             │ │
+│   │  · /work-with-jira /work-with-prompt /review /merge /status 커맨드         │ │
 │   │  · orchestrator / planner / implementer / evaluator  4개 에이전트         │ │
 │   │  · state.json + *.md 산출물로 된 문서 기반 상태 머신                        │ │
 │   │                                                                          │ │
@@ -288,8 +288,8 @@ flowchart LR
 
 | 명령 | 의미 |
 |---|---|
-| `/core-dev:work STABLE-1234` | 메인. 요구사항 → PR 풀 사이클 (`--local`로 Jira 없이도 가능) |
-| `/core-dev:analyze "..."` | 자유 텍스트 요구사항으로 시작 (Jira 불필요) |
+| `/core-dev:work-with-jira STABLE-1234` | Jira 티켓으로 시작 → PR 풀 사이클 |
+| `/core-dev:work-with-prompt "..."` | 요구사항 텍스트로 시작 (Jira 불필요) |
 | `/core-dev:review <PR>` | PR 리뷰 코멘트를 받아 bugfix 사이클 재진입 |
 | `/core-dev:merge` | **main을 건드리는 유일한 명령** — 승인+green일 때만 squash merge |
 | `/core-dev:status` | 진행 상황 조회 |
@@ -333,7 +333,7 @@ flowchart LR
 | ~~**ADF→Markdown 자체 구현**~~ | **불필요해짐(ADR-0013)** — `getJiraIssue(responseContentFormat:"markdown")`가 서버 쪽에서 변환한다 | (삭제됨) |
 | **Jira transition 3-tier lookup** | 워크플로 transition 이름은 프로젝트마다 다르다 → name → status name → statusCategory key 순으로 case-insensitive 매칭해, 별도 설정 파일 없이 프로젝트별 차이를 흡수. 서버가 하던 일을 호출부가 이어받았다(ADR-0013) | `plugins/core-dev/skills/jira-via-atlassian/SKILL.md` §3 |
 | **bge-m3 임베딩 (다국어)** | nomic 계열은 영어 전용인데 사용자가 한국어를 쓴다 → 다국어 임베더가 필요. 1024-dim은 bge-large와 동일해 향후 스왑 시 스키마 마이그레이션이 불필요 | `docs/SETUP.md §4.3` |
-| **MCP pre-flight 3-layer** | 단일 SessionStart 훅이 없어, 세 지점(orchestrator 초입, work.md의 jira 실패 분기, planner의 stablenet-knowledge 헬스체크)으로 나눠 분담 | `plugins/core-dev/agents/{orchestrator,planner,evaluator}.md` |
+| **MCP pre-flight 3-layer** | 단일 SessionStart 훅이 없어, 세 지점(orchestrator 초입, work-with-jira.md의 jira 실패 분기, planner의 stablenet-knowledge 헬스체크)으로 나눠 분담 | `plugins/core-dev/agents/{orchestrator,planner,evaluator}.md` |
 | **L3 invariant backstop을 skill로** | Claude Code에 SessionStart 주입 기능이 없어, planner+evaluator에 늘 grant되는 skill로 invariant 요약(~500토큰)을 always-on으로 유지 | `plugins/core-dev/skills/stablenet-invariants/SKILL.md` |
 | **stablenet-context를 경량 분류기로 축소** | 정적 컨트랙트 이름(`GovStaking` 등)은 시간이 지나면 drift한다 → path→module 분류만 남기고, 실제 도메인 지식은 stablenet-knowledge 라이브 검색 + invariant backstop에 위임 | `plugins/core-dev/skills/stablenet-context/SKILL.md` |
 | **3-way bench가 별도 Python harness** | 결정론적 측정은 Go 에이전트 실행과 분리하는 게 맞다 → `bench/`는 Python으로 A(stablenet-knowledge)/B(code-only)/C(code+skills) 세 정보 regime을 비교 | `bench/compare.py` + `plugins/core-dev/skills/bench-orchestration/SKILL.md`, 상세 정의는 [bench-abc-mode-definitions.md](bench-abc-mode-definitions.md) |

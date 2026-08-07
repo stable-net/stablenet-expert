@@ -1,6 +1,6 @@
 ---
-description: 플러그인·프로젝트 환경 진단(read-only). 버전·env·MCP·stablenet-knowledge·도메인팩 상태를 한 화면으로 보고하고, 빠진 것·재시작 필요·불일치를 알려준다. 아무것도 수정하지 않는다.
-argument-hint: "[--project <id>] [--json]"
+description: 플러그인·프로젝트 환경 진단(read-only) — 무엇이 빠졌고 무엇을 고쳐야 하는지 보고만 한다. 고치지는 않는다.
+argument-hint: "[--project <도메인팩 id>] [--json]   (둘 다 생략 가능 — 보통 인자 없이 쓴다)"
 allowed-tools: Bash(python3:*), ToolSearch, mcp__plugin_core-dev_stablenet-knowledge__*, mcp__plugin_core-dev_chainbench__*, mcp__plugin_atlassian_atlassian__*
 ---
 

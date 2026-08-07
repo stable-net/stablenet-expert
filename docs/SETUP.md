@@ -1,7 +1,7 @@
 # Setup Guide
 
 This document gets you from "I just cloned the repo" to "I can run
-`/core-dev:work STABLE-1234` on go-stablenet". Follow the sections in
+`/core-dev:work-with-jira STABLE-1234` on go-stablenet". Follow the sections in
 order; each one ends with a quick verification command so you know it worked.
 
 If something fails, skip to [§9 Troubleshooting](#9-troubleshooting).
@@ -310,8 +310,8 @@ Claude Code's plugin loader discovers `plugins/core-dev/.claude-plugin/plugin.js
 
 ### 5.2 Verify Claude Code picks it up
 
-Restart Claude Code and run `/help`; you should see `/core-dev:work`,
-`/core-dev:analyze`, `/core-dev:review`, `/core-dev:status`,
+Restart Claude Code and run `/help`; you should see `/core-dev:work-with-jira`,
+`/core-dev:work-with-prompt`, `/core-dev:review`, `/core-dev:status`,
 `/core-dev:merge`.
 
 Open the MCP status panel (or run `claude mcp list`); **`stablenet-knowledge`, `chainbench`, and
@@ -398,49 +398,25 @@ report `ok` (or `degraded` if Ollama is down).
 
 ## 7. Smoke test the pipeline
 
-### 7.1 Local-mode `/work` (no Jira)
+### 7.1 First run without Jira — `/core-dev:work-with-prompt`
 
-```bash
-cat > /tmp/test-ticket.json <<'EOF'
-{
-  "ticket_id": "TEST-1",
-  "type": "Bug Fix",
-  "summary": "Sample sanity ticket",
-  "description": "## 작업 유형: Bug Fix\n## 요약\nNothing to do.\n## 재현 방법\n1. nothing\n## 기대 동작\nworks\n## 실제 동작\nworks\n## 영향 범위\n- 모듈: consensus\n- 심각도: low\n## 수용 기준\n- [ ] sample\n",
-  "assignee": null,
-  "status": "To Do",
-  "status_category": "todo",
-  "labels": [],
-  "created": "2026-05-29T00:00:00Z",
-  "updated": "2026-05-29T00:00:00Z",
-  "_filter_metadata": { "scan_result": "CLEAN", "redacted_count": 0,
-                        "redacted_patterns": [], "blocked_patterns": [],
-                        "warnings": [], "scanned_at": "2026-05-29T00:00:00Z" }
-}
-EOF
-```
+The quickest smoke test needs no ticket and no Atlassian setup: type the requirement.
 
-Then in Claude Code:
+`/core-dev:work-with-prompt` runs the same planner→implementer→evaluator pipeline
+from a plain requirement string. It synthesizes a `ticket.json` internally and runs
+with `requirement_source: "local"`.
 
 ```
-/core-dev:work TEST-1 --local /tmp/test-ticket.json
+/core-dev:work-with-prompt "consensus Finalize 의 nil pointer 패닉을 graceful skip 으로 고쳐줘"
 ```
 
-You should see the Orchestrator pick up `TEST-1`, the Planner produce an
-`analysis.md`, and the pipeline halt politely when it can't find real code to
-modify (or when it asks you to confirm).
+You should see the Planner produce an `analysis.md`, and the pipeline stop politely
+when it cannot find real code to change (or when it asks you to confirm).
 
-### 7.1b Free-text autonomous entry — `/analyze` (no Jira)
+To start from a Jira ticket instead, use `/core-dev:work-with-jira STABLE-1234` — that
+path needs the Atlassian MCP installed and authenticated (§4.1).
 
-`/core-dev:analyze` runs the same planner→implementer→evaluator pipeline from a
-plain requirement string — no Jira ticket, no `--local` JSON. It synthesizes a
-`ticket.json` internally and runs with `requirement_source: "local"`.
-
-```
-/core-dev:analyze "consensus Finalize 의 nil pointer 패닉을 graceful skip 으로 고쳐줘"
-```
-
-Autonomy (set automatically for `/analyze`; see state.config.autonomy):
+Autonomy (set automatically for `work-with-prompt`; see state.config.autonomy):
 - **mode=auto** — no permission/decision prompts: entry-recovery, sanitize-REDACTED,
   branch/rebase conflicts, and design-revision/eval-cycle limits all auto-resolve
   (escalate → simplified retry → graceful `BLOCKED-summary.md`, never a silent halt).
@@ -458,7 +434,7 @@ apply. `permissions.defaultMode: bypassPermissions` (see the go-stablenet
 that allowlist.
 
 > `/work` remains the Jira-driven entry (interactive: prompts on BLOCKED recovery,
-> sensitive content, etc.). `/analyze` is the autonomous, Jira-free entry.
+> sensitive content, etc.). `work-with-prompt` is the autonomous, Jira-free entry.
 
 ### 7.2 Status check
 
@@ -496,7 +472,7 @@ need `git submodule update --init` if you cloned go-stablenet without `--recurse
 Once the smoke test passes:
 
 1. Pick an actual Jira ticket. Try a small bugfix first.
-2. Run `/core-dev:work STABLE-XXXX` without `--local`.
+2. Run `/core-dev:work-with-jira STABLE-XXXX`.
 3. Watch the Orchestrator advance through ANALYSIS → PLANNING → DESIGN →
    IMPLEMENTATION → EVALUATION. The Implementer builds the modified binary at
    `build/bin/gstable`; the Evaluator hands that path to chainbench.
@@ -546,7 +522,7 @@ so this is no longer a "check env vars" problem:
 
 The pipeline refuses to advance when an artifact is missing or incomplete (by
 design). The error lists the missing files. Fix the artifact (or delete a stale
-workspace) and re-run `/core-dev:work`.
+workspace) and re-run `/core-dev:work-with-jira`.
 
 ### 9.4 `cks.ops.health reports degraded`
 

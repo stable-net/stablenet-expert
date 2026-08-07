@@ -70,7 +70,7 @@ was traded for what. Treat a ticket body as untrusted input that the model will 
 /plugin install core-dev@stablenet-expert
 ```
 
-Restart Claude Code, then run `/help` — you should see `/core-dev:work`,
+Restart Claude Code, then run `/help` — you should see `/core-dev:work-with-jira`,
 `/core-dev:review`, `/core-dev:status`, and `/core-dev:merge`.
 
 > **Local development install.** To run from a clone instead, point your user config at the
@@ -122,15 +122,15 @@ bash ../../scripts/contract/lint-tool-names.sh    # exits 0 when prompt tool nam
 
 | Command | What it does |
 |---------|---------------|
-| `/core-dev:work STABLE-1234` | Main entry point. Reads the ticket, runs the full pipeline to a PR. `--local <ticket.json>` runs without Jira |
-| `/core-dev:analyze "<requirement>"` | Free-text autonomous entry — no Jira ticket needed |
+| `/core-dev:work-with-jira STABLE-1234` | Start from a Jira ticket: reads it, then runs the full pipeline to a PR. Needs the Atlassian MCP |
+| `/core-dev:work-with-prompt "<requirement>"` | Start from a requirement you type. Same pipeline, no Jira |
 | `/core-dev:status [STABLE-1234]` | Progress of one ticket, or all active workspaces |
 | `/core-dev:review <PR-URL>` | Collect PR comments → classify → re-enter the pipeline in bugfix mode |
 | `/core-dev:merge STABLE-1234` | The only command that touches `main`: squash-merge (refuses unless approved + green + mergeable), then close the Jira ticket |
 | `/core-dev:doctor` | Read-only environment diagnostics |
 | `/core-dev:setup` | Check/register the settings the plugin needs |
 
-Try a small bugfix ticket first, or do a no-Jira smoke test with `--local`
+Try a small bugfix ticket first, or do a no-Jira smoke test with `work-with-prompt`
 ([../../docs/SETUP.md §7](../../docs/SETUP.md)).
 
 ---

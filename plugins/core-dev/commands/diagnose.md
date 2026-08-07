@@ -1,11 +1,11 @@
 ---
-description: 분석 전용. 증상을 입력하면 근본 원인만 진단하고 멈춘다(코드 변경·설계·PR 없음). analyzer를 진단 모드로 재사용.
-argument-hint: "\"<증상/문제 설명>\"  [--path <파일/디렉토리>]"
+description: 증상만 주면 근본 원인을 찾아 보고하고 멈춘다 — 코드도 PR 도 건드리지 않는다.
+argument-hint: "\"<무엇이 어떻게 잘못되는지>\"  [--path <좁힐 파일/디렉토리>]"
 ---
 
 # /core-dev:diagnose
 
-증상을 입력하면 **근본 원인이 무엇인지**만 파악해서 보고한다. `/core-dev:analyze`
+증상을 입력하면 **근본 원인이 무엇인지**만 파악해서 보고한다. `/core-dev:work-with-prompt`
 와 달리 설계·구현·테스트·PR로 진행하지 **않는다** — **읽기 전용 진단**이다.
 
 내부적으로 `analyzer`(상황분석 + 근본원인 단계 + stablenet-knowledge 검색·root-cause-lifecycle)를
@@ -13,7 +13,7 @@ argument-hint: "\"<증상/문제 설명>\"  [--path <파일/디렉토리>]"
 재현 테스트를 만들지 않고, 코드를 수정하거나 브랜치를 만들지 않으며, PLANNING으로 넘어가지 않는다.
 
 > 언제 쓰나: "왜 이런 일이 생기지?"를 빠르게 규명하고 싶을 때. 고치는 것까지 자율로
-> 진행하려면 대신 `/core-dev:analyze` 를 쓴다.
+> 진행하려면 대신 `/core-dev:work-with-prompt` 를 쓴다.
 
 ---
 
@@ -83,7 +83,7 @@ argument-hint: "\"<증상/문제 설명>\"  [--path <파일/디렉토리>]"
      - 핵심 근거(파일:라인) 2~3개
      - 확신도
      - "전체 진단: {workspace}/diagnosis.md"
-4.2. 안내: "고치는 작업까지 진행하려면: /core-dev:analyze \"{problem_text}\""
+4.2. 안내: "고치는 작업까지 진행하려면: /core-dev:work-with-prompt \"{problem_text}\""
 ```
 
 ## 5. 완료 기준 (체크리스트)

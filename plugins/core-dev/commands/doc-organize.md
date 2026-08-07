@@ -1,6 +1,6 @@
 ---
 description: docs/ 문서를 3-tier 규율로 통합·정리한다. 코드+git을 ground truth로 충돌 판정, 비전 보존, supersede-not-delete. 계획 먼저 → 승인 후 적용.
-argument-hint: "[경로 또는 주제 범위, 비우면 docs/ 전체]"
+argument-hint: "[정리할 경로나 주제]   (생략하면 docs/ 전체)"
 ---
 
 # /core-dev:doc-organize

@@ -64,6 +64,15 @@ PERSISTED_SOURCES = ("project", "global")
 # network and the user needs to see them to spot a wrong checkout.
 UNPRINTABLE = ("STABLENET_KNOWLEDGE_MCP_URL",)
 
+# Which MCP server each value serves. The caller groups its questions by this, and it has to
+# come from here: doctor owns no knowledge of another plugin's environment (ADR-0011 §2.2), so
+# inferring the grouping from key names there would be exactly the guess that principle forbids.
+# A key with no entry belongs to no server and is not grouped -- repo_root_env, for one.
+SERVES = {
+    "STABLENET_KNOWLEDGE_MCP_URL": "stablenet-knowledge",
+    "CHAINBENCH_DIR": "chainbench",
+}
+
 PUBLIC = "settings.json"
 SECRET = "settings.local.json"
 
@@ -548,6 +557,7 @@ def main(argv: list[str] | None = None) -> int:
                 # "shall I set CHAINBENCH_DIR?" is not a question anyone can answer -- detection
                 # can land on the wrong checkout, and approving a value you cannot see is not
                 # consent. Secrets stay out: a row that carries one is not printable.
+                "serves": SERVES.get(key),
                 "resolved_value": (None if (val is None or where == SECRET or key in UNPRINTABLE)
                                    else val),
                 # Why the value is absent, so the caller can say "set, not shown" rather than

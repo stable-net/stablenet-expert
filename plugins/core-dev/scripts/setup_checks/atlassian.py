@@ -219,6 +219,7 @@ def row(state: dict) -> dict:
     return {
         "key": "atlassian-mcp",
         "row_kind": "plugin",
+        "serves": "atlassian",
         "kind": "external plugin",
         "description": DESCRIPTION,
         "how_to_find": HOW_TO_FIND,

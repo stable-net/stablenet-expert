@@ -261,6 +261,24 @@ class TestJSONOutput(unittest.TestCase):
                 self.assertIn(key, payload["not_ready"], "missing implies not ready")
 
 
+class TestRowsDeclareTheirServer(unittest.TestCase):
+    """doctor groups its questions by `serves`. The grouping has to come from the plugin: doctor
+    owns no knowledge of another plugin's environment (ADR-0011 §2.2), and inferring it from key
+    names there would break the moment a plugin adds a second value for the same server."""
+
+    def test_every_row_carries_serves(self):
+        with tempfile.TemporaryDirectory() as td:
+            payload = json.loads(_run(Path(td), "--check", "--json").stdout)
+            for row in payload["rows"]:
+                self.assertIn("serves", row, f"{row['key']} must say which server it is for")
+
+    def test_the_three_servers_are_covered(self):
+        with tempfile.TemporaryDirectory() as td:
+            payload = json.loads(_run(Path(td), "--check", "--json").stdout)
+            served = {r["serves"] for r in payload["rows"] if r["serves"]}
+            self.assertEqual(served, {"atlassian", "stablenet-knowledge", "chainbench"})
+
+
 class TestValueVisibility(unittest.TestCase):
     """A caller has to be able to show what it is about to write -- except where showing it is
     the problem."""

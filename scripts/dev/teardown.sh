@@ -23,6 +23,8 @@
 #   scripts/dev/teardown.sh                    # show what would run
 #   scripts/dev/teardown.sh --yes              # run it
 #   scripts/dev/teardown.sh --yes --repo ~/x   # take settings back from a different project
+#   scripts/dev/teardown.sh --yes --all-env    # also clear this ecosystem's env, so the next
+#                                              # install has to ask for it again
 set -uo pipefail
 
 SELF_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -33,16 +35,28 @@ SETUP="$SELF_REPO/plugins/core-dev/scripts/setup.py"
 # worktree, not at the project you actually configured. Name it when they differ.
 REPO="$SELF_REPO"
 APPLY=0
+ALL_ENV=0
+
+# Env keys this ecosystem owns. --uninstall only takes back what the manifest records, which is
+# correct for a real removal and not enough for a test: a value set by hand before manifests
+# existed survives, so the next install never has to ask for it and the question you wanted to
+# see is skipped. --all-env removes these too, after saving them.
+#
+# CKS_MCP_URL belonged to the retired coding-agent plugin. It is included because that plugin is
+# being dropped, not because core-dev uses it -- core-dev reads only the two below.
+OWNED_ENV=(STABLENET_KNOWLEDGE_MCP_URL CHAINBENCH_DIR CKS_MCP_URL)
+
 while [ $# -gt 0 ]; do
   case "$1" in
-    --yes)  APPLY=1; shift ;;
+    --yes)      APPLY=1; shift ;;
+    --all-env)  ALL_ENV=1; shift ;;
     --repo)
       # `set -e` is off on purpose (every teardown step may fail), so a bad cd here would
       # otherwise fall through and clean the wrong directory.
       REPO="$(cd "${2:?--repo needs a path}" 2>/dev/null && pwd)" || {
         echo "error: --repo $2 는 디렉터리가 아닙니다" >&2; exit 2; }
       shift 2 ;;
-    *) echo "usage: $(basename "$0") [--yes] [--repo <설정을 되돌릴 프로젝트 경로>]" >&2; exit 2 ;;
+    *) echo "usage: $(basename "$0") [--yes] [--all-env] [--repo <설정을 되돌릴 프로젝트 경로>]" >&2; exit 2 ;;
   esac
 done
 
@@ -79,11 +93,49 @@ step "atlassian 제거"           claude plugin uninstall atlassian@claude-plugi
 step "claude-plugins-official 마켓플레이스 제거" \
      claude plugin marketplace remove claude-plugins-official
 
+# 4. 이 생태계가 소유한 env. --uninstall 이 매니페스트 기준으로 돌려놓지 못한 것까지 지운다.
+if [ "$ALL_ENV" -eq 1 ]; then
+  if [ "$APPLY" -eq 0 ]; then
+    printf '  env 제거 (--all-env): %s\n      백업 후 ~/.claude/settings.json 에서 삭제\n' "${OWNED_ENV[*]}"
+  else
+    printf '\n=== env 제거 (--all-env)\n'
+    python3 - "${OWNED_ENV[@]}" <<'PYEOF' 2>&1 | sed 's/^/    /'
+import json, pathlib, sys, time
+keys = sys.argv[1:]
+settings = pathlib.Path.home() / ".claude" / "settings.json"
+doc = json.loads(settings.read_text()) if settings.is_file() else {}
+env = doc.get("env") or {}
+taken = {k: env.pop(k) for k in keys if k in env}
+if not taken:
+    print("지울 것 없음"); raise SystemExit
+# Save before deleting. One of these is an internal endpoint the user may not have written down
+# anywhere else, and a teardown that loses it is not a teardown, it is data loss.
+backup = settings.parent / f"env-backup-{time.strftime('%Y%m%d-%H%M%S')}.json"
+backup.write_text(json.dumps(taken, indent=2) + "\n")
+backup.chmod(0o600)
+doc["env"] = env
+settings.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+# Names only. The values are endpoints; printing them here would put them in whatever
+# transcript this teardown was run from.
+print("삭제:", ", ".join(sorted(taken)))
+print("백업:", backup)
+print("복구: python3 -c \"import json,pathlib;s=pathlib.Path.home()/'.claude/settings.json';"
+      "d=json.load(open(s));d.setdefault('env',{}).update(json.load(open('%s')));"
+      "json.dump(d,open(s,'w'),indent=2,ensure_ascii=False)\"" % backup)
+PYEOF
+  fi
+fi
+
 if [ "$APPLY" -eq 1 ]; then
   printf '\n=== 남은 것 확인\n'
   claude plugin list 2>&1 | sed 's/^/    /'
   claude plugin marketplace list 2>&1 | grep "❯" | sed 's/^/    /' || echo "    마켓플레이스 없음"
-  printf '\n설정은 --uninstall 이 기록한 것만 지웠습니다. 직접 넣은 env 는 그대로입니다:\n'
+  if [ "$ALL_ENV" -eq 1 ]; then
+    printf '\n남은 env (이 생태계 것이 아닌 값):\n'
+  else
+    printf '\n남은 env — --uninstall 은 매니페스트에 기록된 것만 지웁니다. 아래는 손으로 넣어\n'
+    printf '기록이 없는 값들이라 살아남았습니다. 설치 흐름이 이걸 다시 묻는지 보려면 --all-env 를 쓰세요:\n'
+  fi
   python3 -c "
 import json,pathlib
 p = pathlib.Path.home()/'.claude/settings.json'

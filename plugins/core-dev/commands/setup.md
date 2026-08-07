@@ -1,6 +1,6 @@
 ---
 description: core-dev 가 쓰는 settings 값을 점검하고 등록한다. 제거는 --uninstall.
-argument-hint: "[--check | --fix | --uninstall] [--autonomous] [--scope user|project]   (생략 시 점검만)"
+argument-hint: "[--check | --fix | --uninstall] [--yes] [--scope user|project] [--repo <경로>]   (생략 시 점검만)"
 ---
 
 # /core-dev:setup
@@ -26,6 +26,9 @@ argument-hint: "[--check | --fix | --uninstall] [--autonomous] [--scope user|pro
   나쁘다(ADR-0018). 기본은 드라이런이고 `--yes` 를 붙여야 실제로 지운다.
   플러그인 제거 **전에** 실행해야 한다: `claude plugin uninstall` 이 끝나면 무엇이 이 플러그인
   것이었는지 아는 스크립트도 함께 사라진다.
+- **`--repo <경로>`**: 대상 프로젝트를 명시한다. 기본값은 현재 디렉터리의 git 루트라서, 이걸
+  주지 않으면 프로젝트 안에서 실행해야 한다. 어느 경로에서든 돌리려면 이 플래그를 쓴다 —
+  안 쓰고 밖에서 돌리면 user 스코프만 정리되고 프로젝트 키는 조용히 남는다.
 
 > 점검 항목: `STABLENET_KNOWLEDGE_MCP_URL`, `CHAINBENCH_DIR`,
 

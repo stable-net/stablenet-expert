@@ -336,6 +336,20 @@ def _uninstall(claude_dir: Path, env_dir: Path, repo_root: Path, args) -> int:
     the manifest -- seeing "3 to remove, 1 changed by you" before anything happens is what
     makes this safe to run.
     """
+    # Say which directories are being examined before saying what is in them. The project one
+    # is derived from the current directory unless --repo names it, so running this from the
+    # wrong place would otherwise clean the user scope, find nothing else, and look like it
+    # succeeded.
+    print(f"looking in:\n  {env_dir}" + (f"\n  {claude_dir}" if claude_dir != env_dir else ""))
+    if claude_dir == env_dir:
+        print("  (no project directory: the current directory is not inside a git repository,\n"
+              "   so only user-scope settings are in scope. Pass --repo <path> to include a\n"
+              "   project's own .claude/.)")
+    elif not (repo_root / ".git").exists():
+        print(f"  (note: {repo_root} has no .git — it was taken as the project because it is\n"
+              "   the current directory. Pass --repo <path> if that is not what you meant.)")
+    print()
+
     plans = []
     for d in ({env_dir, claude_dir} if env_dir != claude_dir else {claude_dir}):
         plan = manifest.plan_removal(d, lambda name, base=d: _load_json(base / name))
@@ -419,6 +433,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="where env values are written: user (default, ~/.claude/settings.json, "
                          "applies everywhere) or project (this repo's .claude/). The active "
                          "pack's repo_root_env is always project-local either way.")
+    ap.add_argument("--repo", default=None, metavar="PATH",
+                    help="the project to act on. Defaults to the git root of the current "
+                         "directory, which is why the plain command has to be run from inside "
+                         "the project; pass this to run it from anywhere.")
     ap.add_argument("--uninstall", action="store_true",
                     help="remove what --fix wrote, using the provenance manifest. Values that "
                          "changed since we wrote them are left alone and reported. Add --yes to "
@@ -445,7 +463,10 @@ def main(argv: list[str] | None = None) -> int:
         k, v = item.split("=", 1)
         overrides[k.strip()] = v.strip()
 
-    repo_root = _repo_root()
+    repo_root = Path(args.repo).expanduser().resolve() if args.repo else _repo_root()
+    if args.repo and not repo_root.is_dir():
+        print(f"error: --repo {args.repo} is not a directory", file=sys.stderr)
+        return 2
     # Where settings go. Two different questions live here, so they get two different answers
     # rather than one --scope flag covering both:
     #

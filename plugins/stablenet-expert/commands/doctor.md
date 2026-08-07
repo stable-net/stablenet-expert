@@ -260,9 +260,16 @@ keys and permission entries behind, and once the plugin is gone the script that 
 ones were its own goes with it (ADR-0018).
 
 ```bash
-"$python_bin" "$plugin_path/scripts/setup.py" --uninstall          # dry run, shows the plan
-"$python_bin" "$plugin_path/scripts/setup.py" --uninstall --yes    # apply
+# Absolute paths on both sides: the script lives in the plugin's install directory, and the
+# project it should clean is named explicitly. Without --repo the target is inferred from the
+# current directory, so a run started elsewhere cleans only the user scope and looks like it
+# worked.
+"$python_bin" "$plugin_path/scripts/setup.py" --repo "<project>" --uninstall        # plan only
+"$python_bin" "$plugin_path/scripts/setup.py" --repo "<project>" --uninstall --yes  # apply
 ```
+
+It prints the directories it examined before the plan. Check that the project line is the one
+you meant — that is the only place a wrong target shows up.
 
 `--check --json` never carries a secret's value, so reading it here is safe; `--fix` only writes
 values that were already resolvable, so it cannot invent or expose one either.

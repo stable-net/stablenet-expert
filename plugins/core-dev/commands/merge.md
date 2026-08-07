@@ -51,7 +51,7 @@ argument-hint: "<Jira 티켓 번호> 또는 <PR URL>   (예: STABLE-1234 / https
      pr_number = URL 의 /pull/(\d+)
      bash: gh pr view {pr_number} --json headRefName,title,body,url
      branch = headRefName
-     jira_id = review.md §4 의 규칙으로 추출(브랜치명 → PR body 순). 실패하면 **묻지 않고**
+     jira_id = `jira-via-atlassian` 스킬 §4 의 규칙으로 추출(브랜치명 → PR body). 실패하면 **묻지 않고**
                Jira 갱신만 건너뛴다 — 머지 자체는 티켓과 무관하다.
      → 3단계로 진행
 
@@ -95,7 +95,7 @@ argument-hint: "<Jira 티켓 번호> 또는 <PR URL>   (예: STABLE-1234 / https
        중단:
          "PR이 승인되지 않았습니다(state: {reviewDecision}). 필요 상태: APPROVED."
          reviewDecision == "CHANGES_REQUESTED"이면:
-           힌트: "피드백 반영을 위해 /core-dev:review {pr_url}을 실행하세요."
+           힌트: "피드백 반영을 위해 /core-dev:review-jira {jira_id} 를 실행하세요."
 
 3.4. 필수 상태 체크
      pr.statusCheckRollup의 각 check에 대해:
@@ -280,7 +280,7 @@ PR 모드 — **하지 않은 것을 함께 적는다**:
 
 중단 시, 체크별 PASS/FAIL 전제조건 테이블과 처음 실패한 체크의 상세 라인을
 출력한다. 다음에 취할 구체적인 액션을 제안한다
-(예: "리뷰 코멘트 반영을 위해 /core-dev:review를 실행하세요.").
+(예: "리뷰 코멘트 반영을 위해 /core-dev:review-jira 를 실행하세요.").
 
 ---
 

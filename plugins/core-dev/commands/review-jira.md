@@ -1,36 +1,38 @@
 ---
-description: PR 의 리뷰 코멘트를 모아 분류하고, 수정이 필요한 것만 파이프라인으로 되돌린다.
-argument-hint: "<PR URL 또는 #번호, 예: #456>"
+description: 티켓의 PR 에 달린 리뷰 코멘트를 모아 분류하고, 수정이 필요한 것만 파이프라인으로 되돌린다.
+argument-hint: "<Jira 티켓 번호, 예: STABLE-1234>"
 ---
 
-# /core-dev:review
+# /core-dev:review-jira
 
 PR 코드 리뷰 피드백을 읽고 수정 작업을 수행한다.
 
 ---
 
-## 1. 인자 검증 및 PR 파싱
+## 1. 인자 검증 + 티켓의 PR 찾기
 
 ```
 1.1. 인자 형식 확인
-   - 빈 인자 → 사용법 출력 후 중단:
-     "사용법: /core-dev:review <PR-URL 또는 #number>
-      예: /core-dev:review #456
-      또는: /core-dev:review https://github.com/org/repo/pull/456"
+   - /^[A-Z]+-\d+$/ 불일치 → 사용법 출력 후 중단:
+     "사용법: /core-dev:review-jira <Jira 티켓 번호>
+      예: /core-dev:review-jira STABLE-1234"
 
-1.2. PR 번호 추출
-   case input:
-     "#<digits>":
-       pr_number = digits
-       owner/repo는 현재 git remote에서 추출:
-         bash: gh repo view --json owner,name
-     
-     "https://github.com/<owner>/<repo>/pull/<num>":
-       owner, repo, pr_number = regex 추출
-     
-     기타:
-       에러: "PR URL 또는 #번호 형식이 올바르지 않습니다."
+1.2. 이 티켓의 PR 찾기 (merge.md §2.1~2.3 과 같은 경로)
+   {repo_root}/.stablenet-expert/tickets/{jira_id}_* 스캔(timestamp 역순)
+   state.current_state 가 {"COMPLETION","COMPLETED"} 인 첫 항목을 취한다.
+   workspace = 그 폴더 경로            # 이후 단계가 전부 이 값을 쓴다
+   state     = workspace/state.json
+   pr_url    = state.states.COMPLETION.pr_url
+   pr_number = pr_url 의 /pull/(\d+)
+   owner/repo = pr_url 에서 추출 (또는 `gh repo view --json owner,name`)
+
+   워크스페이스가 없거나 pr_url 이 비어 있으면 중단:
+     "{jira_id} 에 대한 PR 을 찾을 수 없습니다.
+      먼저 /core-dev:work-with-jira {jira_id} 로 PR 을 생성하세요."
 ```
+
+> 이 커맨드는 **이 파이프라인이 만든 PR** 을 전제로 한다(워크스페이스가 있어야 리뷰 결과를
+> 되돌릴 곳이 있다). 임의의 PR 을 URL 로 리뷰하는 `review-pr` 은 아직 없다 — WORKLIST §C-2.
 
 ---
 
@@ -95,47 +97,7 @@ PR 코드 리뷰 피드백을 읽고 수정 작업을 수행한다.
 
 ---
 
-## 4. JIRA-ID 추출
-
-```
-4.1. 브랜치명에서 추출
-   pattern: /[A-Z]+-\d+/
-   pr_info.headRefName 예: "feature/STABLE-1234"
-   매치 발견 → jira_id 결정 → 5단계로 진행
-
-4.2. PR body에서 추출 (브랜치명 실패 시)
-   pr_info.body 에서 첫 번째 /[A-Z]+-\d+/ 매치
-   매치 발견 → jira_id 결정 → 5단계로 진행
-
-4.3. 추출 실패 시 유저 입력 요청
-   "PR에서 JIRA-ID를 자동 추출할 수 없습니다.
-    이 PR에 연관된 JIRA-ID를 입력하세요 (예: STABLE-1234):"
-   입력 검증: /^[A-Z]+-\d+$/
-```
-
----
-
-## 5. 작업 폴더 탐색
-
-```
-5.1. 기존 작업 폴더 탐색
-   bash: ls -d {repo_root}/.stablenet-expert/tickets/{jira_id}_* 2>/dev/null | sort -r
-   
-   결과 있음 → 가장 최신 폴더 선택
-     workspace = 최신 폴더 경로
-     read workspace/state.json
-   
-   결과 없음 → 알림:
-     "이 PR에 대응하는 core-dev 작업 폴더가 없습니다.
-      /core-dev:work-with-jira {jira_id} 를 먼저 실행했어야 합니다.
-      그래도 진행하시겠습니까? (y/n)"
-     y → 새 작업 폴더 생성 (P1-2의 4단계 절차 따름)
-     n → 중단
-```
-
----
-
-## 6. 리뷰 코멘트 분류 + 구조화
+## 4. 리뷰 코멘트 분류 + 구조화
 
 ```
 6.1. 다음 review-feedback-{N} 번호 결정
@@ -217,7 +179,7 @@ PR 코드 리뷰 피드백을 읽고 수정 작업을 수행한다.
 
 ---
 
-## 7. 상태 전이 + Orchestrator 디스패치
+## 5. 상태 전이 + Orchestrator 디스패치
 
 ```
 7.1. failure_log에 review cycle 기록
@@ -269,7 +231,7 @@ PR 코드 리뷰 피드백을 읽고 수정 작업을 수행한다.
 
 ---
 
-## 8. 완료 기준 (체크리스트)
+## 6. 완료 기준 (체크리스트)
 
 - [ ] PR URL과 #number 양쪽 파싱 지원
 - [ ] gh CLI 미인증 시 명확한 에러 메시지

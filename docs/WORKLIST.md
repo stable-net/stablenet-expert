@@ -36,3 +36,42 @@ README 기준 4-카테고리 로드맵 중 `core-dev`·`contract-dev`(1단계) �
   (`docs/SETUP.md` §9.9에 문서화됨)이 정확히 이 메타 플러그인이 doctor로 잡아줘야 할 종류의 문제.
   착수 여부는 여전히 사용자
   판단 필요(지금 2개뿐이라 아직 이르다고 볼 수도 있음) — 재검토 대상으로 격상.
+
+---
+
+## C. core-dev 커맨드 재구성 — 진입점을 입력 종류로 가른다
+
+**왜.** 지금은 `work`(Jira 티켓)와 `analyze`(자유 텍스트)가 이름만 봐서는 무엇을 넣어야 하는지
+알 수 없다. `review` 도 마찬가지로 PR 코멘트 반영과 PR 코드리뷰가 한 이름에 얹혀 있다. 커맨드
+이름이 **입력의 종류**를 말하면 사용자가 고르기 전에 무엇을 준비해야 하는지 알 수 있다.
+
+**공통 요건 (아래 전 항목).** 모든 커맨드는 `description` 에 *무엇을 하는지* 한 줄,
+`argument-hint` 에 *무엇을 넣어야 하는지* 를 적는다. 지금 몇몇은 argument-hint 가 형식만 있고
+의미가 없다(`"<manifest.json> | <experiment-id>"` 같은 것은 둘 중 무엇을 왜 고르는지 모른다).
+
+- [ ] **C-1. `work` → `work-with-jira` + `work-with-prompt`**
+  - `work-with-jira <TICKET>` — 지금의 `work`. Jira 티켓 번호를 받는다.
+  - `work-with-prompt "<요구사항>"` — **지금의 `analyze` 를 이름만 바꾸면 된다.** 이미 자유
+    텍스트를 받고 Jira 를 안 쓴다(`requirement_source: "local"`).
+  - `work` 의 `--local <ticket.json>` 옵션은 어디로 갈지 정해야 한다. Jira 없이 티켓 JSON 을
+    읽는 경로라 이름상 `work-with-jira` 에도 `work-with-prompt` 에도 안 맞는다.
+  - 이름이 바뀌면 이것들도 같이 바뀐다: `atlassian.py` 의 skip 설명, `docs/SETUP.md` §7 스모크
+    테스트, `core-dev/README.md` 커맨드 표, orchestrator/planner 프롬프트의 진입점 언급.
+
+- [ ] **C-2. `review` → `review-jira` + `review-pr`**
+  - `review-jira <TICKET>` — 티켓 기준 리뷰 피드백 반영(지금 `review` 가 PR 에서 JIRA-ID 를
+    역추출하는 절차를 티켓 입력으로 바꾼 것).
+  - `review-pr <PR-URL>` — **신규 기능.** PR 내용 + 코드 리뷰를 수행한다. 절차 설계가 필요하고,
+    착수 시 별도로 자세히 정의하기로 함(범위: 무엇을 읽고, 무엇을 판정하고, 결과를 어디에
+    남기는가 — PR 코멘트인지 로컬 리포트인지).
+
+- [ ] **C-3. `merge` 가 PR URL 을 받는다**
+  - 지금은 `<JIRA-ID>` 만 받고 워크스페이스에서 PR 을 역추적한다. 리뷰가 끝난 PR URL 을 직접
+    주면 그 PR 을 스쿼시 머지하도록 한다.
+  - 기존 승인·CI·mergeable 게이트는 그대로 유지한다(그게 `merge` 가 `main` 을 건드리는 유일한
+    커맨드인 이유다).
+
+- [ ] **C-4. 전 커맨드의 description / argument-hint 정비**
+  - 10개 커맨드 전부. C-1~C-3 로 이름이 바뀌는 것들은 그 작업에 포함해서 처리한다.
+
+---

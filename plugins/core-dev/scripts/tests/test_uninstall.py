@@ -33,9 +33,9 @@ class Sandbox:
         self.proj.mkdir()
         subprocess.run(["git", "init", "-q"], cwd=self.proj, check=True)
 
-    def run(self, *flags):
+    def run(self, *flags, cwd=None):
         return subprocess.run(
-            [sys.executable, str(SETUP_PY), *flags], cwd=str(self.proj),
+            [sys.executable, str(SETUP_PY), *flags], cwd=str(cwd or self.proj),
             capture_output=True, text=True,
             env={"PATH": os.environ.get("PATH", ""), "HOME": str(self.home)})
 
@@ -144,6 +144,41 @@ class TestUninstall(SandboxCase):
         self.assertTrue(json.loads(local.read_text())["permissions"]["allow"])
         self.box.run("--uninstall", "--yes")
         self.assertEqual(json.loads(local.read_text())["permissions"]["allow"], [])
+
+
+class TestRunFromAnywhere(SandboxCase):
+    """--uninstall has to be runnable from outside the project.
+
+    The project directory is derived from the current one, so without --repo a run started
+    somewhere else cleans the user scope, finds no project manifest, and looks like it
+    succeeded -- the project's own keys silently survive.
+    """
+
+    def test_repo_flag_reaches_a_project_from_an_unrelated_cwd(self):
+        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        outside = self.box.home            # any directory that is not the project
+        r = self.box.run("--repo", str(self.box.proj), "--uninstall", "--yes", cwd=outside)
+        self.assertNotIn("CHAINBENCH_DIR", self.box.env_of(self.box.home))
+        self.assertNotIn("GO_STABLENET_ROOT", self.box.env_of(self.box.proj))
+        self.assertEqual(r.returncode, 0)
+
+    def test_it_prints_the_directories_it_examined(self):
+        """A wrong project directory is only visible if the command says which one it used."""
+        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        r = self.box.run("--uninstall")
+        self.assertIn("looking in:", r.stdout)
+        self.assertIn(str(self.box.proj), r.stdout)
+
+    def test_a_cwd_outside_any_repo_says_the_project_is_not_in_scope(self):
+        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        r = self.box.run("--uninstall", cwd=self.box.home)
+        self.assertIn("--repo", r.stdout, "must point the user at how to include a project")
+        self.assertIn("GO_STABLENET_ROOT", self.box.env_of(self.box.proj),
+                      "the project's key must survive a run that never looked at it")
+
+    def test_a_bad_repo_path_is_rejected(self):
+        r = self.box.run("--repo", "/nonexistent-xyz", "--uninstall")
+        self.assertEqual(r.returncode, 2)
 
 
 if __name__ == "__main__":

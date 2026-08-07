@@ -169,15 +169,21 @@ different kinds of actions with different safety profiles, don't treat them unif
   setup command, say plainly that you don't have "where to get this" guidance to offer and the
   user will need to know the value already (or check that plugin's own README/docs).
 
-  Never ask the user to type the value itself into `AskUserQuestion` or into a Bash command
-  you'll run — both put it straight into this conversation. Instead, point them at
-  `scripts/set-mcp-env.sh`, and be explicit that **they** run it, not you:
+  **`set-mcp-env.sh` belongs to this plugin, not to the one being configured.** Use
+  `${CLAUDE_PLUGIN_ROOT}` — it resolves to `stablenet-expert`'s own directory while this command
+  runs. Do not build the path from the `$plugin_path` resolved earlier in this step: that points
+  at whichever plugin is being set up, which does not ship this script, and the command then
+  fails on a path that does not exist.
+
+  For a credential, still route through it rather than asking here — a token in the transcript
+  cannot be taken back, and it would come to rest in a settings file besides. Be explicit that
+  **they** run it, not you:
 
   ```
   Run this yourself, in your own terminal (don't ask me to run it, and don't paste the value
   here — either would put it in this conversation):
 
-      bash "<CLAUDE_PLUGIN_ROOT-for-the-owning-plugin>/scripts/set-mcp-env.sh" STABLENET_KNOWLEDGE_MCP_URL
+      bash "${CLAUDE_PLUGIN_ROOT}/scripts/set-mcp-env.sh" STABLENET_KNOWLEDGE_MCP_URL
 
   Add `--scope project` to scope it to this project only (writes the gitignored
   `.claude/settings.local.json` instead of the global `~/.claude/settings.json`). It prompts

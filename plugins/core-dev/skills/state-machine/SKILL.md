@@ -21,7 +21,7 @@ core-dev 파이프라인의 상태 전이를 관리한다. 이 skill은 `Read`, 
   "workspace_dir": ".stablenet-expert/tickets/STABLE-1234_20260528_000000",
   "ticket_type": "feature",
   "pipeline_variant": "full",
-  "requirement_source": "jira",   // "jira" (default) | "local" (free-text /analyze entry)
+  "requirement_source": "jira",   // "jira" (default) | "local" (free-text work-with-prompt entry)
 
   "current_state": "TICKET_INTAKE",
   "current_agent": null,
@@ -151,7 +151,7 @@ core-dev 파이프라인의 상태 전이를 관리한다. 이 skill은 `Read`, 
 - `ticket_type` (string): "feature" | "bugfix" | "code_review" | "release"
 - `workspace_dir` (string): 작업 폴더 절대 경로
 - `pipeline_variant` (string): "full" | "review_only" | "release"
-- `requirement_source` (string, optional): "jira" (기본) | "local". `/core-dev:analyze`
+- `requirement_source` (string, optional): "jira" (기본) | "local". `/core-dev:work-with-prompt`
   자유 텍스트 진입은 "local". orchestrator가 이 값으로 Jira pre-flight/종료 동기화를 분기한다.
 
 **절차**:
@@ -226,11 +226,12 @@ core-dev 파이프라인의 상태 전이를 관리한다. 이 skill은 `Read`, 
    - `Bash`: `test -f {workspace_dir}/ticket.json && echo OK` → OK 인지 확인
    - state.states.TICKET_INTAKE.sensitive_check 의 result 확인 — **"BLOCKED" 만 차단**한다.
      통과: "CLEAN"/"REDACTED"(analyze 의 로컬 스캔), "NOT_SCANNED"(work — 인바운드 필터가
-     없다, ADR-0013), "LOCAL_BYPASS"(work --local).
+     없다, ADR-0013).
      허용 목록이 아니라 차단 목록인 이유: 이 게이트가 막아야 하는 것은 *치명적 민감정보가
      탐지된 티켓*이지 *스캔하지 않은 티켓*이 아니다. 허용 목록이면 진입점이 새 결과값을
-     쓸 때마다 파이프라인이 조용히 멈춘다 — 실제로 "LOCAL_BYPASS" 가 그렇게 막혀 있었고,
-     jira-gateway 폐기로 "NOT_SCANNED" 가 생기면서 정상 경로까지 막혔다.
+     쓸 때마다 파이프라인이 조용히 멈춘다 — jira-gateway 폐기로 "NOT_SCANNED" 가 생겼을 때
+     실제로 정상 경로가 막혔다. (지금은 사라진 `work --local` 의 "LOCAL_BYPASS" 도 같은 이유로
+     막혀 있었다.)
 
    **ANALYSIS → PLANNING**:
    - `Bash`: `test -f {workspace_dir}/analysis.md && test -f {workspace_dir}/related-code.json && echo OK`

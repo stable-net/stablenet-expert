@@ -1,6 +1,6 @@
 ---
-description: PR 코드리뷰 피드백 반영. 리뷰 코멘트 수집 → 구조화 → 수정 작업 사이클 진입.
-argument-hint: "<PR URL 또는 #number, 예: #456>"
+description: PR 의 리뷰 코멘트를 모아 분류하고, 수정이 필요한 것만 파이프라인으로 되돌린다.
+argument-hint: "<PR URL 또는 #번호, 예: #456>"
 ---
 
 # /core-dev:review
@@ -53,7 +53,7 @@ PR 코드 리뷰 피드백을 읽고 수정 작업을 수행한다.
      --json number,title,body,headRefName,baseRefName,reviewDecision,state,url
 
    결과를 pr_info 변수에 저장.
-   pr_info.state == "MERGED" → 알림: "이미 머지된 PR입니다. 새 작업이 필요한 경우 /core-dev:work를 사용하세요." + 중단
+   pr_info.state == "MERGED" → 알림: "이미 머지된 PR입니다. 새 작업이 필요한 경우 /core-dev:work-with-jira 를 사용하세요." + 중단
    pr_info.state == "CLOSED" → 알림 + 중단
 
 3.2. 리뷰 코멘트 수집 (파일별 인라인)
@@ -127,7 +127,7 @@ PR 코드 리뷰 피드백을 읽고 수정 작업을 수행한다.
    
    결과 없음 → 알림:
      "이 PR에 대응하는 core-dev 작업 폴더가 없습니다.
-      /core-dev:work {jira_id} 를 먼저 실행했어야 합니다.
+      /core-dev:work-with-jira {jira_id} 를 먼저 실행했어야 합니다.
       그래도 진행하시겠습니까? (y/n)"
      y → 새 작업 폴더 생성 (P1-2의 4단계 절차 따름)
      n → 중단

@@ -1,10 +1,10 @@
 ---
-description: 자유 텍스트 요구사항 기반 작업 시작. 요구사항 intake → ticket.json 합성 → Orchestrator 디스패치. Jira 불필요.
-argument-hint: "\"<요구사항 텍스트>\"  [--type feature|bugfix|code_review|release] [--auto-merge]"
+description: 요구사항을 직접 써서 작업 시작 — 분석·설계·구현·검증을 거쳐 PR 까지. Jira 없이 동작한다.
+argument-hint: "\"<무엇을 만들지/고칠지 한두 문장>\"  [--type feature|bugfix|code_review|release] [--auto-merge]"
 allowed-tools: Read, Write, Edit, Bash, Agent, TodoWrite, mcp__plugin_core-dev_stablenet-knowledge, mcp__plugin_core-dev_chainbench, mcp__plugin_atlassian_atlassian
 ---
 
-# /core-dev:analyze
+# /core-dev:work-with-prompt
 
 Jira 티켓 없이 **자유 텍스트 요구사항**으로 자동화 파이프라인을 시작한다.
 `/core-dev:work` 와 동일한 파이프라인(planner→implementer→evaluator)을 타되,
@@ -18,7 +18,7 @@ Jira 티켓 없이 **자유 텍스트 요구사항**으로 자동화 파이프�
 
 ## 0. 인자 형식
 
-- 기본: `/core-dev:analyze "consensus Finalize 의 nil pointer 패닉을 고쳐줘"`
+- 예: `/core-dev:work-with-prompt "consensus Finalize 의 nil pointer 패닉을 고쳐줘"`
 - 유형 힌트(선택): `... --type bugfix` (생략 시 본문에서 추론)
 - 자동 머지(선택): `... --auto-merge` — PR 생성에서 멈추지 않고 merge/tag/push까지 자율.
   **기본은 OFF**(merge/push/tag 게이트 유지). 켜도 merge.md §3 안전조건(APPROVED/CI/MERGEABLE)은 유지된다.
@@ -33,7 +33,7 @@ Jira 티켓 없이 **자유 텍스트 요구사항**으로 자동화 파이프�
    - 옵션 --type <feature|bugfix|code_review|release> → type_hint (선택)
    - 옵션 --auto-merge (플래그) → auto_merge_flag = true (기본 false)
    - 빈 요구사항 → 사용법 출력 후 중단:
-     "사용법: /core-dev:analyze \"<요구사항 텍스트>\" [--type <유형>] [--auto-merge]"
+     "사용법: /core-dev:work-with-prompt \"<요구사항 텍스트>\" [--type <유형>] [--auto-merge]"
 ```
 
 ---

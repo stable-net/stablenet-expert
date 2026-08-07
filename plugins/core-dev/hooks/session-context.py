@@ -68,7 +68,7 @@ def main():
     if not lines:
         return 0
 
-    ctx = ("Active core-dev pipeline workspace(s) — resume with /core-dev:work "
+    ctx = ("Active core-dev pipeline workspace(s) — resume with /core-dev:work-with-jira "
            "or continue per state.json:\n" + "\n".join(lines))
     print(json.dumps({
         "hookSpecificOutput": {

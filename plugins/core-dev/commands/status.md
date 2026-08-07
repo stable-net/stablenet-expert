@@ -1,6 +1,6 @@
 ---
-description: 작업 상태 조회. 특정 티켓 또는 전체 활성 작업의 진행 상황을 출력.
-argument-hint: "[JIRA-ID] (생략 시 전체 활성 작업)"
+description: 작업 진행 상황 조회 — 어느 단계까지 갔는지, 막힌 것이 있는지.
+argument-hint: "[Jira 티켓 번호]   (생략하면 진행 중인 작업 전부)"
 ---
 
 # /core-dev:status

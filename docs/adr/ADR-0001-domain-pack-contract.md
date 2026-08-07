@@ -27,7 +27,7 @@
 | 경로→모듈 분류·복잡도 | `stablenet-context.classify_domain/estimate_complexity` | analyzer §3.3 / planner §237 |
 | 통합검증 스테이지 | chainbench(35회) + `build/bin/gstable`·`go test`·`go -C` 인라인 | evaluator §2/§4/§7 |
 | 지식 인덱스 | 단일 `STABLENET_KNOWLEDGE_CONFIG` | .mcp.json |
-| 티켓 네임스페이스 | `STABLE-*` 가정 | template-parse / work.md |
+| 티켓 네임스페이스 | `STABLE-*` 가정 | template-parse / work-with-jira.md |
 
 ### 1.2 의도 (재확인)
 

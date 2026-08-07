@@ -45,14 +45,14 @@ report to the user and stop.
 Run once at the start of a `fresh` run, before the top-level loop. The
 Orchestrator only holds jira tool grants, so it does a **config-level** check
 (registration + env) and relies on point-of-use **live** checks downstream:
-jira at intake (`work.md` §5.2), stablenet-knowledge at the Planner (`planner.md` §3.0
+jira at intake (`work-with-jira.md` §5.1), stablenet-knowledge at the Planner (`planner.md` §3.0
 `cks.ops.health`), chainbench at the Evaluator (`evaluator.md` §7.0 tool
 pre-flight). Note: stablenet-knowledge is required to be **serviceable** (ckg + ckv both
 usable), not merely registered — a non-serviceable stablenet-knowledge (ckv/embedder down)
 makes the Planner transition to BLOCKED rather than run a degraded design.
 
 First read `state.requirement_source` (state.json). When it is `"local"` (free-text
-`/core-dev:analyze` entry) Jira is NOT used by this run — skip every jira
+`/core-dev:work-with-prompt` entry) Jira is NOT used by this run — skip every jira
 check below (registration + env). stablenet-knowledge + chainbench remain required.
 
 ```

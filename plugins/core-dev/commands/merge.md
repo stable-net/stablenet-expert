@@ -1,6 +1,6 @@
 ---
-description: 승인된 PR을 squash merge하고, Jira를 Complete로 전이하고, 로컬 브랜치를 정리한다.
-argument-hint: "<JIRA-ID, 예: STABLE-1234>"
+description: 승인된 PR 을 스쿼시 머지하고 Jira 를 Complete 로 옮긴 뒤 브랜치를 정리한다. main 을 건드리는 유일한 커맨드.
+argument-hint: "<Jira 티켓 번호, 예: STABLE-1234>"
 ---
 
 # /core-dev:merge
@@ -40,13 +40,13 @@ argument-hint: "<JIRA-ID, 예: STABLE-1234>"
      state.current_state가 {"COMPLETION","COMPLETED"} 중 하나인 첫 번째 항목을 취함.
      없으면 중단:
        "{jira_id}에 대한 COMPLETION 단계 워크스페이스를 찾을 수 없습니다.
-        먼저 /core-dev:work로 PR을 생성하세요."
+        먼저 /core-dev:work-with-jira 로 PR을 생성하세요."
 
 2.2. workspace/state.json 읽기 → state
      pr_url = state.states.COMPLETION.pr_url
      pr_url이 비어 있으면:
        "이 티켓에는 기록된 PR이 없습니다.
-        먼저 /core-dev:work로 파이프라인을 완료하세요."
+        먼저 /core-dev:work-with-jira 로 파이프라인을 완료하세요."
 
 2.3. pr_url에서 PR 번호 추출(정규식 /pull/(\d+)).
      branch = state.states.IMPLEMENTATION.branch

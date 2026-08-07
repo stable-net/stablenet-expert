@@ -58,9 +58,9 @@ UNKNOWN = "unknown"              # the CLI could not be consulted -- state undet
 DESCRIPTION = (
     "Jira access for the pipeline: reads the ticket, posts comments, moves status. "
     "Skipping leaves these unusable until you install it: "
-    "/core-dev:work <TICKET> (no ticket to read -- but /core-dev:work <TICKET> --local "
-    "<file> and /core-dev:analyze \"<requirement>\" need no Jira and still work), and "
-    "/core-dev:review <PR-URL>, which reads the ticket id off the PR. "
+    "/core-dev:work-with-jira <TICKET> (no ticket to read -- /core-dev:work-with-prompt "
+    "\"<requirement>\" runs the same pipeline with no Jira at all), and /core-dev:review "
+    "<PR-URL>, which reads the ticket id off the PR. "
     "/core-dev:merge still merges; only its Jira status update is skipped with a warning.")
 HOW_TO_FIND = (f"external plugin: claude plugin marketplace add {MARKETPLACE} && "
                f"claude plugin install {PLUGIN}, then claude mcp login {SERVER}")

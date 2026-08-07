@@ -245,7 +245,18 @@ Then split the `env` rows and act on each kind differently:
 - **`auto_fixable` rows** — the value is already resolvable (detected on this machine, or
   present in global settings). Offer them together in one `AskUserQuestion` (multi-select),
   one option per key, using the row's `description` as the option description so the user can
-  see what each value is for rather than guessing from the variable name. On confirmation:
+  see what each value is for rather than guessing from the variable name.
+
+  **Show `resolved_value` in the option too.** "Shall I set CHAINBENCH_DIR?" is not a question
+  anyone can answer: detection can land on a stale checkout, and approving a value you cannot
+  see is not consent. When `value_withheld` is true the row deliberately carries no value — it
+  is an endpoint or a credential — so say "already set, value not shown" rather than implying
+  nothing is configured.
+
+  A row whose `status` is `env` is **not** persisted: the value exists in this session's process
+  environment and nowhere on disk, so it vanishes at restart while Claude Code reads `${VAR}`
+  from settings. It appears in `not_ready` for that reason. Offer it like any other — the value
+  is known, only the writing is missing. On confirmation:
   `"$python_bin" "$plugin_path/scripts/setup.py" --fix`. Report which keys it wrote, from the script's own output.
 - **`missing` rows that are not secret** — nothing to write unattended; the user has to supply
   the value. Print the key, its `description`, and its `how_to_find` verbatim, and give them the

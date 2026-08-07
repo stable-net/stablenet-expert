@@ -1,6 +1,6 @@
 ---
 description: 승인된 PR 을 스쿼시 머지하고 Jira 를 Complete 로 옮긴 뒤 브랜치를 정리한다. main 을 건드리는 유일한 커맨드.
-argument-hint: "<Jira 티켓 번호, 예: STABLE-1234>"
+argument-hint: "<Jira 티켓 번호> 또는 <PR URL>   (예: STABLE-1234 / https://github.com/o/r/pull/456)"
 ---
 
 # /core-dev:merge
@@ -23,8 +23,17 @@ argument-hint: "<Jira 티켓 번호, 예: STABLE-1234>"
 ## 1. 인자 검증
 
 ```
-1.1. <JIRA-ID>가 /^[A-Z]+-\d+$/ 형식과 일치해야 함. 불일치 시 사용법 출력:
-     "사용법: /core-dev:merge STABLE-1234"
+1.1. 인자는 두 가지 중 하나다. 무엇을 받았는지로 모드가 갈린다.
+
+     (a) Jira 티켓 번호  — /^[A-Z]+-\d+$/          → 티켓 모드
+     (b) PR URL          — /github\.com/.+/pull/\d+/ → PR 모드
+
+     둘 다 아니면 사용법 출력:
+       "사용법: /core-dev:merge STABLE-1234
+              또는 /core-dev:merge https://github.com/<owner>/<repo>/pull/456"
+
+     두 모드는 §3 의 안전 전제조건(승인·CI·mergeable)을 **똑같이** 통과해야 한다. 다른 것은
+     PR 을 어떻게 찾고, 머지 후 무엇을 기록할 수 있는지뿐이다.
 1.2. 레포 루트 확인:
      bash: git rev-parse --show-toplevel → repo_root
      git 레포가 아니면 → 명확한 메시지와 함께 중단.
@@ -34,8 +43,19 @@ argument-hint: "<Jira 티켓 번호, 예: STABLE-1234>"
 
 ## 2. 워크스페이스 + PR 찾기
 
+**PR 모드는 2.1~2.3 을 건너뛰고 2.0 만 쓴다.** 워크스페이스가 없다는 것이 이 모드의 전제다 —
+이 PR 이 이 파이프라인에서 나왔다는 보장이 없다.
+
 ```
-2.1. 가장 최근 티켓 워크스페이스 찾기:
+2.0. (PR 모드) PR URL 에서 직접 얻는다
+     pr_number = URL 의 /pull/(\d+)
+     bash: gh pr view {pr_number} --json headRefName,title,body,url
+     branch = headRefName
+     jira_id = review.md §4 의 규칙으로 추출(브랜치명 → PR body 순). 실패하면 **묻지 않고**
+               Jira 갱신만 건너뛴다 — 머지 자체는 티켓과 무관하다.
+     → 3단계로 진행
+
+2.1. (티켓 모드) 가장 최근 티켓 워크스페이스 찾기:
      {repo_root}/.stablenet-expert/tickets/{jira_id}_* 스캔(timestamp 역순)
      state.current_state가 {"COMPLETION","COMPLETED"} 중 하나인 첫 번째 항목을 취함.
      없으면 중단:
@@ -97,6 +117,11 @@ argument-hint: "<Jira 티켓 번호, 예: STABLE-1234>"
 ---
 
 ## 4. squash 커밋 본문 조립
+
+**PR 모드**: 워크스페이스가 없으므로 plan progress 로 본문을 합성할 수 없다. PR 의 제목과 본문을
+그대로 쓴다(`gh pr view` 로 이미 받아뒀다). 4.3 의 sanitize 는 **양쪽 모드 모두** 거친다 — 본문이
+어디서 왔든 게시되는 것은 같다.
+
 
 ```
 4.1. 티켓과 plan progress 읽기
@@ -180,6 +205,19 @@ PR_BODY_EOF
 
 ## 6. Merge 후 정리 (Phase 7 §6)
 
+**PR 모드에서 건너뛰는 것과 건너뛰지 않는 것:**
+
+| 단계 | PR 모드 |
+|---|---|
+| 6.1 Jira status → Complete | jira_id 를 뽑았으면 수행, 못 뽑았으면 건너뛴다 |
+| 6.2 Jira 코멘트 | 위와 같다 |
+| 6.3 로컬 브랜치 동기화 | **수행한다** — 워크스페이스와 무관하다 |
+| 6.4 state.json 마무리 | 건너뛴다 — 갱신할 state 가 없다 |
+
+건너뛴 것은 §7 출력에 **명시한다**. "머지했다"만 보고 Jira 가 갱신된 줄 알면 보드가 조용히
+어긋난다.
+
+
 각 단계는 best-effort이며 merge를 절대 되돌리지 않는다. 여기서의 실패는
 경고로만 처리된다 — 어느 쪽이든 사용자는 머지된 코드를 그대로 갖는다.
 
@@ -219,12 +257,25 @@ PR_BODY_EOF
 
 ## 7. 출력
 
+티켓 모드:
+
 ```
 ✓ STABLE-1234 머지 완료
   PR:     {pr_url}
   Commit: {merge_hash}
   Branch: {branch} (삭제됨)
   Jira:   {ticket_id} → Complete
+```
+
+PR 모드 — **하지 않은 것을 함께 적는다**:
+
+```
+✓ PR #456 머지 완료
+  PR:     {pr_url}
+  Commit: {merge_hash}
+  Branch: {branch} (삭제됨)
+  Jira:   {ticket_id} → Complete        (또는: 티켓을 특정할 수 없어 갱신하지 않음)
+  기록:   워크스페이스가 없어 state.json 은 갱신하지 않음
 ```
 
 중단 시, 체크별 PASS/FAIL 전제조건 테이블과 처음 실패한 체크의 상세 라인을

@@ -91,6 +91,17 @@ concrete action, e.g.:
 - `Install and authenticate the Atlassian MCP plugin` (from a `row_kind: "plugin"` row — say
   that a browser opens for the OAuth consent)
 
+**Every option label must name the action, and the question `header` must name the subject.** A
+user reading a checkbox should not have to infer what installing is. `header: "Atlassian MCP"`
+with a label starting `Install ...` — not a generic `header: "Setup"` with a label like
+`Configure Jira`, which reads as a settings tweak rather than as installing a plugin into their
+Claude Code and opening a browser.
+
+**Pass the row's `description` through verbatim as the option description.** For a `plugin` row
+it states what stops working if they decline; a shortened paraphrase turns an informed choice
+into a blind one. Declining is legitimate — the free-text entry point needs no Jira — but only
+when the cost is on screen.
+
 If Steps 0-2 were all `pass`, skip straight to Step 5 — there's nothing to select.
 
 **Don't include Step 5's MCP conflict rows here.** Conflict resolution is a pick-one-of-several
@@ -129,11 +140,22 @@ different kinds of actions with different safety profiles, don't treat them unif
   uninstall/disable.
 - **`ollama pull bge-m3`** (Step 0 item, if selected): safe to run directly — user-scoped, purely
   additive.
+
+  Only offer this when Ollama itself is present. When the Step 0 row says Ollama is *not
+  installed*, pulling a model is not a step that exists yet — offer the install command instead
+  (below) and say the model pull follows it. Offering a pull that cannot run is worse than
+  offering nothing: it reads as an available fix.
 - **Any other Step 0 toolchain gap** (missing Go/Node/git/gh/C toolchain): **do not** auto-run a
   system package manager on the user's behalf — installing system-wide tooling is exactly the
   kind of hard-to-reverse, environment-affecting action that needs its own explicit confirmation,
   not a bulk multi-select nod. Print the platform-appropriate install command (from
   `docs/SETUP.md` §1) and let the user run it themselves.
+- **A missing MCP server binary** (Step 2 `critical` row like `chainbench-mcp not found or not
+  executable`): setting `CHAINBENCH_DIR` does not produce the binary, so writing the variable and
+  stopping leaves the user with a configured path to nothing. Say what is actually missing and how
+  it is built — `make` in the chainbench checkout, per `docs/SETUP.md` — and do not report the
+  env row as resolved on its own. Building it is not run here for the same reason other toolchain
+  installs are not: it is a build in a repository this command does not own.
 - **MCP env not configured** (Step 2 `critical` items — `STABLENET_KNOWLEDGE_MCP_URL`,
   `CKS_MCP_URL`, anything else naming a URL/IP/token): `set-mcp-env.sh`
   only covers the *mechanics* of persisting a value — it says nothing about where that value
@@ -269,9 +291,12 @@ Run this last, after Step 4's installs/enables have landed, since a fix applied 
 itself introduce a conflict that didn't exist before it. Report:
 
 ```
-## MCP server conflicts
+## MCP server conflicts (check 5 of 5)
 <one line per conflict from check-mcp-conflicts.sh, or "✓ no conflicts" if ALL_MCP_CONFLICTS_PASS>
 ```
+
+This is a check heading, not the verdict — number it so a clean result here is not mistaken for
+the run's conclusion. The verdict is the report that follows.
 
 For each conflict (`critical` row, naming two-or-more `plugin:server` pairs pointing at the same
 resolved endpoint): this is **not** a case of a server being unable to handle multiple plugins —
@@ -284,14 +309,32 @@ which one wins isn't something to rely on, so ask explicitly via `AskUserQuestio
 plugin, or "leave as-is"). Selecting one disables the others via `~/.claude/settings.json`'s
 `enabledPlugins` (set the non-selected ones to `false`). Never guess which one the user wants.
 
-Finish with a summary:
+Finish with the report below. **The last thing on screen decides what the user does next**, so
+the run's verdict opens it and the action they must take closes it. An earlier draft ended on
+the conflict section, and a heading reading "MCP server conflicts" above a clean result was read
+as a failure — a section title is not a conclusion.
 
 ```
-### Summary
-- Fixed this session: <N> (or "none")
-- Still needs attention: <N> — <what, and the exact next command>
-- All clear: <list of checks that passed and needed nothing>
+## Doctor result — <one line: what state the environment is now in>
+
+### Done this session
+<what was installed/written, one line each; "nothing — everything was already in place" if none>
+
+### Left as-is
+<checks that passed and needed no action; items the user chose to skip, with how to get them later>
+
+### Next action                      ← omit this heading entirely when there is nothing to do
+<the single thing the user must do now, first and alone. If a restart is needed, say that and
+stop — do not bury it under other notes, and do not add anything after this section.>
 ```
+
+Rules for that last section:
+
+- **One action, stated as an instruction**, not as an explanation of why it is needed. "Restart
+  Claude Code" first; the reason after, if at all.
+- **Nothing follows it.** Caveats, skipped items and known limitations go in *Left as-is* or
+  before the summary. Anything printed after the action competes with it.
+- **No heading when there is no action.** An empty "Next action" invites a search for one.
 
 ## Known limitations (say so if relevant, don't silently omit)
 

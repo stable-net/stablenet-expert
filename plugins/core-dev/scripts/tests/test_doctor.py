@@ -4,6 +4,7 @@
 Run:  python3 plugins/core-dev/scripts/tests/test_doctor.py
 """
 import json
+import os
 import re
 import subprocess
 import sys
@@ -163,9 +164,17 @@ class TestRemediationTable(unittest.TestCase):
 
 class TestRemediationRouting(unittest.TestCase):
     def _run_json(self, cwd, plugin_root):
-        # strip required env so the fresh-repo path is deterministic
-        import os
-        env = {k: v for k, v in os.environ.items() if k not in doctor.ENV_KEYS}
+        """Run doctor over a bare temp repo.
+
+        Only PATH is carried through. Inheriting the developer's environment made this
+        machine-dependent: ENV_KEYS was stripped but the pack's repo_root_env was not, so once
+        a real doctor run put GO_STABLENET_ROOT in the shell, "unset in a fresh repo" stopped
+        being true here and the test failed on a working tree that was fine.
+
+        HOME goes to the temp dir too -- doctor falls back to the global settings, which on a
+        developer machine holds the very keys this test asserts are absent.
+        """
+        env = {"PATH": os.environ.get("PATH", ""), "HOME": str(cwd / "_isolated_home")}
         r = subprocess.run(
             [sys.executable, str(DOCTOR_PY), "--plugin-root", str(plugin_root), "--json"],
             cwd=str(cwd), capture_output=True, text=True, env=env)

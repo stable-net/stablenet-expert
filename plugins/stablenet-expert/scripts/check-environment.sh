@@ -41,19 +41,10 @@ else
   all_pass=false
 fi
 
-# Node >= 18 + npm -- chainbench MCP server (TypeScript)
-if command -v node >/dev/null 2>&1; then
-  node_version="$(node --version | sed 's/^v//')"
-  if version_ge "$node_version" "18.0.0"; then
-    emit "Node" "pass" "v$node_version"
-  else
-    emit "Node" "warn" "v$node_version found, need >= 18 (chainbench MCP server)"
-    all_pass=false
-  fi
-else
-  emit "Node" "warn" "not found -- chainbench MCP server (TypeScript) will not run"
-  all_pass=false
-fi
+# Node is deliberately NOT checked. It was required when chainbench's MCP server was
+# TypeScript; that server is a Go binary now (chainbench's Makefile builds it with `go build`),
+# and no repository in this ecosystem carries a package.json. Reporting a missing Node told
+# users to install something nothing uses.
 
 # git >= 2.40 -- branch/commit/log throughout the pipeline
 if command -v git >/dev/null 2>&1; then

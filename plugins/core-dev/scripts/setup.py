@@ -57,6 +57,11 @@ PUBLIC = "settings.json"
 SECRET = "settings.local.json"
 
 REQUIRED = [
+    ("STABLENET_KNOWLEDGE_MCP_URL", PUBLIC,
+     "stablenet-knowledge server endpoint -- the retrieval the planner runs on. Without it the "
+     "MCP server cannot start, and the pipeline plans against whatever the model already knows "
+     "instead of against this codebase",
+     "the http://host:port/mcp address of the server your team runs; ask whoever operates it"),
     ("CHAINBENCH_DIR", PUBLIC, "chainbench checkout directory",
      "sibling chainbench repo's checkout path"),
 ]

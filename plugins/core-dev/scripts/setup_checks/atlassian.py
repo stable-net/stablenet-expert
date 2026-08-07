@@ -52,9 +52,16 @@ UNAUTHENTICATED = "installed"    # installed, OAuth not completed
 READY = "authenticated"
 UNKNOWN = "unknown"              # the CLI could not be consulted -- state undetermined
 
-DESCRIPTION = ("Jira access for the pipeline -- reads the ticket, posts comments, moves "
-               "status. core-dev takes its work item from here, so /core-dev:work cannot "
-               "start without it.")
+# Shown verbatim to the user when they are asked whether to install it, so it has to answer
+# "what do I lose by saying no" -- not just "what is this". Skipping is a legitimate choice
+# (the free-text entry point needs no Jira at all), but only if the cost is on screen.
+DESCRIPTION = (
+    "Jira access for the pipeline: reads the ticket, posts comments, moves status. "
+    "Skipping leaves these unusable until you install it: "
+    "/core-dev:work <TICKET> (no ticket to read -- but /core-dev:work <TICKET> --local "
+    "<file> and /core-dev:analyze \"<requirement>\" need no Jira and still work), and "
+    "/core-dev:review <PR-URL>, which reads the ticket id off the PR. "
+    "/core-dev:merge still merges; only its Jira status update is skipped with a warning.")
 HOW_TO_FIND = (f"external plugin: claude plugin marketplace add {MARKETPLACE} && "
                f"claude plugin install {PLUGIN}, then claude mcp login {SERVER}")
 

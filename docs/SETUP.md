@@ -32,7 +32,6 @@ If something fails, skip to [§9 Troubleshooting](#9-troubleshooting).
 |------|-----|-------|
 | Go ≥ 1.25 | Build the sibling stablenet-knowledge-mcp/chainbench Go wire | `go version` |
 | C toolchain (cc/clang) | stablenet-knowledge links sqlite-vec (CGO) | `cc --version` |
-| Node ≥ 18 + npm | chainbench MCP server (TypeScript) | `node --version` |
 | git ≥ 2.40 | Branch/commit/log throughout the pipeline | `git --version` |
 | GitHub CLI (`gh`) ≥ 2.50 | PR creation, comments, status checks, merge | `gh auth status` |
 | Claude Code | Hosts the plugin | (CLI/IDE) |
@@ -131,12 +130,15 @@ wire binary:
 
 ```bash
 cd ../chainbench
-( cd mcp-server && npm install && npm run build )   # produces mcp-server/dist/index.js
-go build -C network -o chainbench-net ./cmd/chainbench-net
+make build          # go build -> bin/{chainbench,chainbenchd,chainbench-mcp}
 ```
 
-The `chainbench-mcp` launcher (on PATH after `./install.sh`, or invoked
-directly) execs `${CHAINBENCH_DIR}/mcp-server/dist/index.js`.
+`chainbench-mcp` is a Go binary. `./install.sh` puts it on PATH; `.mcp.json` launches it by
+name, so "not found or not executable" from doctor means this build has not been run.
+
+(It was TypeScript once, and `mcp-server/` still holds a stale `node_modules` with no
+`package.json` beside it. Nothing builds from there — do not follow an `npm run build` in an
+older copy of these instructions.)
 
 ---
 

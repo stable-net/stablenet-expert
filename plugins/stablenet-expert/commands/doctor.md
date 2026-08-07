@@ -197,7 +197,14 @@ A script has no such constraint — `Bash` only needs a path, and `installPath` 
 plugin in this marketplace ships `scripts/setup.py` with `--check`, `--fix`, and `--json` for
 exactly this reason, so **a plugin installed in Step 4 gets its setup in the same session.**
 
-For each plugin processed, resolve its path and check:
+**Run this for every enabled plugin of this marketplace, not only the ones installed or
+changed in this run.** Installation and configuration are different things: a plugin that has
+been installed for weeks can still be missing a value, and an earlier version of this step only
+delegated for plugins it had just touched — so a machine whose `core-dev` was already installed
+got no setup questions at all, and the missing value stayed missing every time doctor ran. The
+cost is one `--check --json` per plugin.
+
+For each such plugin, resolve its path and check:
 
 ```bash
 python_bin="${STABLENET_EXPERT_PYTHON:-python3}"
@@ -205,8 +212,9 @@ plugin_path=$("$python_bin" -c "import json,pathlib; print(json.load(open(pathli
 "$python_bin" "$plugin_path/scripts/setup.py" --check --json
 ```
 
-The JSON carries one row per requirement: `key`, `row_kind`, `description` (what the value is
-*for*), `how_to_find`, `status`, `auto_fixable`, `opens_browser`, `secret`. That is the plugin's
+The JSON carries one row per requirement: `key`, `row_kind`, `serves` (which MCP server it is
+for), `description` (what the value is *for*), `how_to_find`, `status`, `resolved_value`,
+`value_withheld`, `auto_fixable`, `opens_browser`, `secret`. That is the plugin's
 own authoritative account of its requirements — this command has no env knowledge of any other
 plugin (ADR-0011 §2.2) and must not second-guess it.
 
@@ -240,12 +248,43 @@ restart into a pipeline that cannot read a ticket.
   A `status` of `unknown` means the script could not consult the `claude` CLI at all — report
   that as a broken CLI, not as a missing plugin.
 
-Then split the `env` rows and act on each kind differently:
+### Ask by MCP server, one tab each
+
+Group every outstanding row — from all plugins — by **which MCP server it is for**, and put
+each group in its own `AskUserQuestion` question. `AskUserQuestion` takes up to four questions
+in one call and renders each `header` as a tab, so this is one call, not three.
+
+**Group on the row's `serves` field, never on the key name.** Each row says which server it is
+for, because the plugin owns that knowledge and this command owns none of it (ADR-0011 §2.2) —
+reading it out of `STABLENET_KNOWLEDGE_MCP_URL` here would be the guess that principle forbids,
+and it would break the moment a plugin adds a second value for the same server.
+
+| `serves` | `header` | Also in this tab |
+|---|---|---|
+| `atlassian` | `Atlassian MCP` | — |
+| `stablenet-knowledge` | `Knowledge MCP` | — |
+| `chainbench` | `Chainbench MCP` | the `chainbench-mcp` binary, if Step 2 reported it missing |
+
+`serves: null` means the row belongs to no server. Do not invent a tab for it — see below.
+
+Grouping by server rather than by fix-kind is what makes the questions answerable: "set
+CHAINBENCH_DIR and install a plugin and supply a URL" is three unrelated decisions in one list,
+while "chainbench needs this" is one subject the user can accept or decline as a unit.
+
+**Omit a tab entirely when its server has nothing outstanding.** An empty question invites a
+search for something to answer. If only one server needs anything, ask a single question —
+`AskUserQuestion` requires at least two *options*, not two questions, and a lone tab reads fine.
+
+A row that is not tied to any server — the active pack's `repo_root_env` — is not asked about at
+all. There is nothing to choose: it is the checkout setup was run from, and `setup.py` refuses
+it outright when that is not a repository (`NOT-A-REPO`). Report what it did, do not offer it.
+
+Within each tab, the rows still split by kind:
 
 - **`auto_fixable` rows** — the value is already resolvable (detected on this machine, or
-  present in global settings). Offer them together in one `AskUserQuestion` (multi-select),
-  one option per key, using the row's `description` as the option description so the user can
-  see what each value is for rather than guessing from the variable name.
+  present in global settings). One option per key inside that server's tab, using the row's
+  `description` as the option description so the user can see what each value is for rather
+  than guessing from the variable name. Use `multiSelect: true` when a tab holds more than one.
 
   **Show `resolved_value` in the option too.** "Shall I set CHAINBENCH_DIR?" is not a question
   anyone can answer: detection can land on a stale checkout, and approving a value you cannot
@@ -292,8 +331,9 @@ its report should be folded in verbatim. If the plugin was installed during this
 script, say plainly that its setup needs a restart first — that is now the exception, not the
 rule.
 
-This is per-plugin, done as each plugin is processed — not a separate pass over every enabled
-plugin at the end.
+Collect the rows from every plugin before asking, then ask once (below). Asking per plugin
+would put the same three subjects in front of the user twice as soon as a second plugin needs
+anything.
 
 If a fix requires a session restart to take effect (plugin install/enable, `enabledPlugins`
 changes — which is every case above where delegation was deferred), say so plainly and don't

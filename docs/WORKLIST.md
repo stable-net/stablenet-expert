@@ -53,8 +53,14 @@ README 기준 4-카테고리 로드맵 중 `core-dev`·`contract-dev`(1단계) �
   - `work-with-jira <TICKET>` — 지금의 `work`. Jira 티켓 번호를 받는다.
   - `work-with-prompt "<요구사항>"` — **지금의 `analyze` 를 이름만 바꾸면 된다.** 이미 자유
     텍스트를 받고 Jira 를 안 쓴다(`requirement_source: "local"`).
-  - `work` 의 `--local <ticket.json>` 옵션은 어디로 갈지 정해야 한다. Jira 없이 티켓 JSON 을
-    읽는 경로라 이름상 `work-with-jira` 에도 `work-with-prompt` 에도 안 맞는다.
+  - `work` 의 `--local <ticket.json>` 은 **제거한다**(2026-08-07 결정). 이 옵션의 유일한 고유
+    역할은 "미리 써둔 ticket.json 으로 파이프라인을 돌려보기"였는데, `work-with-prompt` 가
+    Jira 없이 같은 일을 하고 티켓 파일을 준비할 필요도 없다. 확인한 것: **벤치는 이 옵션을
+    쓰지 않는다** — `bench-orchestration` SKILL.md §121 이 manifest 의 티켓 파일을 셀
+    워크스페이스로 직접 복사하므로 커맨드를 거치지 않는다.
+  - 제거하면 따라오는 것: `docs/SETUP.md` §7 스모크 테스트를 `work-with-prompt` 기준으로 다시
+    쓰고(§7.1b 가 이미 같은 절차를 설명한다), `state-machine` 의 `sensitive_check` 허용값에서
+    `"LOCAL_BYPASS"` 를 뺀다(그 값을 쓰는 유일한 경로가 사라진다).
   - 이름이 바뀌면 이것들도 같이 바뀐다: `atlassian.py` 의 skip 설명, `docs/SETUP.md` §7 스모크
     테스트, `core-dev/README.md` 커맨드 표, orchestrator/planner 프롬프트의 진입점 언급.
 

@@ -126,6 +126,14 @@ PYEOF
   fi
 fi
 
+if [ "$APPLY" -eq 1 ] && [ "$ALL_ENV" -eq 1 ]; then
+  printf '\n=== 다음 단계\n'
+  printf '    Claude Code 를 재시작하세요. 세션은 시작할 때 settings 의 env 를 읽어가므로,\n'
+  printf '    파일에서 지워도 **이 세션의 프로세스 환경에는 그대로 남아 있습니다**. 재시작하지\n'
+  printf '    않으면 setup 이 그 값을 찾아내고 "이미 설정됨"으로 판정해, 다시 묻는지 확인하려던\n'
+  printf '    바로 그 인터랙션이 나오지 않습니다.\n'
+fi
+
 if [ "$APPLY" -eq 1 ]; then
   printf '\n=== 남은 것 확인\n'
   claude plugin list 2>&1 | sed 's/^/    /'

@@ -135,12 +135,20 @@ class TestAutonomousIndependentOfFix(unittest.TestCase):
         self.assertIn("Read(.claude/settings.local.json)", setup.AUTONOMOUS_DENY)
 
 
+def _git_repo(d: Path) -> Path:
+    """A real repository. These tests are about *which* repo gets pinned, so the directory has
+    to be one -- a bare temp dir is now refused as NOT-A-REPO before the plugin-repo guard is
+    ever reached."""
+    subprocess.run(["git", "init", "-q"], cwd=d, check=True)
+    return d
+
+
 class TestPluginRepoGuard(unittest.TestCase):
     """repo_root_env must NOT be pinned when cwd is the core-dev plugin repo."""
 
     def test_plugin_repo_reports_mismatch(self):
         with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
+            d = _git_repo(Path(d))
             (d / ".claude-plugin").mkdir()           # marker => is_plugin_repo
             r = _run(d, "--check")
             self.assertIn("MISMATCH", r.stdout)
@@ -148,14 +156,14 @@ class TestPluginRepoGuard(unittest.TestCase):
 
     def test_target_repo_pins_repo_root(self):
         with tempfile.TemporaryDirectory() as d:
-            d = Path(d)                              # no marker => target repo
+            d = _git_repo(Path(d))                   # no marker => target repo
             r = _run(d, "--check")
             self.assertIn("REPO-ROOT", r.stdout)
             self.assertIn("GO_STABLENET_ROOT", r.stdout)
 
     def test_fix_in_plugin_repo_skips_repo_root_env(self):
         with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
+            d = _git_repo(Path(d))
             (d / ".claude-plugin").mkdir()
             r = _run(d, "--fix")
             self.assertIn("skipped GO_STABLENET_ROOT", r.stdout)
@@ -165,7 +173,7 @@ class TestPluginRepoGuard(unittest.TestCase):
 
     def test_project_override_pins_even_in_plugin_repo(self):
         with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
+            d = _git_repo(Path(d))
             (d / ".claude-plugin").mkdir()
             # explicit --project means the user asserts the active pack -> pin it
             r = _run(d, "--check", "--project", "go-stablenet")
@@ -251,6 +259,79 @@ class TestJSONOutput(unittest.TestCase):
             self.assertTrue(set(payload["not_ready"]) <= keys, "not_ready must name rows")
             for key in payload["missing"]:
                 self.assertIn(key, payload["not_ready"], "missing implies not ready")
+
+
+class TestValueVisibility(unittest.TestCase):
+    """A caller has to be able to show what it is about to write -- except where showing it is
+    the problem."""
+
+    def test_a_path_carries_its_value(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            r = _run(tmp, "--check", "--json", "--set", "CHAINBENCH_DIR=/opt/cb")
+            row = next(x for x in json.loads(r.stdout)["rows"] if x["key"] == "CHAINBENCH_DIR")
+            self.assertEqual(row["resolved_value"], "/opt/cb")
+            self.assertFalse(row["value_withheld"])
+
+    def test_an_endpoint_never_does(self):
+        """commands/doctor.md: never print a resolved MCP connection value. That rule is not
+        about credentials -- an endpoint names a machine on someone's network, and this output
+        becomes a conversation transcript."""
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            r = _run(tmp, "--check", "--json",
+                     "--set", "STABLENET_KNOWLEDGE_MCP_URL=http://10.1.2.3:9999/mcp")
+            self.assertNotIn("10.1.2.3", r.stdout, "an endpoint must not reach the caller")
+            row = next(x for x in json.loads(r.stdout)["rows"]
+                       if x["key"] == "STABLENET_KNOWLEDGE_MCP_URL")
+            self.assertIsNone(row["resolved_value"])
+            self.assertTrue(row["value_withheld"], "must say it is set, just not shown")
+
+
+class TestOnlyPersistedCountsAsReady(unittest.TestCase):
+    def test_a_process_only_value_is_not_ready(self):
+        """`env` means the value is in this process and nowhere on disk. Claude Code reads
+        ${VAR} from settings, so such a value is gone at restart -- reporting it as ready is
+        how a machine passes setup and then fails to start its MCP servers next session."""
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            env = dict(_CLEAN_ENV, HOME=str(tmp / "_h"), CHAINBENCH_DIR="/opt/cb")
+            r = subprocess.run([sys.executable, str(SETUP_PY), "--check", "--json"],
+                               cwd=str(tmp), capture_output=True, text=True, env=env)
+            payload = json.loads(r.stdout)
+            row = next(x for x in payload["rows"] if x["key"] == "CHAINBENCH_DIR")
+            self.assertEqual(row["status"], "env")
+            self.assertIn("CHAINBENCH_DIR", payload["not_ready"])
+            self.assertTrue(row["auto_fixable"], "the value is known; only the writing is missing")
+
+    def test_a_persisted_value_is_ready(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            (tmp / ".claude").mkdir()
+            (tmp / ".claude" / "settings.json").write_text(
+                json.dumps({"env": {"CHAINBENCH_DIR": "/opt/cb"}}))
+            payload = json.loads(_run(tmp, "--check", "--json").stdout)
+            row = next(x for x in payload["rows"] if x["key"] == "CHAINBENCH_DIR")
+            self.assertEqual(row["status"], "project")
+            self.assertNotIn("CHAINBENCH_DIR", payload["not_ready"])
+
+
+class TestRepoRootEnvIsChecked(unittest.TestCase):
+    def test_a_directory_that_is_not_a_repo_is_refused(self):
+        """_repo_root() falls back to the cwd when git says nothing, so running from a folder
+        that merely contains checkouts would pin that folder -- and the Evaluator would run the
+        pack's build and test commands in a directory that was never a project."""
+        with tempfile.TemporaryDirectory() as td:
+            r = _run(Path(td), "--check")
+            self.assertIn("NOT-A-REPO", r.stdout)
+            self.assertNotIn("REPO-ROOT", r.stdout)
+
+    def test_a_real_repo_is_pinned(self):
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
+            r = _run(tmp, "--check")
+            self.assertIn("REPO-ROOT", r.stdout)
 
 
 if __name__ == "__main__":

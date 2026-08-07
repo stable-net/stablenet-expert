@@ -53,6 +53,17 @@ from pathlib import Path
 from setup_checks import atlassian, manifest
 
 # (key, where, description, how-to-find)
+# Sources that survive the session. _resolve reports one of
+# {set, project, global, env, detected, none}; only these two are written down.
+PERSISTED_SOURCES = ("project", "global")
+
+# Values that must never be surfaced, even though they are not credentials. An endpoint names a
+# machine on someone's network, and doctor's whole output becomes part of a conversation
+# transcript -- the same rule commands/doctor.md states as "never print a resolved MCP
+# connection value (URL, IP, hostname, token)". Paths are fine: they say nothing about the
+# network and the user needs to see them to spot a wrong checkout.
+UNPRINTABLE = ("STABLENET_KNOWLEDGE_MCP_URL",)
+
 PUBLIC = "settings.json"
 SECRET = "settings.local.json"
 
@@ -114,7 +125,12 @@ def _row_ready(row: dict) -> bool:
     as `auto_fixable`: there is nothing left to fix exactly when nothing is wrong.
     """
     if row["row_kind"] == "env":
-        return row["status"] != "missing"
+        # Only a persisted value counts. `env` means the value exists in *this process* and
+        # nowhere on disk, so it disappears with the session -- Claude Code reads ${VAR} from
+        # settings, not from whatever shell happened to start it. `detected` is a guess we have
+        # not written down yet. Calling either "ready" is how a machine passes setup and then
+        # fails to start its MCP servers the next morning.
+        return row["status"] in PERSISTED_SOURCES
     return not row["auto_fixable"]
 
 
@@ -528,6 +544,16 @@ def main(argv: list[str] | None = None) -> int:
                 "description": desc,
                 "how_to_find": hint,
                 "status": "missing" if val is None else src,
+                # What would actually be written. The caller shows this before asking, because
+                # "shall I set CHAINBENCH_DIR?" is not a question anyone can answer -- detection
+                # can land on the wrong checkout, and approving a value you cannot see is not
+                # consent. Secrets stay out: a row that carries one is not printable.
+                "resolved_value": (None if (val is None or where == SECRET or key in UNPRINTABLE)
+                                   else val),
+                # Why the value is absent, so the caller can say "set, not shown" rather than
+                # implying nothing is configured.
+                "value_withheld": bool(val is not None
+                                       and (where == SECRET or key in UNPRINTABLE)),
                 "auto_fixable": val is not None and src != "project",
                 "opens_browser": False,
                 "secret": where == SECRET,
@@ -568,9 +594,19 @@ def main(argv: list[str] | None = None) -> int:
     is_plugin_repo = bool(repo_root) and (
         (repo_root / ".claude-plugin").is_dir()
         or (repo_root / "plugins" / "core-dev" / ".claude-plugin").is_dir())
-    pin_rre = bool(rre) and not (is_plugin_repo and not args.project)
+    # repo_root is a *guess*: _repo_root() falls back to the working directory when git says
+    # nothing, so running from a folder that merely contains checkouts pins that folder. The
+    # Evaluator then runs the pack's build and test commands there and fails on a directory
+    # that was never a project. Refuse the two guesses that are visibly wrong rather than
+    # writing them and letting the failure surface three stages later.
+    not_a_repo = bool(repo_root) and not (repo_root / ".git").exists()
+    pin_rre = bool(rre) and not (is_plugin_repo and not args.project) and not not_a_repo
     if rre and pin_rre:
         print(f"  {rre:<18} {'REPO-ROOT':<10} {repo_root}  [{PUBLIC}] (active pack repo_root_env)")
+    elif rre and not_a_repo:
+        print(f"  {rre:<18} {'NOT-A-REPO':<10} {repo_root} has no .git — repo_root_env NOT written.")
+        print(f"  {'':<18} {'':<10} This value names the checkout the pipeline builds and tests, so")
+        print(f"  {'':<18} {'':<10} run setup from inside it (or pass --repo <path>).")
     elif rre:
         print(f"  {rre:<18} {'MISMATCH':<10} cwd is the stablenet-expert plugin repo, not a target "
               "project — repo_root_env NOT written (run from the target repo, or pass --project)")

@@ -31,6 +31,10 @@ class Sandbox:
         self.proj = root / "proj"
         self.home.mkdir()
         self.proj.mkdir()
+        # A real directory: CHAINBENCH_DIR is validated for existence now, so a made-up path
+        # like /opt/cb is refused before anything is written.
+        self.cb = root / "chainbench"
+        self.cb.mkdir()
         subprocess.run(["git", "init", "-q"], cwd=self.proj, check=True)
 
     def run(self, *flags, cwd=None):
@@ -64,32 +68,32 @@ class TestScope(SandboxCase):
         """Machine-level values -- one chainbench checkout -- belong to the machine, not to
         whichever project happened to run setup. This also matches set-mcp-env.sh, which has
         defaulted to user scope all along."""
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
-        self.assertEqual(self.box.env_of(self.box.home).get("CHAINBENCH_DIR"), "/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
+        self.assertEqual(self.box.env_of(self.box.home).get("CHAINBENCH_DIR"), str(self.box.cb))
         self.assertNotIn("CHAINBENCH_DIR", self.box.env_of(self.box.proj))
 
     def test_repo_root_env_stays_project_local_even_at_user_scope(self):
         """"Which checkout is the target" is per project by definition; writing it globally
         would make a second checkout silently build the first."""
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
         self.assertIn("GO_STABLENET_ROOT", self.box.env_of(self.box.proj))
         self.assertNotIn("GO_STABLENET_ROOT", self.box.env_of(self.box.home))
 
     def test_scope_project_keeps_everything_local(self):
-        self.box.run("--fix", "--scope", "project", "--set", "CHAINBENCH_DIR=/opt/cb")
-        self.assertEqual(self.box.env_of(self.box.proj).get("CHAINBENCH_DIR"), "/opt/cb")
+        self.box.run("--fix", "--scope", "project", "--set", f"CHAINBENCH_DIR={self.box.cb}")
+        self.assertEqual(self.box.env_of(self.box.proj).get("CHAINBENCH_DIR"), str(self.box.cb))
         self.assertEqual(self.box.env_of(self.box.home), {})
 
 
 class TestUninstall(SandboxCase):
     def test_dry_run_by_default(self):
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
         r = self.box.run("--uninstall")
         self.assertIn("dry run", r.stdout)
-        self.assertEqual(self.box.env_of(self.box.home).get("CHAINBENCH_DIR"), "/opt/cb")
+        self.assertEqual(self.box.env_of(self.box.home).get("CHAINBENCH_DIR"), str(self.box.cb))
 
     def test_yes_removes_what_setup_wrote(self):
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
         self.box.run("--uninstall", "--yes")
         self.assertNotIn("CHAINBENCH_DIR", self.box.env_of(self.box.home))
         self.assertNotIn("GO_STABLENET_ROOT", self.box.env_of(self.box.proj))
@@ -98,14 +102,14 @@ class TestUninstall(SandboxCase):
         """The reason the manifest stores values, not just key names. Reverting an edit the
         user made after setup ran is worse than leaving a stale key behind -- one is a
         surprise, the other is tidy-up they can do themselves."""
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
         self.box.write_env(self.box.home, CHAINBENCH_DIR="/my/own/path")
         r = self.box.run("--uninstall", "--yes")
         self.assertIn("KEEP", r.stdout)
         self.assertEqual(self.box.env_of(self.box.home).get("CHAINBENCH_DIR"), "/my/own/path")
 
     def test_keys_we_never_wrote_are_untouched(self):
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
         self.box.write_env(self.box.home, UNRELATED_KEY="keep-me")
         self.box.run("--uninstall", "--yes")
         self.assertEqual(self.box.env_of(self.box.home).get("UNRELATED_KEY"), "keep-me")
@@ -113,18 +117,20 @@ class TestUninstall(SandboxCase):
     def test_no_manifest_removes_nothing_and_says_why(self):
         """Without provenance there is no way to tell our keys from the user's, and guessing
         means deleting their values. Refusing is the safe direction."""
-        self.box.write_env(self.box.home, CHAINBENCH_DIR="/opt/cb")
+        # Written straight into the file, bypassing --set: this is a value the user put there
+        # themselves, which is precisely what must survive.
+        self.box.write_env(self.box.home, CHAINBENCH_DIR="/their/own/path")
         r = self.box.run("--uninstall", "--yes")
         self.assertIn("no manifest", r.stdout)
-        self.assertEqual(self.box.env_of(self.box.home).get("CHAINBENCH_DIR"), "/opt/cb")
+        self.assertEqual(self.box.env_of(self.box.home).get("CHAINBENCH_DIR"), "/their/own/path")
 
     def test_manifest_is_dropped_once_applied(self):
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
         self.box.run("--uninstall", "--yes")
         self.assertFalse((self.box.home / ".claude" / MANIFEST).is_file())
 
     def test_running_it_twice_is_harmless(self):
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
         self.box.run("--uninstall", "--yes")
         r = self.box.run("--uninstall", "--yes")
         self.assertEqual(r.returncode, 0)
@@ -133,7 +139,7 @@ class TestUninstall(SandboxCase):
     def test_the_shared_atlassian_plugin_is_not_removed_silently(self):
         """It may be serving the user's own Jira work, and another plugin may need it. The
         commands are printed for them to run, not run for them."""
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
         r = self.box.run("--uninstall", "--yes")
         self.assertIn("claude plugin uninstall atlassian@claude-plugins-official", r.stdout)
         self.assertIn("claude mcp logout", r.stdout)
@@ -155,7 +161,7 @@ class TestRunFromAnywhere(SandboxCase):
     """
 
     def test_repo_flag_reaches_a_project_from_an_unrelated_cwd(self):
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
         outside = self.box.home            # any directory that is not the project
         r = self.box.run("--repo", str(self.box.proj), "--uninstall", "--yes", cwd=outside)
         self.assertNotIn("CHAINBENCH_DIR", self.box.env_of(self.box.home))
@@ -164,13 +170,13 @@ class TestRunFromAnywhere(SandboxCase):
 
     def test_it_prints_the_directories_it_examined(self):
         """A wrong project directory is only visible if the command says which one it used."""
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
         r = self.box.run("--uninstall")
         self.assertIn("looking in:", r.stdout)
         self.assertIn(str(self.box.proj), r.stdout)
 
     def test_a_cwd_outside_any_repo_says_the_project_is_not_in_scope(self):
-        self.box.run("--fix", "--set", "CHAINBENCH_DIR=/opt/cb")
+        self.box.run("--fix", "--set", f"CHAINBENCH_DIR={self.box.cb}")
         r = self.box.run("--uninstall", cwd=self.box.home)
         self.assertIn("--repo", r.stdout, "must point the user at how to include a project")
         self.assertIn("GO_STABLENET_ROOT", self.box.env_of(self.box.proj),

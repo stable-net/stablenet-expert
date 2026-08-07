@@ -261,6 +261,54 @@ class TestJSONOutput(unittest.TestCase):
                 self.assertIn(key, payload["not_ready"], "missing implies not ready")
 
 
+class TestValueValidation(unittest.TestCase):
+    """--set is how doctor writes a value the user just supplied, so the shape check runs there
+    rather than in the model's head."""
+
+    def test_a_malformed_url_is_refused(self):
+        with tempfile.TemporaryDirectory() as td:
+            r = _run(Path(td), "--check", "--set", "STABLENET_KNOWLEDGE_MCP_URL=not-a-url")
+            self.assertEqual(r.returncode, 2)
+            self.assertIn("http://", r.stderr)
+
+    def test_a_directory_that_does_not_exist_is_refused(self):
+        with tempfile.TemporaryDirectory() as td:
+            r = _run(Path(td), "--check", "--set", "CHAINBENCH_DIR=/nope/missing")
+            self.assertEqual(r.returncode, 2)
+
+    def test_a_valid_value_passes(self):
+        with tempfile.TemporaryDirectory() as td:
+            r = _run(Path(td), "--check",
+                     "--set", "STABLENET_KNOWLEDGE_MCP_URL=http://10.0.0.1:8930/mcp")
+            self.assertNotEqual(r.returncode, 2)
+
+    def test_a_credential_is_refused_and_never_echoed(self):
+        """The refusal cannot un-expose a value that already came through a question -- what it
+        prevents is the worse outcome, a token coming to rest in settings.json where every
+        session reads it. Repeating the value in the error would put it in the transcript a
+        second time, so the reason names the *prefix*, not the value."""
+        token = "ATATT3xFfGF0-fake-token-value-here"
+        with tempfile.TemporaryDirectory() as td:
+            r = _run(Path(td), "--check", "--set", f"STABLENET_KNOWLEDGE_MCP_URL={token}")
+            self.assertEqual(r.returncode, 2)
+            self.assertNotIn(token, r.stdout + r.stderr)
+            self.assertIn("set-mcp-env.sh", r.stderr, "must point at the hidden-input path")
+
+    def test_credentials_inside_a_url_are_refused(self):
+        with tempfile.TemporaryDirectory() as td:
+            r = _run(Path(td), "--check",
+                     "--set", "STABLENET_KNOWLEDGE_MCP_URL=http://u:p@10.0.0.1:8930/mcp")
+            self.assertEqual(r.returncode, 2)
+
+    def test_force_value_overrides_the_credential_check(self):
+        """A legitimate value can trip a prefix match. The escape hatch is explicit, so using it
+        is a decision rather than an accident."""
+        with tempfile.TemporaryDirectory() as td:
+            r = _run(Path(td), "--check", "--force-value",
+                     "--set", "CHAINBENCH_DIR=/tmp")
+            self.assertNotEqual(r.returncode, 2)
+
+
 class TestRowsDeclareTheirServer(unittest.TestCase):
     """doctor groups its questions by `serves`. The grouping has to come from the plugin: doctor
     owns no knowledge of another plugin's environment (ADR-0011 §2.2), and inferring it from key
@@ -286,24 +334,24 @@ class TestValueVisibility(unittest.TestCase):
     def test_a_path_carries_its_value(self):
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
-            r = _run(tmp, "--check", "--json", "--set", "CHAINBENCH_DIR=/opt/cb")
+            cb = tmp / "chainbench"; cb.mkdir()   # validated for existence
+            r = _run(tmp, "--check", "--json", "--set", f"CHAINBENCH_DIR={cb}")
             row = next(x for x in json.loads(r.stdout)["rows"] if x["key"] == "CHAINBENCH_DIR")
-            self.assertEqual(row["resolved_value"], "/opt/cb")
+            self.assertEqual(row["resolved_value"], str(cb))
             self.assertFalse(row["value_withheld"])
 
-    def test_an_endpoint_never_does(self):
-        """commands/doctor.md: never print a resolved MCP connection value. That rule is not
-        about credentials -- an endpoint names a machine on someone's network, and this output
-        becomes a conversation transcript."""
+    def test_an_endpoint_is_shown_too(self):
+        """An address is not a credential. Withholding it made doctor ask the user to approve a
+        value it would not show them, which is not consent. Credentials are still withheld --
+        that is what the SECRET column is for."""
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
             r = _run(tmp, "--check", "--json",
                      "--set", "STABLENET_KNOWLEDGE_MCP_URL=http://10.1.2.3:9999/mcp")
-            self.assertNotIn("10.1.2.3", r.stdout, "an endpoint must not reach the caller")
             row = next(x for x in json.loads(r.stdout)["rows"]
                        if x["key"] == "STABLENET_KNOWLEDGE_MCP_URL")
-            self.assertIsNone(row["resolved_value"])
-            self.assertTrue(row["value_withheld"], "must say it is set, just not shown")
+            self.assertEqual(row["resolved_value"], "http://10.1.2.3:9999/mcp")
+            self.assertFalse(row["value_withheld"])
 
 
 class TestOnlyPersistedCountsAsReady(unittest.TestCase):

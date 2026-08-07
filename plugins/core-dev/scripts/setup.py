@@ -50,19 +50,17 @@ from pathlib import Path
 # Dependency modules. setup.py owns the contract surface; each module owns one
 # dependency's state logic. Importable because running a script puts its directory
 # on sys.path[0].
-from setup_checks import atlassian, manifest
+from setup_checks import atlassian, manifest, validate
 
 # (key, where, description, how-to-find)
 # Sources that survive the session. _resolve reports one of
 # {set, project, global, env, detected, none}; only these two are written down.
 PERSISTED_SOURCES = ("project", "global")
 
-# Values that must never be surfaced, even though they are not credentials. An endpoint names a
-# machine on someone's network, and doctor's whole output becomes part of a conversation
-# transcript -- the same rule commands/doctor.md states as "never print a resolved MCP
-# connection value (URL, IP, hostname, token)". Paths are fine: they say nothing about the
-# network and the user needs to see them to spot a wrong checkout.
-UNPRINTABLE = ("STABLENET_KNOWLEDGE_MCP_URL",)
+# An address is not a credential. Withholding endpoints made doctor ask the user to approve a
+# value it would not show them, which is not consent -- and a setup tool that cannot show or
+# accept connection details cannot do its job. Credentials are still withheld: that is what the
+# SECRET column and setup_checks/validate.py are for.
 
 # Which MCP server each value serves. The caller groups its questions by this, and it has to
 # come from here: doctor owns no knowledge of another plugin's environment (ADR-0011 §2.2), so
@@ -458,6 +456,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="where env values are written: user (default, ~/.claude/settings.json, "
                          "applies everywhere) or project (this repo's .claude/). The active "
                          "pack's repo_root_env is always project-local either way.")
+    ap.add_argument("--force-value", action="store_true",
+                    help="write a --set value that failed validation. For the case where a "
+                         "legitimate value trips the credential check; not for silencing a "
+                         "shape error, which means the value is wrong.")
     ap.add_argument("--repo", default=None, metavar="PATH",
                     help="the project to act on. Defaults to the git root of the current "
                          "directory, which is why the plain command has to be run from inside "
@@ -486,7 +488,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: --set expects KEY=VALUE, got {item!r}", file=sys.stderr)
             return 2
         k, v = item.split("=", 1)
-        overrides[k.strip()] = v.strip()
+        k, v = k.strip(), v.strip()
+        reason = None if args.force_value else validate.check(k, v)
+        if reason:
+            # The value is never echoed back -- if it was refused for looking like a
+            # credential, repeating it here would put it in the transcript a second time.
+            print(f"error: {k} {reason}", file=sys.stderr)
+            return 2
+        overrides[k] = v
 
     repo_root = Path(args.repo).expanduser().resolve() if args.repo else _repo_root()
     if args.repo and not repo_root.is_dir():
@@ -558,12 +567,10 @@ def main(argv: list[str] | None = None) -> int:
                 # can land on the wrong checkout, and approving a value you cannot see is not
                 # consent. Secrets stay out: a row that carries one is not printable.
                 "serves": SERVES.get(key),
-                "resolved_value": (None if (val is None or where == SECRET or key in UNPRINTABLE)
-                                   else val),
+                "resolved_value": None if (val is None or where == SECRET) else val,
                 # Why the value is absent, so the caller can say "set, not shown" rather than
                 # implying nothing is configured.
-                "value_withheld": bool(val is not None
-                                       and (where == SECRET or key in UNPRINTABLE)),
+                "value_withheld": bool(val is not None and where == SECRET),
                 "auto_fixable": val is not None and src != "project",
                 "opens_browser": False,
                 "secret": where == SECRET,

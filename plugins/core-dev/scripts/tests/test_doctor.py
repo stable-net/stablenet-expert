@@ -61,6 +61,81 @@ class TestDetectProjectId(unittest.TestCase):
             self.assertIsNone(pid)
 
 
+class TestEnvPersistence(unittest.TestCase):
+    """A value that exists only in the process is not configured -- it is written down nowhere
+    and Claude Code substitutes ${VAR} from settings, not from this process. setup.py already
+    drew this line; doctor.py disagreed with it, and reported a machine as configured that
+    would fail to start its MCP servers after a restart."""
+
+    def _run(self, cwd, plugin_root, env_extra=None, home=None):
+        env = {"PATH": os.environ.get("PATH", ""), "HOME": str(home or (cwd / "_h"))}
+        env.update(env_extra or {})
+        r = subprocess.run(
+            [sys.executable, str(DOCTOR_PY), "--plugin-root", str(plugin_root), "--json"],
+            cwd=str(cwd), capture_output=True, text=True, env=env)
+        return json.loads(r.stdout)
+
+    def test_process_only_is_not_ok(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            root = _make_plugin_root(d, {"go-stablenet": "GO_STABLENET_ROOT"})
+            out = self._run(d, root, {"CHAINBENCH_DIR": "/tmp"})
+            self.assertEqual(out["env"]["CHAINBENCH_DIR"]["status"], "not_persisted")
+            self.assertIn("env_not_persisted", [i["kind"] for i in out["issues"]])
+
+    def test_a_persisted_value_is_ok(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            home = d / "_h"; (home / ".claude").mkdir(parents=True)
+            (home / ".claude" / "settings.json").write_text(
+                json.dumps({"env": {"CHAINBENCH_DIR": "/tmp"}}))
+            root = _make_plugin_root(d, {"go-stablenet": "GO_STABLENET_ROOT"})
+            out = self._run(d, root, {"CHAINBENCH_DIR": "/tmp"}, home=home)
+            self.assertEqual(out["env"]["CHAINBENCH_DIR"]["status"], "ok")
+
+    def test_the_global_settings_file_is_read(self):
+        """setup --fix writes env to the user-global file by default (ADR-0018). Reading only
+        the project's would call a correctly-configured machine unset."""
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            home = d / "_h"; (home / ".claude").mkdir(parents=True)
+            (home / ".claude" / "settings.json").write_text(
+                json.dumps({"env": {"CHAINBENCH_DIR": "/tmp"}}))
+            root = _make_plugin_root(d, {"go-stablenet": "GO_STABLENET_ROOT"})
+            out = self._run(d, root, home=home)
+            self.assertEqual(out["env"]["CHAINBENCH_DIR"]["status"], "restart_needed")
+
+
+class TestRepoRootEnvPointsAtARepo(unittest.TestCase):
+    def _run(self, cwd, plugin_root, value):
+        env = {"PATH": os.environ.get("PATH", ""), "HOME": str(cwd / "_h"),
+               "GO_STABLENET_ROOT": str(value)}
+        r = subprocess.run(
+            [sys.executable, str(DOCTOR_PY), "--plugin-root", str(plugin_root), "--json"],
+            cwd=str(cwd), capture_output=True, text=True, env=env)
+        return json.loads(r.stdout)
+
+    def test_a_non_repo_is_reported(self):
+        """The value can be inherited from an older session or typed by hand. The Evaluator runs
+        the pack's build and test commands there, so a wrong one fails three stages later, far
+        from the cause."""
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            root = _make_plugin_root(d, {"go-stablenet": "GO_STABLENET_ROOT"})
+            target = d / "not-a-repo"; target.mkdir()
+            out = self._run(d, root, target)
+            self.assertIn("repo_root_env_not_a_repo", [i["kind"] for i in out["issues"]])
+
+    def test_a_real_repo_passes(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            root = _make_plugin_root(d, {"go-stablenet": "GO_STABLENET_ROOT"})
+            target = d / "repo"; target.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=target, check=True)
+            out = self._run(d, root, target)
+            self.assertNotIn("repo_root_env_not_a_repo", [i["kind"] for i in out["issues"]])
+
+
 class TestTextReport(unittest.TestCase):
     """The default output path had no test, which is how a stale key reference shipped:
     render() still read out["stablenet_knowledge_config"] after the section was removed, so

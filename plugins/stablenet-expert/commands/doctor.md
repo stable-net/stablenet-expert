@@ -12,11 +12,18 @@ but keeps its delegation principle): this command owns marketplace-level and eco
 directly (toolchain gaps, plugin install/enable, MCP conflicts), but never reimplements a
 plugin's own environment setup — it delegates to that plugin's `/<plugin>:setup` if one exists.
 
-**Never print, echo, or paste a resolved MCP connection value (URL, IP, hostname, token) into
-this conversation, at any step below.** A Bash tool call's output becomes part of this
-conversation's context — an internal server's address has no more business there than a
-password would. Report configuration status by referring to the *env var name*, never the
-value it resolves to. See Step 2/4 for how this plays out concretely.
+**Never resolve-and-echo an already-configured MCP connection value into this conversation**
+(a Bash tool call's output becomes part of this conversation's context): in status reports,
+refer to the *env var name*, never the value it currently resolves to — that is what
+`check-mcp-connectivity.sh` does at Step 2. **Credentials (tokens) must never enter the
+conversation at all**, whether printed or typed in — those go through `set-mcp-env.sh`'s
+hidden-input prompt (Step 4).
+
+A connection *address* (URL/IP/hostname endpoint) is a different case: it is not a credential,
+so when a required one is *missing* and the user chooses to supply it, Step 4 accepts it as
+input like any other setting and lets the owning plugin's `setup.py` validate and write it
+(this is the direction #41 settled — "addresses and paths are shown and asked for; credentials
+are not"). See Step 2/4 for how this plays out concretely.
 
 Six steps, run in order:
 
@@ -156,44 +163,47 @@ different kinds of actions with different safety profiles, don't treat them unif
   it is built — `make` in the chainbench checkout, per `docs/SETUP.md` — and do not report the
   env row as resolved on its own. Building it is not run here for the same reason other toolchain
   installs are not: it is a build in a repository this command does not own.
-- **MCP env not configured** (Step 2 `critical` items — `STABLENET_KNOWLEDGE_MCP_URL`,
-  `CKS_MCP_URL`, anything else naming a URL/IP/token): `set-mcp-env.sh`
-  only covers the *mechanics* of persisting a value — it says nothing about where that value
-  actually comes from, and this command has no business hardcoding that (it's exactly the
-  domain knowledge ADR-0011 §2.2 says belongs to the owning plugin, not here). Before pointing
-  at `set-mcp-env.sh`, check whether the owning plugin has its own `/<plugin>:setup` and, if so,
-  invoke it (e.g. `Skill(skill: "core-dev:setup", args: "--check")`) — its report is expected to
-  say where to obtain each missing value (`core-dev/scripts/setup.py`'s `REQUIRED` table carries
-  a `how-to-find` hint per key for exactly this reason). Fold that guidance into what you tell
-  the user, then point at `set-mcp-env.sh` for the actual write. If the owning plugin has no
-  setup command, say plainly that you don't have "where to get this" guidance to offer and the
-  user will need to know the value already (or check that plugin's own README/docs).
+- **MCP env not configured** (Step 2 `critical` items naming a URL/IP/token — e.g.
+  `STABLENET_KNOWLEDGE_MCP_URL`, `CKS_MCP_URL`): where the value comes from is the owning
+  plugin's knowledge, not this command's (ADR-0011 §2.2), so consult that plugin's own
+  `/<plugin>:setup` for it — `core-dev/scripts/setup.py`'s `REQUIRED` table carries a
+  `how-to-find` hint per key, surfaced as `how_to_find` in its `--check --json` (read in the
+  delegation below). Fold that guidance into what you tell the user.
 
-  **`set-mcp-env.sh` belongs to this plugin, not to the one being configured.** Use
-  `${CLAUDE_PLUGIN_ROOT}` — it resolves to `stablenet-expert`'s own directory while this command
-  runs. Do not build the path from the `$plugin_path` resolved earlier in this step: that points
-  at whichever plugin is being set up, which does not ship this script, and the command then
-  fails on a path that does not exist.
+  **How the value is collected depends on what it is, and the owning plugin's `--check --json`
+  says which — decide from its `secret`/`value_withheld` flags, never from the key name:**
 
-  For a credential, still route through it rather than asking here — a token in the transcript
-  cannot be taken back, and it would come to rest in a settings file besides. Be explicit that
-  **they** run it, not you:
+  - **An address** (URL/IP/hostname endpoint, `secret: false`) is not a credential. Collect it
+    the normal way — the per-server `AskUserQuestion` below, writing through
+    `setup.py --fix --set KEY=VALUE`, which validates the shape (`validate.py`) and refuses
+    anything that looks like a token. `STABLENET_KNOWLEDGE_MCP_URL` is this case: it is required,
+    it is not secret, so it is asked for and written here rather than handed off. (A user who
+    would rather keep an internal address out of the transcript can still run the same
+    `setup.py --fix --set KEY=VALUE` themselves — offer that as the alternative, don't force it.)
+  - **A token** (`secret: true`, or `value_withheld: true`) must never enter this conversation.
+    Point the user at `set-mcp-env.sh` and be explicit that **they** run it, not you:
 
-  ```
-  Run this yourself, in your own terminal (don't ask me to run it, and don't paste the value
-  here — either would put it in this conversation):
+    ```
+    Run this yourself, in your own terminal (don't ask me to run it, and don't paste the value
+    here — either would put it in this conversation):
 
-      bash "${CLAUDE_PLUGIN_ROOT}/scripts/set-mcp-env.sh" STABLENET_KNOWLEDGE_MCP_URL
+        bash "${CLAUDE_PLUGIN_ROOT}/scripts/set-mcp-env.sh" <VAR_NAME>
 
-  Add `--scope project` to scope it to this project only (writes the gitignored
-  `.claude/settings.local.json` instead of the global `~/.claude/settings.json`). It prompts
-  with hidden input and never echoes the value back — that's the only "input field" this value
-  should ever go through.
-  ```
+    Add `--scope project` to scope it to this project only (writes the gitignored
+    `.claude/settings.local.json` instead of the global `~/.claude/settings.json`). It prompts
+    with hidden input and never echoes the value back — that's the only "input field" a secret
+    should ever go through.
+    ```
 
-  Never run `set-mcp-env.sh` yourself via the Bash tool — its whole point is a channel that
-  bypasses this conversation, and invoking it as a tool call would put its prompt/stdin/stdout
-  right back into that same conversation.
+    `set-mcp-env.sh` belongs to *this* plugin, not to the one being configured, so the path uses
+    `${CLAUDE_PLUGIN_ROOT}` (it resolves to `stablenet-expert`'s own directory while this command
+    runs). Do not build it from the `$plugin_path` resolved earlier in this step: that points at
+    whichever plugin is being set up, which does not ship this script, and the command then fails
+    on a path that does not exist. The script is generic — it writes whatever `<VAR_NAME>` you
+    pass — so this one copy handles a secret owned by any plugin. Never run `set-mcp-env.sh`
+    yourself via the Bash tool — its whole point is a channel that bypasses this conversation, and
+    invoking it as a tool call would put its prompt/stdin/stdout right back into that same
+    conversation.
 
 **Delegate by running the plugin's setup script, not by invoking its skill.** Claude Code
 registers a plugin's `commands/`/`skills/` at session startup, so `Skill(skill: "<plugin>:setup")`
@@ -329,9 +339,16 @@ Within each tab, the rows still split by kind:
   from settings. It appears in `not_ready` for that reason. Offer it like any other — the value
   is known, only the writing is missing. On confirmation:
   `"$python_bin" "$plugin_path/scripts/setup.py" --fix`. Report which keys it wrote, from the script's own output.
-- **`missing` rows that are not secret** — nothing to write unattended; the user has to supply
-  the value. Print the key, its `description`, and its `how_to_find` verbatim, and give them the
-  command to run themselves: `"$python_bin" "$plugin_path/scripts/setup.py" --fix --set KEY=VALUE`.
+- **`missing` rows that are not secret** — the value has to come from the user, but it is not a
+  credential (`secret: false`, `value_withheld: false`), so collect it in this server's
+  `AskUserQuestion` like the rest: show the key, its `description` and `how_to_find` verbatim,
+  and take the value as free text (the "Other" entry). Then write it yourself:
+  `"$python_bin" "$plugin_path/scripts/setup.py" --fix --set KEY=VALUE`. The script validates the
+  shape and refuses anything that looks like a token, exiting 2 with a reason that never repeats
+  the value — report that reason as-is and ask again; do not decide acceptability yourself.
+  `STABLENET_KNOWLEDGE_MCP_URL` is this case. (If the user would rather not put an internal
+  address in the transcript, offer the same `--set` command for them to run themselves instead —
+  don't force either path.)
 - **`missing` rows that are `secret: true`** — same as above except the value must never enter
   this conversation. Point at `set-mcp-env.sh` per the rules earlier in this step; do not offer
   `--set` for a secret and do not run it yourself.

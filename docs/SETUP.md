@@ -37,6 +37,7 @@ If something fails, skip to [§9 Troubleshooting](#9-troubleshooting).
 | Claude Code | Hosts the plugin | (CLI/IDE) |
 | Atlassian (Jira) Cloud account + official Atlassian MCP plugin | Source of tickets — see §4.1 for install + OAuth login, not an env var | `claude mcp list` |
 | Ollama + `bge-m3` | Required for full stablenet-knowledge retrieval (semantic + intent) | `ollama list` |
+| 그룹 보안 정책 | `~/.claude/rules/SECURITY.md` 가 있고 `~/.claude/CLAUDE.md` 가 `@rules/SECURITY.md` 로 import 해야 세션에 로드된다. 조직 배포물이라 이 리포가 제공하지 않는다 | `/stablenet-expert:doctor` |
 | Python 3.12+ | core-dev 훅 4종(`git-guard`/`doc-guard`/`session-context`/`on-stop`), doctor의 check 스크립트, 각 플러그인의 `scripts/setup.py` — 없으면 doctor가 플러그인 셋업 자체를 못 한다([ADR-0015](adr/ADR-0015-python-interpreter-selection.md)) | `python3 --version` |
 
 A note on optionality:

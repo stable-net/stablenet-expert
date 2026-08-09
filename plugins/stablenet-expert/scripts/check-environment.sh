@@ -122,6 +122,30 @@ else
   all_pass=false
 fi
 
+# Security policy -- the org's rules, loaded into every session through the user's CLAUDE.md.
+# Not shipped by this marketplace: it is organisation policy, so doctor checks and points, and
+# never writes it. Two failures are separated on purpose. A missing file is obvious once named;
+# a file that exists but is not imported is the dangerous one, because everything looks
+# installed while nothing is loaded -- the rules are simply absent from the session and no one
+# has a reason to suspect it.
+security_rules="$HOME/.claude/rules/SECURITY.md"
+claude_md="$HOME/.claude/CLAUDE.md"
+if [ ! -f "$security_rules" ]; then
+  emit "Security rules" "critical" \
+    "~/.claude/rules/SECURITY.md not found -- the group security policy is not installed. Get it from your security team and place it there, then add '@rules/SECURITY.md' to ~/.claude/CLAUDE.md"
+  all_pass=false
+elif [ ! -f "$claude_md" ]; then
+  emit "Security rules" "critical" \
+    "SECURITY.md is present but ~/.claude/CLAUDE.md does not exist, so nothing loads it -- create it with a line reading '@rules/SECURITY.md'"
+  all_pass=false
+elif ! grep -qE '^[[:space:]]*@(rules/|~/\.claude/rules/|\$HOME/\.claude/rules/)SECURITY\.md[[:space:]]*$' "$claude_md"; then
+  emit "Security rules" "critical" \
+    "SECURITY.md exists but ~/.claude/CLAUDE.md does not import it -- add a line reading '@rules/SECURITY.md'. Until then the policy is on disk but absent from every session"
+  all_pass=false
+else
+  emit "Security rules" "pass" "~/.claude/rules/SECURITY.md imported by ~/.claude/CLAUDE.md"
+fi
+
 if $all_pass; then
   emit "ALL_ENVIRONMENT_PASS" "pass" "all common ecosystem prerequisites present"
 fi

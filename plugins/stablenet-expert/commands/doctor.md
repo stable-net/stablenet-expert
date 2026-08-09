@@ -33,7 +33,8 @@ Six steps, run in order:
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-environment.sh"
 ```
 
-This is a **flat, ecosystem-wide** check — Go/C toolchain/Node/git/gh/python3/Ollama+bge-m3 (the
+This is a **flat, ecosystem-wide** check — Go/C toolchain/git/gh/python3/Ollama+bge-m3, plus the
+group security policy being installed *and imported* (the
 same list as `docs/SETUP.md` §1) — not broken down per plugin. It runs unconditionally,
 regardless of which plugins are installed, because these are shared prerequisites the whole
 marketplace draws from, not any one plugin's private dependency.
@@ -173,6 +174,16 @@ different kinds of actions with different safety profiles, don't treat them unif
   installed*, pulling a model is not a step that exists yet — offer the install command instead
   (below) and say the model pull follows it. Offering a pull that cannot run is worse than
   offering nothing: it reads as an available fix.
+- **`Security rules` (Step 0 `critical`)**: never fix this one. The file is organisation policy
+  and this marketplace does not ship it — writing something plausible into
+  `~/.claude/rules/SECURITY.md` would create a policy nobody approved, and adding the import
+  line while the file is absent would load nothing while looking configured. Print what the row
+  says and stop there.
+
+  It is worth saying out loud which of the two failures the user has, because they read the
+  same from a distance and are not the same problem. A missing file is visibly missing. A file
+  that exists but is not imported looks installed while the rules are absent from every
+  session — that is the one people do not think to check.
 - **Any other Step 0 toolchain gap** (missing Go/Node/git/gh/C toolchain): **do not** auto-run a
   system package manager on the user's behalf — installing system-wide tooling is exactly the
   kind of hard-to-reverse, environment-affecting action that needs its own explicit confirmation,

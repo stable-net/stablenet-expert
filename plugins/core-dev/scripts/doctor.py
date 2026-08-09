@@ -44,6 +44,10 @@ REMEDIATION = {
                             "action": "pass --project <id> to doctor and setup"},
     "repo_root_env_unset": {"klass": "setup",   "command": "/core-dev:setup --fix",
                             "action": "pin the active pack's repo_root_env, then restart the session"},
+    "env_not_persisted":   {"klass": "setup",   "command": "/core-dev:setup --fix",
+                            "action": "record the value in settings so it survives a restart"},
+    "repo_root_env_not_a_repo": {"klass": "setup", "command": "/core-dev:setup --repo <path> --fix",
+                            "action": "point repo_root_env at the checkout the pipeline builds"},
     "env_unset":           {"klass": "setup",   "command": "/core-dev:setup --fix",
                             "action": "detect & write the missing path env vars, then restart"},
     "env_secret_unset":    {"klass": "setup",   "command": "/core-dev:setup --fix --set <KEY>=<value>",
@@ -141,7 +145,10 @@ def diagnose(plugin_root: Path | None, project_id_override) -> dict:
     # --- env vars (process + settings) ---
     settings = _load_json(Path(repo_root) / ".claude" / "settings.json") if repo_root else {}
     slocal = _load_json(Path(repo_root) / ".claude" / "settings.local.json") if repo_root else {}
-    senv = {**settings.get("env", {}), **slocal.get("env", {})}
+    # The user-global file counts too. setup --fix writes env there by default (ADR-0018), so
+    # reading only the project's would report a correctly-configured machine as unset.
+    home = _load_json(Path.home() / ".claude" / "settings.json")
+    senv = {**home.get("env", {}), **settings.get("env", {}), **slocal.get("env", {})}
     keys = ([repo_root_env] if repo_root_env else []) + ENV_KEYS
     env_report = {}
     seen = set()
@@ -150,13 +157,37 @@ def diagnose(plugin_root: Path | None, project_id_override) -> dict:
             continue
         seen.add(k)
         pv, sv = os.environ.get(k), senv.get(k)
-        status = "ok" if pv else ("restart_needed" if sv else "unset")
+        # A value present only in the process is NOT ok. It came from the session's environment
+        # and is written down nowhere, so it is gone at the next restart -- and Claude Code
+        # substitutes ${VAR} in .mcp.json from settings, not from this process. Reporting it as
+        # configured is how a machine passes doctor and then fails to start its MCP servers.
+        # (setup.py draws the same line; this file used to disagree with it.)
+        if sv:
+            status = "ok" if pv else "restart_needed"
+        else:
+            status = "not_persisted" if pv else "unset"
         env_report[k] = {"process": _mask(k, pv), "settings": _mask(k, sv), "status": status}
         if sv and not pv:
             out["restart_needed"].append(k)
+        elif status == "not_persisted":
+            _add_issue(out, "env_not_persisted",
+                       f"{k} is set in this session but written to no settings file — it "
+                       f"disappears at restart; /core-dev:setup --fix records it")
         elif not pv and not sv and k == repo_root_env:
             _add_issue(out, "repo_root_env_unset",
                        f"{k} unset — repo_root falls back to git rev-parse; setup --fix can pin it")
+
+        # A pinned repo_root_env still has to name a repository. The value can be inherited
+        # from an older session or typed by hand, and the Evaluator runs the pack's build and
+        # test commands there -- a directory that is not a checkout fails three stages later,
+        # far from the cause.
+        if k == repo_root_env and (pv or sv):
+            target = Path(pv or sv)
+            if not (target / ".git").exists():
+                _add_issue(out, "repo_root_env_not_a_repo",
+                           f"{k} points at {target}, which has no .git — the pipeline builds "
+                           f"and tests there. Run /core-dev:setup --fix from the target "
+                           f"checkout, or pass --repo <path>.")
     out["env"] = env_report
 
     # stablenet-knowledge runs as a remote HTTP server (.mcp.json declares only

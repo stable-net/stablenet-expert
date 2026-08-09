@@ -6,6 +6,14 @@
 # detects two plugins pointing at the *same* server) — this one asks "does each declared
 # server actually work on its own", independent of any conflict. Doctor Step 2.
 #
+# Scans every *enabled* plugin regardless of which marketplace it came from (a foreign plugin's
+# server can still be the thing a user is asking about), but reports the two differently: a
+# problem with one of THIS marketplace's plugins is `critical` — Step 4 can delegate to its
+# ADR-0014 setup.py — while a problem with a foreign plugin is `external`, reported and never
+# offered as a fix. A foreign plugin ships no setup.py this command can call and Step 4's
+# delegation is scoped to this marketplace, so a `critical` row for one turned into a checkbox
+# that led nowhere (ADR-0019; observed live 2026-08-09 with a leftover coding-agent install).
+#
 # NEVER prints a resolved network address (URL/host/IP) — this script's stdout is Bash tool
 # output that flows straight into the calling LLM's context/transcript, and an internal
 # server's IP has no business being sent to an LLM API just because doctor ran. Every line
@@ -52,6 +60,16 @@ env = dict(settings.get("env", {}))
 def emit(name, status, detail):
     print(f"{name} | {status} | {detail}")
 
+MARKETPLACE = "stablenet-expert"
+
+def owned(plugin_key):
+    """Does this plugin come from the marketplace this command speaks for?
+
+    Registry keys are `<plugin>@<marketplace>`, which is the only ownership signal available
+    here -- and the right one: it needs no marketplace.json read and stays correct for a
+    plugin published later. A key without an `@` cannot be ours."""
+    return "@" in plugin_key and plugin_key.rsplit("@", 1)[1] == MARKETPLACE
+
 PLACEHOLDER_RE = re.compile(r'^CHANGE-ME', re.IGNORECASE)
 VAR_REF_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
@@ -82,8 +100,23 @@ def resolve(s, plugin_root):
     resolved = re.sub(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}", sub, s)
     return resolved, missing
 
-checked = 0
-all_pass = True
+owned_checked = 0
+owned_pass = True
+
+def problem(key, label, detail):
+    """Emit a non-pass row for `label`, scoped by ownership.
+
+    Returns True when the row counts against this marketplace's verdict -- i.e. only for our
+    own plugins. A foreign plugin's broken server is reported (the diagnosis is still useful:
+    it is often exactly what the user is asking about) but is neither a failure of this
+    ecosystem nor something Step 4 can repair."""
+    if owned(key):
+        emit(label, "critical", detail)
+        return True
+    emit(label, "external",
+         f"{detail} -- {key} is not a {MARKETPLACE} plugin, so this check reports it but "
+         "cannot configure it; use that plugin's own setup, or disable it if it is a leftover")
+    return False
 
 for key, enabled in enabled_map.items():
     if not enabled:
@@ -98,11 +131,13 @@ for key, enabled in enabled_map.items():
     try:
         servers = json.load(open(mcp_path)).get("mcpServers", {})
     except Exception as e:
-        emit(f"MCP connectivity: {key}", "warn", f".mcp.json unreadable: {e}")
+        if problem(key, f"MCP connectivity: {key}", f".mcp.json unreadable: {e}"):
+            owned_pass = False
         continue
 
     for alias, cfg in servers.items():
-        checked += 1
+        if owned(key):
+            owned_checked += 1
         label = f"{key}:{alias}"
         missing = []
 
@@ -112,8 +147,8 @@ for key, enabled in enabled_map.items():
             url, m = resolve(template, plugin_root)
             missing += m
             if missing:
-                emit(label, "critical", f"env not configured: {', '.join(missing)}")
-                all_pass = False
+                if problem(key, label, f"env not configured: {', '.join(missing)}"):
+                    owned_pass = False
                 continue
             try:
                 urlopen(Request(url, method="GET"), timeout=2)
@@ -124,11 +159,11 @@ for key, enabled in enabled_map.items():
             except (URLError, socket.timeout, OSError):
                 # deliberately not including the exception text -- URLError/OSError messages
                 # often embed the resolved host/IP, which must not reach this script's stdout
-                emit(label, "critical",
-                     f"unreachable (configured via {ref}) -- connection failed; double-check "
-                     "the value yourself (this check won't print it) and that the server "
-                     "process is running")
-                all_pass = False
+                if problem(key, label,
+                           f"unreachable (configured via {ref}) -- connection failed; "
+                           "double-check the value yourself (this check won't print it) and "
+                           "that the server process is running"):
+                    owned_pass = False
         else:
             cmd, m = resolve(cfg.get("command", ""), plugin_root)
             missing += m
@@ -139,18 +174,25 @@ for key, enabled in enabled_map.items():
                 _, m3 = resolve(v, plugin_root)
                 missing += m3
             if missing:
-                emit(label, "critical", f"env not configured: {', '.join(missing)}")
-                all_pass = False
+                if problem(key, label, f"env not configured: {', '.join(missing)}"):
+                    owned_pass = False
                 continue
             resolved_bin = cmd if os.path.isabs(cmd) else shutil.which(cmd)
             if resolved_bin and os.access(resolved_bin, os.X_OK):
                 emit(label, "pass", f"{cmd} found and executable")
             else:
-                emit(label, "critical", f"{cmd} not found or not executable -- has it been built?")
-                all_pass = False
+                if problem(key, label,
+                           f"{cmd} not found or not executable -- has it been built?"):
+                    owned_pass = False
 
-if checked == 0:
-    emit("MCP connectivity check", "info", "no enabled plugin registers any MCP server")
-elif all_pass:
-    emit("ALL_MCP_CONNECTIVITY_PASS", "pass", f"{checked} server(s) configured and reachable")
+# The verdict covers this marketplace's own servers only. Foreign servers were reported above
+# as `external` rows and deliberately do not decide it -- otherwise a leftover plugin from an
+# unrelated marketplace would keep this ecosystem permanently "failing" for a reason no fix
+# offered here could ever clear.
+if owned_checked == 0:
+    emit("MCP connectivity check", "info",
+         f"no enabled {MARKETPLACE} plugin registers any MCP server")
+elif owned_pass:
+    emit("ALL_MCP_CONNECTIVITY_PASS", "pass",
+         f"{owned_checked} server(s) configured and reachable")
 PYEOF

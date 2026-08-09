@@ -75,6 +75,14 @@ registration, which Step 5 alone checks.
 Print its output verbatim; don't "helpfully" resolve the referenced env var yourself and paste
 the value into your report — that reintroduces exactly the leak the script avoids.
 
+The scan covers enabled plugins from **every** marketplace, not just this one, but grades them
+differently (ADR-0019). A problem with one of this marketplace's plugins is `critical`. A
+problem with a plugin from anywhere else is **`external`** — reported, because the diagnosis is
+often exactly what the user is asking about, but never presented as something this command
+fixes: it has no `setup.py` to delegate to (Step 4) and no business writing another
+marketplace's env. Pass those rows through as information and say plainly that resolving them
+means using that plugin's own setup, or disabling it if it is a leftover.
+
 Report:
 
 ```
@@ -82,9 +90,12 @@ Report:
 <one line per server from check-mcp-connectivity.sh, or "✓ all declared servers configured and reachable" if ALL_MCP_CONNECTIVITY_PASS>
 ```
 
+`ALL_MCP_CONNECTIVITY_PASS` covers this marketplace's servers only, so it can legitimately
+appear alongside `external` rows. That is not a contradiction to smooth over — report both.
+
 ## Step 3: Confirm what to fix
 
-Collect every actionable (non-`pass`) row from Steps 0-2 into **one** `AskUserQuestion` call with
+Collect every actionable row from Steps 0-2 into **one** `AskUserQuestion` call with
 `multiSelect: true` — a checkbox list, not a sequence of yes/no prompts. This is a selection-only
 step: nothing is installed or changed yet, you're only finding out which of the outstanding items
 the user wants handled this session. Options map 1:1 to the outstanding rows, phrased as the
@@ -98,6 +109,14 @@ concrete action, e.g.:
 - `Install and authenticate the Atlassian MCP plugin` (from a `row_kind: "plugin"` row — say
   that a browser opens for the OAuth consent)
 
+**Actionable means: not `pass`, and not `external`.** An `external` row belongs to a plugin from
+another marketplace — this command reports it (Step 2/Step 5) and stops there. Putting one on
+the checkbox promises a repair that Step 4 cannot perform: its delegation is scoped to this
+marketplace's plugins, and a foreign plugin ships no ADR-0014 `scripts/setup.py` to call. That
+is not hypothetical — a leftover `coding-agent` install once put three unconfigured MCP servers
+in front of a user as fixable items with nothing behind them (ADR-0019). Mention `external` rows
+in the summary's *Left as-is*, never in this question.
+
 **Every option label must name the action, and the question `header` must name the subject.** A
 user reading a checkbox should not have to infer what installing is. `header: "Atlassian MCP"`
 with a label starting `Install ...` — not a generic `header: "Setup"` with a label like
@@ -109,7 +128,9 @@ it states what stops working if they decline; a shortened paraphrase turns an in
 into a blind one. Declining is legitimate — the free-text entry point needs no Jira — but only
 when the cost is on screen.
 
-If Steps 0-2 were all `pass`, skip straight to Step 5 — there's nothing to select.
+If Steps 0-2 left nothing actionable, skip straight to Step 5 — there's nothing to select. A run
+whose only non-`pass` rows are `external` counts as nothing to select: don't manufacture a
+question out of them.
 
 **Don't include Step 5's MCP conflict rows here.** Conflict resolution is a pick-one-of-several
 decision (see Step 5), not an independent yes/no toggle, and it can only be evaluated correctly
@@ -416,6 +437,13 @@ which one wins isn't something to rely on, so ask explicitly via `AskUserQuestio
 plugin, or "leave as-is"). Selecting one disables the others via `~/.claude/settings.json`'s
 `enabledPlugins` (set the non-selected ones to `false`). Never guess which one the user wants.
 
+An `external` conflict row is a collision in which **no** plugin of this marketplace takes part.
+Report it and stop — do not open the question above for it. The remedy is disabling one of two
+plugins this command does not own, decided on the strength of a check that only saw them because
+the scan is deliberately broad; that is the user's call to make elsewhere, not a prompt to answer
+here (ADR-0019). `ALL_MCP_CONFLICTS_PASS` is emitted whenever no *our-plugin* conflict exists, so
+it can appear alongside such a row — report both rather than suppressing either.
+
 Finish with the report below. **The last thing on screen decides what the user does next**, so
 the run's verdict opens it and the action they must take closes it. An earlier draft ended on
 the conflict section, and a heading reading "MCP server conflicts" above a clean result was read
@@ -451,10 +479,14 @@ Rules for that last section:
   accounted for, so a `critical` row can be reported even when it's already worked around
   locally. Don't treat that as unconditionally wrong if the user says they've already scoped it
   per-project — just note the check doesn't see that layer.
-- `check-plugins.sh`'s plugin list comes from this repo's own `.claude-plugin/marketplace.json` —
-  it only knows about `stablenet-expert`'s own plugins, not `coding-agent` or any other
-  marketplace's (even though `check-mcp-conflicts.sh`/`check-mcp-connectivity.sh` *do* see other
-  marketplaces' enabled plugins, since they read `enabledPlugins` broadly).
+- The three checks scan at deliberately different breadths, and the difference is visible in the
+  output. `check-plugins.sh` reads this repo's own `.claude-plugin/marketplace.json`, so Step 1
+  lists only this marketplace's plugins and says nothing about any other. `check-mcp-conflicts.sh`
+  and `check-mcp-connectivity.sh` read `enabledPlugins` broadly and therefore *do* see plugins
+  from other marketplaces — a foreign plugin can genuinely collide with one of ours, which is the
+  case ADR-0010 was built on. Those foreign rows come back as `external` and are reported only
+  (ADR-0019). So a plugin absent from Step 1 can still appear in Step 2/5; that is the design,
+  not an inconsistency to reconcile.
 - `check-mcp-connectivity.sh`'s HTTP reachability probe is a plain unauthenticated GET with a 2s
   timeout — any HTTP response (even an error status) counts as "reachable", since the goal is
   distinguishing "the server process is up" from "connection refused/timed out", not validating

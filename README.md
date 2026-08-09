@@ -2,13 +2,12 @@
 
 **stablenet-expert** is a marketplace of [Claude Code plugins](https://docs.anthropic.com/en/docs/claude-code/plugins)
 for developers building **go-stablenet** (a geth fork with WBFT consensus) and the apps that
-run on it. The plugins help you run a Jira-driven, autonomous development pipeline against the
-node itself, and — as the marketplace grows — write and review Solidity contracts, scaffold
-dapp frontends, run quality/test gates, and manage the local toolchain, all from inside Claude
-Code.
+run on it. From inside Claude Code, the plugins let you run a Jira-driven, autonomous
+development pipeline against the node, write and review its Solidity system contracts, and keep
+your local toolchain healthy.
 
-The repo root carries no functional content — every plugin under `plugins/` is self-contained
-and independently installable.
+Each plugin under `plugins/` is self-contained and installed independently — pick only the
+ones you need.
 
 ## Install
 
@@ -121,57 +120,19 @@ claude plugin marketplace remove stablenet-expert
   <tbody>
   <tr>
     <td><strong><a href="plugins/contract-dev/">contract-dev</a></strong></td>
-    <td>Solidity smart contract authoring, review, and security audit for go-stablenet's embedded <code>systemcontracts/</code> (governance, minting, native-coin adapter). 1st-stage scope only — see <a href="docs/adr/ADR-0009-contract-dev-plugin-design.md">ADR-0009</a>.
+    <td>Solidity smart contract authoring, review, and security audit for go-stablenet's embedded <code>systemcontracts/</code> (governance, minting, native-coin adapter).
     <pre lang="bash">claude plugin install --scope user contract-dev@stablenet-expert</pre></td>
   </tr>
   </tbody>
 </table>
 
-### Planned categories (not yet published)
-
-These categories are scoped in [ADR-0005](docs/adr/ADR-0005-stablenet-expert-marketplace-split.md)
-but do not have plugin content yet — they are listed here so the marketplace shape is visible
-ahead of the work landing.
-
-| Category | Working name | Scope |
-|---|---|---|
-| Toolchain & Infrastructure | `stablenet-tooling` | Node/devnet/chainbench install, diagnostics, release notes |
-| Test & QA | `stablenet-qa` | Cross-project test/quality-gate tooling — **not currently planned as a standalone plugin, see caveat below** |
-
-**Test & QA is not a separate plugin today.** An earlier draft of ADR-0005 planned to split
-`core-dev`'s evaluator (unit+race/lint/security/chainbench checks) into a standalone
-`stablenet-cq` plugin so other categories could reuse it. That was reconsidered and reversed
-(ADR-0005 §2.3): the checks are Go/go-stablenet-specific (hardcoded around `go test`/
-`golangci-lint`/`gosec`), so a Solidity-based `contract-dev` couldn't actually reuse
-them, and splitting would have added cross-plugin domain-pack/MCP-duplication costs for no real
-reuse benefit. The evaluator stays inside `core-dev`. `stablenet-qa` is listed above only as a
-**future-reconsideration candidate** — e.g. if `contract-dev` eventually needs its own
-verification plugin, it would be designed for that domain directly, not as a generic wrapper
-around today's evaluator, and that design work would revisit this row.
-
-A `stablenet-expert` meta plugin (ecosystem doctor, cross-plugin dependency audit) is also
-planned once there is more than one plugin to audit against.
-
-## Repository layout
-
-```
-stablenet-expert/
-├── .claude-plugin/marketplace.json   # marketplace manifest
-├── packages/                         # shared components
-│   └── sensitive-guard/patterns.json # sensitive-information policy (SSoT)
-├── scripts/contract/                 # agent-facing MCP tool contract (SSoT) + drift lint
-├── plugins/
-│   └── core-dev/                     # the Claude Code plugin (see its own README)
-├── docs/                             # SETUP, VISION, OVERVIEW, ADRs, WORKLIST — repo-internal, not shipped in any plugin
-└── bench/                            # 3-way (stablenet-knowledge / code-only / code+skills) comparison harness — dev tooling, not shipped
-```
+Each plugin has its own README with its full command list, configuration, and usage —
+follow the plugin links in the tables above.
 
 ## Documentation
 
 - **[docs/SETUP.md](docs/SETUP.md)** — full build, configure, index, and smoke-test guide
-- **[docs/OVERVIEW.md](docs/OVERVIEW.md)** — architecture overview + design decision log
-- **[docs/adr/](docs/adr/)** — architecture decision records, including the marketplace split (ADR-0005)
-- **[scripts/contract/agent-mcp.schema.json](scripts/contract/agent-mcp.schema.json)** — the agent-facing tool contract
+- **[docs/OVERVIEW.md](docs/OVERVIEW.md)** — architecture overview
 
 ## License
 

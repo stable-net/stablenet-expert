@@ -25,6 +25,7 @@
 | [ADR-0016](ADR-0016-naming-and-abbreviations.md) | 명명·약어 규칙 | Accepted (2026-08-05) | 적용 중 — GLOSSARY.md 신설, 삭제된 문서의 `C1`/`C4` 제거, 벤치 문서의 `RI-1..11`을 불변식 번호로 복원. 에이전트 지시문의 `RI-nn` 제거는 파이프라인 영향을 따로 확인하기 위해 후속 PR로 분리. 도메인팩(`domains/**`)은 색인 기준선 보호를 위해 제외 |
 | [ADR-0017](ADR-0017-setup-external-plugin-dependencies.md) | 외부 플러그인 의존의 셋업 계약 | Accepted (2026-08-06) | 구현됨 — ADR-0014의 행 스키마를 `row_kind`로 확장하고 Atlassian MCP 설치·OAuth를 `setup_checks/atlassian.py`가 담당. 실행은 `--with-plugins` opt-in(테스트가 머신을 건드리지 않도록), 상태 판정 불가 시 `unknown`으로 행동 보류. CLI 동작 4건은 실측 |
 | [ADR-0018](ADR-0018-setup-scope-and-uninstall.md) | 설정 스코프와 제거 | Accepted (2026-08-06) | 구현됨 — env 는 user 스코프(`~/.claude`), `repo_root_env` 는 project 유지. `--fix` 가 키와 **값**을 매니페스트에 기록하고 `--uninstall` 은 값이 그대로인 것만 제거(사용자가 바꾼 값은 보존·보고). 기본 드라이런, atlassian 플러그인은 공유 자산이라 자동 제거하지 않음 |
+| [ADR-0019](ADR-0019-doctor-marketplace-scoped-actionability.md) | doctor 체크의 마켓플레이스 스코프 (보고 범위 ≠ 수정 범위) | Accepted (2026-08-09) | 구현됨 — 소유 판정은 레지스트리 키의 `@<marketplace>`, 외부 플러그인 행은 새 상태 `external`(진단은 유지, 수정 선택지에서 제외), 판정은 자기 소유 서버만 계산, 충돌은 우리 플러그인이 당사자일 때만 `critical`. `test_check_mcp.py` 12건이 계약과 회귀 방지 불변식을 고정 |
 
 의존 관계: ADR-0001 ← ADR-0002 ← ADR-0004 (도메인팩 → setup/doctor → remediation 라우팅).
 ADR-0005는 ADR-0001(도메인팩)을 전제로 한다. ADR-0006·ADR-0007은 독립이며, `HANDOFF.md`(2026-06-05
@@ -42,6 +43,10 @@ ADR-0011의 위임/자체수정 원칙 자체는 바뀌지 않았다.
 ADR-0013은 ADR-0006의 인바운드 절만 부분 supersede한다 — `jira-gateway`(인바운드 필터링의 유일한
 구현 지점)를 폐기하기로 한 결정에서 파생됐으며, 아웃바운드(`pr-sanitize`)는 `jira-gateway`와
 무관하게 독립적으로 동작해왔으므로 ADR-0006의 해당 절은 그대로 유효하다.
+ADR-0019는 ADR-0010(교차 마켓플레이스 충돌 탐지를 위한 넓은 스캔)과 ADR-0011 §2.2(플러그인 자신의
+env 지식은 그 플러그인 소유), ADR-0014(경로 기반 setup 위임)를 전제로 하며, 셋이 만나는 지점에서
+생긴 모순 — 넓게 보면서 좁게만 고칠 수 있다 — 을 상태값으로 분리해 해소한다. 어느 결정도
+supersede하지 않는다.
 ADR-0003은 독립이며, 검증 절차는 [`../reproduction-verification-runbook-2026-06-23.md`](../reproduction-verification-runbook-2026-06-23.md).
 
 > 비고: 이 ADR들은 각각 단일 토픽을 둘러싼 **응집된 결정 묶음**(보통 결정 4건)으로 작성돼 있어,

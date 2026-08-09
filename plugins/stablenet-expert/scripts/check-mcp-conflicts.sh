@@ -50,6 +50,13 @@ env = dict(settings.get("env", {}))
 def emit(name, status, detail):
     print(f"{name} | {status} | {detail}")
 
+MARKETPLACE = "stablenet-expert"
+
+def owned(plugin_key):
+    """Same ownership rule as check-mcp-connectivity.sh: registry keys are
+    `<plugin>@<marketplace>`."""
+    return "@" in plugin_key and plugin_key.rsplit("@", 1)[1] == MARKETPLACE
+
 VAR_REF_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 def var_refs(template):
@@ -103,22 +110,36 @@ if checked == 0:
 else:
     conflicts = {ident: entries for ident, entries in registry.items()
                  if len({k for k, _, _ in entries}) > 1}
-    if not conflicts:
+    # A conflict is this command's business when one of *our* plugins is a participant --
+    # then Step 5's "which do you want to keep enabled?" is a decision about this ecosystem,
+    # and disabling the other side (foreign or not) is a legitimate answer to it. A collision
+    # between two plugins that are both foreign is neither: acting on it would mean disabling
+    # plugins this marketplace does not own, on the strength of a check that ran only because
+    # doctor happens to scan broadly (ADR-0019).
+    ours = {ident: entries for ident, entries in conflicts.items()
+            if any(owned(k) for k, _, _ in entries)}
+    foreign = {ident: entries for ident, entries in conflicts.items() if ident not in ours}
+
+    def describe(ident, entries):
+        if ident[0] == "http":
+            return ", ".join(f"{k}:{a} (via {ref})" for k, a, ref in entries), ""
+        return ", ".join(f"{k}:{a}" for k, a, _ in entries), f" ({ident[1]})"
+
+    if not ours:
         emit("ALL_MCP_CONFLICTS_PASS", "pass",
-             f"{checked} server registration(s) across enabled plugins, no duplicates")
-    else:
-        for ident, entries in conflicts.items():
-            if ident[0] == "http":
-                names = ", ".join(f"{k}:{a} (via {ref})" for k, a, ref in entries)
-                emit("MCP conflict", "critical",
-                     f"{names} all resolve to the same server — enabling these "
-                     "plugins together leaves one silently disconnected all session; "
-                     "disable all but one (see docs/SETUP.md §9.9)")
-            else:
-                names = ", ".join(f"{k}:{a}" for k, a, _ in entries)
-                target = ident[1]
-                emit("MCP conflict", "critical",
-                     f"{names} all resolve to the same server ({target}) — enabling these "
-                     "plugins together leaves one silently disconnected all session; "
-                     "disable all but one (see docs/SETUP.md §9.9)")
+             f"{checked} server registration(s) across enabled plugins, "
+             f"no duplicates involving a {MARKETPLACE} plugin")
+    for ident, entries in ours.items():
+        names, target = describe(ident, entries)
+        emit("MCP conflict", "critical",
+             f"{names} all resolve to the same server{target} — enabling these "
+             "plugins together leaves one silently disconnected all session; "
+             "disable all but one (see docs/SETUP.md §9.9)")
+    for ident, entries in foreign.items():
+        names, target = describe(ident, entries)
+        emit("MCP conflict", "external",
+             f"{names} all resolve to the same server{target} — one of them is silently "
+             f"disconnected all session, but no {MARKETPLACE} plugin is involved, so this is "
+             "reported only; resolving it means disabling one of those plugins yourself "
+             "(see docs/SETUP.md §9.9)")
 PYEOF

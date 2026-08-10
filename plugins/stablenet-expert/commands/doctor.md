@@ -311,11 +311,46 @@ options carry the *alternatives* only: use a detected value, or defer.
 
 This applies to every question below, including the one about the project checkout.
 
+### Unattended runs
+
+`setup.py --autonomous` writes the granular `permissions.allow`/`deny` that let the pipeline run
+to a PR without stopping. Nothing was invoking it, so every install produced an environment that
+asked for confirmation at each edit, build and commit — the pipeline works, it just cannot be
+left alone, which is most of the point of it.
+
+Offer it whenever a plugin ships the flag and the project's `.claude/settings.local.json` has no
+`permissions.allow` yet. It is its own tab, because it is a different decision from configuring
+a server:
+
+```
+header:   "Unattended runs"
+question: "core-dev asks before each edit, build and commit unless a granular allowlist is
+           registered. Grant it? Destructive git (force-push, push to main, commit on main)
+           stays denied by the git-guard hook either way, and merge/tag/release stay prompted."
+options:
+  - "Grant it"           → setup.py --autonomous
+  - "Keep confirming"    (say this means a prompt per step)
+```
+
+Write it into the project, not the user scope — an allowlist is a statement about one
+repository, and carrying it to every project is not what the user agreed to:
+
+```bash
+"$python_bin" "$plugin_path/scripts/setup.py" --autonomous
+```
+
 ### Ask by MCP server, one tab each
 
 Group every outstanding row — from all plugins — by **which MCP server it is for**, and put
-each group in its own `AskUserQuestion` question. `AskUserQuestion` takes up to four questions
-in one call and renders each `header` as a tab, so this is one call, not three.
+each group in its own `AskUserQuestion` question. `AskUserQuestion` renders each `header` as a
+tab, so several subjects cost one call.
+
+**It accepts at most four questions per call, and there are five possible subjects** — the three
+servers, the project checkout, and unattended runs. They rarely all apply at once, but when more
+than four do, ask in two calls rather than dropping one: split them so the first call carries
+what blocks the pipeline outright (a server with no endpoint, a checkout that was not pinned)
+and the second carries the rest. Silently omitting a question leaves the user believing they
+were asked about everything.
 
 **Group on the row's `serves` field, never on the key name.** Each row says which server it is
 for, because the plugin owns that knowledge and this command owns none of it (ADR-0011 §2.2) —
@@ -339,7 +374,7 @@ search for something to answer. If only one server needs anything, ask a single 
 `AskUserQuestion` requires at least two *options*, not two questions, and a lone tab reads fine.
 
 A row that is not tied to any server — the active pack's `repo_root_env`, e.g.
-`GO_STABLENET_ROOT` — gets a fourth question when `setup.py` reports `NOT-A-REPO` or `MISMATCH`,
+`GO_STABLENET_ROOT` — gets its own question when `setup.py` reports `NOT-A-REPO` or `MISMATCH`,
 because in those cases it wrote nothing and the value has to come from the user.
 
 ```

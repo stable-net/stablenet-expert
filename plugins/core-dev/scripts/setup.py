@@ -106,6 +106,18 @@ AUTONOMOUS_ALLOW = [
     # feature-branch git (guard hook still denies protected-branch/destructive ops)
     "Bash(git add:*)", "Bash(git commit:*)", "Bash(git checkout:*)",
     "Bash(git switch:*)", "Bash(git restore --staged:*)", "Bash(git push:*)",
+    # Read-only git the pipeline reaches through `git -C <repo> ...`, which hides the subcommand
+    # from a "git <verb>:*" pattern until you go looking. merge syncs the local branch with
+    # `git pull --ff-only`; the analyzer reads history through merge-base and symbolic-ref;
+    # implementer parks work with stash. Every one of these was prompting.
+    "Bash(git pull:*)", "Bash(git fetch:*)", "Bash(git merge-base:*)",
+    "Bash(git symbolic-ref:*)", "Bash(git stash:*)",
+    # gh beyond `gh pr`: the review flow pages PR comments through the REST API, and two
+    # commands check that gh is authenticated before doing anything. Scoped to repos/ so it
+    # cannot reach the rest of the API surface.
+    "Bash(gh api repos/:*)", "Bash(gh auth status:*)",
+    # Read-only process check the Evaluator uses to see whether a chain is already up.
+    "Bash(pgrep:*)",
     # PR creation/inspection only — merge stays with /core-dev:merge
     "Bash(gh pr create:*)", "Bash(gh pr view:*)", "Bash(gh pr list:*)",
     "Bash(gh pr checks:*)",

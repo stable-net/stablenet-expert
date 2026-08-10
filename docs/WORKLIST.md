@@ -40,27 +40,13 @@ README 기준 4-카테고리 로드맵 중 `core-dev`·`contract-dev`(1단계) �
 
 ---
 
-## C. core-dev 커맨드 재구성 — 진입점을 입력 종류로 가른다
+## C. core-dev 커맨드 재구성 — 완료
 
-C-1·C-3·C-4 는 끝났다(PR #34, #35). 완료 항목은 이 파일의 정책대로 지웠다 — 무엇을 했는지는
-git log 가 안다. 결과만 적어두면:
+C-1~C-4 전부 끝났다(PR #34, #35, 그리고 `review-pr`). 완료 항목은 이 파일의 정책대로 지운다 —
+무엇을 했는지는 git log 가 안다. 결과만:
 
 - `work` → `work-with-jira <TICKET>` / `work-with-prompt "<요구사항>"`, `--local` 제거
-- `review` → `review-jira <TICKET>`
+- `review` → `review-jira <TICKET>` + `review-pr <PR-URL>`(신규 — 격리 클론에서 코드 리뷰)
 - `merge` 가 티켓과 PR URL 을 모두 받는다
-- 10개 커맨드의 description / argument-hint 정비
+- 11개 커맨드의 description / argument-hint 정비
 
-- [ ] **C-2(잔여). `review-pr <PR-URL>` — PR 내용 + 코드 리뷰**
-  - 유일한 미착수 항목. 재배선이 아니라 **신규 기능**이라 절차부터 정해야 한다.
-  - 착수 전 정할 것 셋:
-    1. **읽을 것** — diff 만인가, PR 본문·연결 이슈·기존 코멘트까지인가. 변경된 파일의 주변
-       코드도 읽는가(읽어야 회귀를 볼 수 있지만 그만큼 비싸다).
-    2. **판정할 것** — 버그·회귀 위험만인가, 스타일·테스트 커버리지·도메인 불변식
-       (`domains/go-stablenet/invariants.md`) 위반까지인가.
-    3. **결과가 갈 곳** — PR 코멘트로 게시하는가, 로컬 리포트로 남기는가. 게시한다면 승인/변경
-       요청 상태까지 바꾸는가.
-  - 3번이 설계의 무게중심이다. PR 코멘트는 **외부로 나가는 되돌리기 어려운 행동**이라, 게시 전
-    확인 절차와 `pr-sanitize` 통과가 함께 와야 한다.
-  - 재료는 이미 있다: PR↔티켓 연결은 `jira-via-atlassian` §4, 아웃바운드 스크럽은 `pr-sanitize`,
-    PR 메타 수집은 `review-jira` §3 이 하는 것과 같다.
----

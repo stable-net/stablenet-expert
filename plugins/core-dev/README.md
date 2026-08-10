@@ -126,6 +126,7 @@ bash ../../scripts/contract/lint-tool-names.sh    # exits 0 when prompt tool nam
 | `/core-dev:work-with-prompt "<requirement>"` | Start from a requirement you type. Same pipeline, no Jira |
 | `/core-dev:status [STABLE-1234]` | Progress of one ticket, or all active workspaces |
 | `/core-dev:review-jira STABLE-1234` | Collect that ticket's PR comments → classify → re-enter the pipeline in bugfix mode |
+| `/core-dev:review-pr <PR-URL>` | Review any PR in an isolated clone: invariants, blast radius, vulnerabilities. Approves or comments, after asking |
 | `/core-dev:merge STABLE-1234` | The only command that touches `main`: squash-merge (refuses unless approved + green + mergeable), then close the Jira ticket |
 | `/core-dev:doctor` | Read-only environment diagnostics |
 | `/core-dev:setup` | Check/register the settings the plugin needs |

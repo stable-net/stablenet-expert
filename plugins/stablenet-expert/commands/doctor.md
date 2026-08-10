@@ -345,11 +345,30 @@ Within each tab, the rows still split by kind:
   `description` as the option description so the user can see what each value is for rather
   than guessing from the variable name. Use `multiSelect: true` when a tab holds more than one.
 
-  **Show `resolved_value` in the option, and always offer to change it.** Two options per key:
-  *use `<value>`* and *enter a different value*. The second is an `AskUserQuestion` "Other",
-  which takes free text. Detection lands on stale checkouts and a leftover process environment
-  carries values nobody chose, so "shall I set CHAINBENCH_DIR?" without showing the value is not
-  a question anyone can answer.
+  **Show `resolved_value`, and make typing a different one an obvious path.**
+
+  Free text reaches you through **"Other" and nowhere else** — `AskUserQuestion` adds that entry
+  itself. So the question *text* has to invite it, in words, every time a value can be supplied:
+
+  > "…already know the address? Choose **Other** and type it (`http://host:port/mcp`)."
+
+  Never create a named option that promises entry — `Enter a value`, `I'll type it` — because
+  selecting one returns that label and no value, and the user is left having answered a question
+  that collected nothing. Named options are for the *alternatives only*:
+
+  ```
+  header:  "Knowledge MCP"
+  question: "stablenet-knowledge server endpoint — <description>.
+             Detected: <resolved_value>.  Already know the address? Choose Other and type it."
+  options:
+    - "Use the detected value"            (only when resolved_value is present)
+    - "Leave it for now"                  (says what stops working, from the description)
+  ```
+
+  Detection lands on stale checkouts and a leftover process environment carries values nobody
+  chose, so "shall I set CHAINBENCH_DIR?" without showing the value is not a question anyone can
+  answer — and offering only *accept* or *skip* is not either, when the user is the one who knows
+  the right value.
 
   When `value_withheld` is true the row is a credential and carries no value. Do not ask for it
   here — point at `set-mcp-env.sh`, which prompts with hidden input in the user's own terminal.
@@ -374,7 +393,9 @@ Within each tab, the rows still split by kind:
 - **`missing` rows that are not secret** — the value has to come from the user, but it is not a
   credential (`secret: false`, `value_withheld: false`), so collect it in this server's
   `AskUserQuestion` like the rest: show the key, its `description` and `how_to_find` verbatim,
-  and take the value as free text (the "Other" entry). Then write it yourself:
+  and say in the question text to choose **Other** and type it — the same rule as above, and it
+  matters more here, since with no detected value the *only* useful answer is one the user
+  types. Then write it yourself:
   `"$python_bin" "$plugin_path/scripts/setup.py" --fix --set KEY=VALUE`. The script validates the
   shape and refuses anything that looks like a token, exiting 2 with a reason that never repeats
   the value — report that reason as-is and ask again; do not decide acceptability yourself.

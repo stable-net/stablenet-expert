@@ -12,18 +12,27 @@ but keeps its delegation principle): this command owns marketplace-level and eco
 directly (toolchain gaps, plugin install/enable, MCP conflicts), but never reimplements a
 plugin's own environment setup — it delegates to that plugin's `/<plugin>:setup` if one exists.
 
-**Never resolve-and-echo an already-configured MCP connection value into this conversation**
-(a Bash tool call's output becomes part of this conversation's context): in status reports,
-refer to the *env var name*, never the value it currently resolves to — that is what
-`check-mcp-connectivity.sh` does at Step 2. **Credentials (tokens) must never enter the
-conversation at all**, whether printed or typed in — those go through `set-mcp-env.sh`'s
-hidden-input prompt (Step 4).
+**Credentials (tokens) must never enter this conversation**, whether printed or typed in —
+those go through `set-mcp-env.sh`'s hidden-input prompt (Step 4), and nothing below overrides
+that.
 
-A connection *address* (URL/IP/hostname endpoint) is a different case: it is not a credential,
-so when a required one is *missing* and the user chooses to supply it, Step 4 accepts it as
-input like any other setting and lets the owning plugin's `setup.py` validate and write it
-(this is the direction #41 settled — "addresses and paths are shown and asked for; credentials
-are not"). See Step 2/4 for how this plays out concretely.
+**Addresses and paths are not credentials, and the rule about them depends on which step you
+are in.** #41 settled the direction — "addresses and paths are shown and asked for; credentials
+are not" — and the two steps apply it differently:
+
+- **Reporting status (Steps 0-2, and the final summary): name the variable, not its value.**
+  A `pass` row needs no address to be informative, so resolving one into the transcript buys
+  nothing. `check-mcp-connectivity.sh` already reports this way; print it verbatim rather than
+  resolving the referenced variable yourself.
+- **Configuring a value (Step 4): show `resolved_value` and let the user type a different one.**
+  This is not the same act. Here the value *is* the subject of the question, and the user
+  cannot judge a detected value they cannot see.
+
+That distinction has to be stated because collapsing it broke the thing this file exists to do:
+read as a blanket prohibition, it suppressed the Step 4 question's detected value **and** its
+accept option, leaving *skip* and *do it yourself* — a question that cannot configure anything.
+Whether the row is `missing` or already resolvable (`status: env`) makes no difference to which
+step you are in.
 
 Six steps, run in order:
 
@@ -209,9 +218,12 @@ different kinds of actions with different safety profiles, don't treat them unif
     the normal way — the per-server `AskUserQuestion` below, writing through
     `setup.py --fix --set KEY=VALUE`, which validates the shape (`validate.py`) and refuses
     anything that looks like a token. `STABLENET_KNOWLEDGE_MCP_URL` is this case: it is required,
-    it is not secret, so it is asked for and written here rather than handed off. (A user who
-    would rather keep an internal address out of the transcript can still run the same
-    `setup.py --fix --set KEY=VALUE` themselves — offer that as the alternative, don't force it.)
+    it is not secret, so it is asked for and written here rather than handed off.
+
+    A user who would rather keep an internal address out of the transcript can run the same
+    `setup.py --fix --set KEY=VALUE` themselves. Mention it **after** the options that collect
+    the value, never in place of them: as the leading choice it reads as the recommended route
+    and turns a question that configures the plugin into a question that hands the job back.
   - **A token** (`secret: true`, or `value_withheld: true`) must never enter this conversation.
     Point the user at `set-mcp-env.sh` and be explicit that **they** run it, not you:
 
@@ -298,18 +310,37 @@ restart into a pipeline that cannot read a ticket.
 
 ### How a typed value reaches you
 
-**Free text arrives through "Other" and nowhere else.** `AskUserQuestion` appends that entry
-itself and names it. So whenever an answer could be a value the user supplies, the question
-*text* has to invite it, in words, with the shape expected:
+Two channels exist and the question must offer **both**, because each one fails on its own.
 
-> "…already know the address? Choose **Other** and type it (`http://host:port/mcp`)."
+- **"Other".** `AskUserQuestion` appends that entry itself and names it, and it is the only
+  option that opens a text field directly. Name it in the question text, with the shape
+  expected:
 
-**Never create a named option that promises entry** — `Enter a value`, `I'll type it`,
-`Enter the path`. Selecting one returns that label and no value, so the user answers a question
-that collects nothing, and the thing they were asked for is still missing afterwards. Named
-options carry the *alternatives* only: use a detected value, or defer.
+  > "…already know the address? Choose **Other** and type it (`http://host:port/mcp`)."
 
-This applies to every question below, including the one about the project checkout.
+- **A named option that means "ask me for it".** `Other` is labelled `Other` and nothing else,
+  so a user reading the list sees *leave it* and *I'll do it myself* and concludes there is no
+  way to supply the value. That is not hypothetical: it was reported three times running, on
+  three separate questions, while the question text said "choose Other" every time. Prose in
+  the question does not relabel the option. So carry the entry path as an option too:
+
+  ```
+  - "Type the address here"   → description: "I'll ask for it in the next message and write it."
+  ```
+
+  **Selecting it returns the label, never a value.** That is real, and it is why an earlier
+  version of this file banned such options outright — the wrong conclusion from a correct
+  observation. The option is a *signal*, not a channel. When it comes back, treat it as a
+  request: **end the turn with one plain sentence asking for the value, and nothing else.**
+  The user's reply is an ordinary message, and the message box always renders. Then write it
+  with `--set` and confirm from the script's own output.
+
+  Never write the label into settings, never guess the value, and never re-ask with
+  `AskUserQuestion` — that returns to the list the user just told you was insufficient.
+
+This applies to every question that collects a value, including the project checkout. It applies
+to none that collects a secret: a credential has no type-it-here path at all, only
+`set-mcp-env.sh`.
 
 ### Unattended runs
 
@@ -384,12 +415,15 @@ question: "<KEY> — the checkout the pipeline builds and tests. setup.py declin
            MISMATCH: this is the plugin repo, not a target project>.
            Choose Other and type the path to the checkout (e.g. ~/Work/github/go-stablenet)."
 options:
-  - "Leave it unset"    (the pipeline falls back to git rev-parse from wherever it runs)
+  - "Type the path here"  (→ ask in the next message, then write it)
+  - "Leave it unset"      (the pipeline falls back to git rev-parse from wherever it runs)
 ```
 
-The path only arrives if the question says to use **Other** — an option reading *"Enter the
-path"* returns that string and nothing else, which is how this ended up needing a manual
-`setup.py --fix` afterwards.
+Both options are required, and not only because `AskUserQuestion` refuses a single-option
+question: with *leave it unset* alone the only way to answer usefully is to notice `Other`,
+which is how this ended up needing a manual `setup.py --fix` afterwards. `Type the path here`
+returns its own label like any option — read it as the request to ask, per **How a typed value
+reaches you**.
 
 Then write it — pass the path through as typed, `~` included; `setup.py` expands it:
 
@@ -423,8 +457,15 @@ Within each tab, the rows still split by kind:
              Detected: <resolved_value>.  Already know the address? Choose Other and type it."
   options:
     - "Use the detected value"            (only when resolved_value is present)
+    - "Type the address here"             (→ ask in the next message; see "How a typed value
+                                           reaches you" — it returns the label, not a value)
     - "Leave it for now"                  (says what stops working, from the description)
   ```
+
+  **The entry option goes in even when `resolved_value` is present.** A detected value is a
+  leftover process env or a stale checkout as often as it is the right answer, and the user is
+  the only one who knows which — offering accept-or-skip against a value they did not choose is
+  the exact shape that was reported broken.
 
   Detection lands on stale checkouts and a leftover process environment carries values nobody
   chose, so "shall I set CHAINBENCH_DIR?" without showing the value is not a question anyone can
@@ -454,15 +495,16 @@ Within each tab, the rows still split by kind:
 - **`missing` rows that are not secret** — the value has to come from the user, but it is not a
   credential (`secret: false`, `value_withheld: false`), so collect it in this server's
   `AskUserQuestion` like the rest: show the key, its `description` and `how_to_find` verbatim,
-  and say in the question text to choose **Other** and type it — the same rule as above, and it
-  matters more here, since with no detected value the *only* useful answer is one the user
-  types. Then write it yourself:
+  carry a `Type the <thing> here` option, and say in the question text to choose **Other** and
+  type it — the same rule as above, and it matters more here: with no detected value the *only*
+  useful answer is one the user types, so a question offering just *skip* and *I'll do it
+  myself* collects nothing by construction. Then write it yourself:
   `"$python_bin" "$plugin_path/scripts/setup.py" --fix --set KEY=VALUE`. The script validates the
   shape and refuses anything that looks like a token, exiting 2 with a reason that never repeats
   the value — report that reason as-is and ask again; do not decide acceptability yourself.
-  `STABLENET_KNOWLEDGE_MCP_URL` is this case. (If the user would rather not put an internal
-  address in the transcript, offer the same `--set` command for them to run themselves instead —
-  don't force either path.)
+  `STABLENET_KNOWLEDGE_MCP_URL` is this case. The run-it-yourself `--set` command stays available
+  for a user who would rather keep the address out of the transcript, but it goes last, after the
+  options that collect the value — see the address bullet in "MCP env not configured" above.
 - **`missing` rows that are `secret: true`** — same as above except the value must never enter
   this conversation. Point at `set-mcp-env.sh` per the rules earlier in this step; do not offer
   `--set` for a secret and do not run it yourself.

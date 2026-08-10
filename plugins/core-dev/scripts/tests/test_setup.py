@@ -127,9 +127,11 @@ class TestAutonomousIndependentOfFix(unittest.TestCase):
         for entry in ("Write", "Edit", "Bash(go test:*)", "Bash(make:*)",
                       "Bash(git commit:*)", "Bash(git push:*)", "Bash(gh pr create:*)"):
             self.assertIn(entry, setup.AUTONOMOUS_ALLOW)
-        joined = " ".join(setup.AUTONOMOUS_ALLOW)
-        for forbidden in ("gh pr merge", "git tag", "git merge", "Bash(git:*)", "Bash(gh:*)"):
-            self.assertNotIn(forbidden, joined)
+        # Match whole entries, not substrings: "git merge" is inside "Bash(git merge-base:*)",
+        # which reads history and is nothing like the merge this is guarding against.
+        for forbidden in ("Bash(gh pr merge:*)", "Bash(git tag:*)", "Bash(git merge:*)",
+                          "Bash(git:*)", "Bash(gh:*)"):
+            self.assertNotIn(forbidden, setup.AUTONOMOUS_ALLOW)
         # deny shields secrets (the settings file that would hold any future token)
         self.assertIn("Read(.env)", setup.AUTONOMOUS_DENY)
         self.assertIn("Read(.claude/settings.local.json)", setup.AUTONOMOUS_DENY)
@@ -259,6 +261,49 @@ class TestJSONOutput(unittest.TestCase):
             self.assertTrue(set(payload["not_ready"]) <= keys, "not_ready must name rows")
             for key in payload["missing"]:
                 self.assertIn(key, payload["not_ready"], "missing implies not ready")
+
+
+class TestAutonomousCoversThePipeline(unittest.TestCase):
+    """The allowlist has to match what the prompts actually run.
+
+    It drifted once already: `git -C <repo> pull` and friends hide the subcommand behind the
+    -C flag, so a "git <verb>:*" pattern looked complete while pull, merge-base, symbolic-ref
+    and stash all prompted. This derives the command set from the prompts instead of trusting
+    the list to have kept up."""
+
+    PROMPTS = list((_SCRIPTS.parent / "agents").glob("*.md")) + \
+              list((_SCRIPTS.parent / "commands").glob("*.md"))
+
+    # Deliberately outside the allowlist: irreversible or release-gated, and prompted on purpose.
+    BY_DESIGN = {"git tag", "git merge", "gh pr merge", "rm", "cd", "echo", "printf"}
+
+    def _invoked(self):
+        import re
+        found = set()
+        for f in self.PROMPTS:
+            text = f.read_text()
+            for m in re.finditer(r'bash:\s*(git|gh)(?:\s+-C\s+\S+)?\s+([a-z][a-z-]*)', text):
+                found.add(f"{m.group(1)} {m.group(2)}")
+        return found
+
+    def test_every_git_and_gh_subcommand_is_allowed_or_deliberately_not(self):
+        allow = " ".join(setup.AUTONOMOUS_ALLOW)
+        gaps = [c for c in sorted(self._invoked())
+                if c not in self.BY_DESIGN and f"Bash({c}" not in allow]
+        self.assertEqual(gaps, [], f"prompts run these and the allowlist omits them: {gaps}")
+
+    def test_the_irreversible_ones_stay_out(self):
+        """merge, tag and force-push are the reason /core-dev:merge exists as a separate,
+        gated command. An allowlist that swept them in would undo that."""
+        joined = " ".join(setup.AUTONOMOUS_ALLOW)
+        for forbidden in ("gh pr merge", "git tag", "Bash(git:*)", "Bash(gh:*)", "--force"):
+            self.assertNotIn(forbidden, joined)
+
+    def test_git_merge_itself_is_not_allowed(self):
+        """`git merge-base` reads history; `git merge` rewrites the branch. A substring check
+        confuses them, so this asserts on the entries themselves."""
+        self.assertNotIn("Bash(git merge:*)", setup.AUTONOMOUS_ALLOW)
+        self.assertIn("Bash(git merge-base:*)", setup.AUTONOMOUS_ALLOW)
 
 
 class TestValueValidation(unittest.TestCase):

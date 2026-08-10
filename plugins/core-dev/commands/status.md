@@ -1,75 +1,75 @@
 ---
-description: 작업 진행 상황 조회 — 어느 단계까지 갔는지, 막힌 것이 있는지.
-argument-hint: "[Jira 티켓 번호]   (생략하면 진행 중인 작업 전부)"
+description: Show how far a job has got and whether anything is stuck.
+argument-hint: "[Jira ticket number]   (omit for every job in progress)"
 ---
 
 # /core-dev:status
 
-작업 상태를 조회한다.
+Report job status.
 
 ---
 
-## 1. 인자 분기
+## 1. Branch on the argument
 
 ```
-1.1. 빈 인자 → 전체 활성 작업 모드 (3단계로 진행)
-1.2. JIRA-ID 형식 (/^[A-Z]+-\d+$/) → 특정 티켓 모드 (2단계로 진행)
-1.3. 형식 불일치 → 사용법 안내 후 중단:
-   "사용법: /core-dev:status [JIRA-ID]
-    예: /core-dev:status STABLE-1234
-    생략: 전체 활성 작업 목록"
+1.1. Empty -> all-active mode (go to step 3)
+1.2. JIRA-ID shape (/^[A-Z]+-\d+$/) -> single-ticket mode (go to step 2)
+1.3. Neither -> print usage and stop:
+   "usage: /core-dev:status [JIRA-ID]
+    e.g.: /core-dev:status STABLE-1234
+    omitted: every active job"
 ```
 
 ---
 
-## 2. 특정 티켓 상세 모드
+## 2. Single-ticket detail mode
 
 ```
-2.1. 프로젝트 루트 확인
-   bash: git rev-parse --show-toplevel → repo_root
+2.1. Find the project root
+   bash: git rev-parse --show-toplevel -> repo_root
 
-2.2. 작업 폴더 탐색
+2.2. Look for the job directory
    bash: ls -d {repo_root}/.stablenet-expert/tickets/{jira_id}_* 2>/dev/null | sort -r
-   
-   결과 없음 → 출력: "{jira_id}에 대한 작업이 없습니다." + 중단
-   결과 있음 → 가장 최신 폴더 선택 (workspace)
 
-2.3. state.json 로드
-   read {workspace}/state.json → state
+   Nothing -> print "No job for {jira_id}." + stop
+   Something -> take the newest (workspace)
 
-2.4. 마지막 활동 시각 계산
-   states 객체에서 가장 최근 started_at 또는 completed_at 추출
-   IMPLEMENTATION 단계라면 plan_progress.steps[*].last_checkpoint.at 도 후보
+2.3. Load state.json
+   read {workspace}/state.json -> state
 
-2.5. 아티팩트 목록 수집
+2.4. Work out the last activity time
+   Take the most recent started_at or completed_at across the states object.
+   In IMPLEMENTATION, plan_progress.steps[*].last_checkpoint.at is a candidate too.
+
+2.5. Collect the artifact list
    bash: ls {workspace} | grep -v "^logs$"
 
-2.6. IMPLEMENTATION 단계인 경우 step 진행률
+2.6. Step progress, in IMPLEMENTATION
    IF state.current_state == "IMPLEMENTATION":
-     state.states.IMPLEMENTATION.plan_progress.steps 순회:
-       status == "completed" → "✓"
-       status == "in_progress" → "◐"
-       status == "pending" → "○"
-       status == "failed" → "✗"
-       
-     in_progress + last_checkpoint 존재 시:
-       체크포인트 정보 표시 (work_in_progress, uncommitted_files)
+     walk state.states.IMPLEMENTATION.plan_progress.steps:
+       status == "completed"   -> "✓"
+       status == "in_progress" -> "◐"
+       status == "pending"     -> "○"
+       status == "failed"      -> "✗"
 
-2.7. 출력 포맷
-   다음 형식으로 출력:
-   
+     in_progress with a last_checkpoint:
+       show the checkpoint (work_in_progress, uncommitted_files)
+
+2.7. Output format
+   Print in this shape:
+
    ┌─ {ticket_id} ──────────────────────────────────────┐
    │ State:        {current_state}                       │
    │ Agent:        {current_agent || "—"}                │
    │ Workspace:    {workspace (basename)}                 │
    │ Created:      {created_at}                          │
-   │ Last activity:{last_activity 시각}                  │
+   │ Last activity:{last_activity}                       │
    │ Branch:       {state.states.IMPLEMENTATION.branch || "—"} │
    │                                                      │
-   │ Failures:     {failure_summary.total_failures}건    │
+   │ Failures:     {failure_summary.total_failures}       │
    │   by_state:   {by_state}                            │
    │   by_type:    {by_type}                             │
-   │   patterns:   {recurring_patterns 개수}             │
+   │   patterns:   {number of recurring_patterns}        │
    │                                                      │
    │ Artifacts:                                           │
    │   - ticket.json                                      │
@@ -77,88 +77,88 @@ argument-hint: "[Jira 티켓 번호]   (생략하면 진행 중인 작업 전부
    │   - plan.md                                          │
    │   - design-v2.md                                     │
    │                                                      │
-   │ Plan Progress (IMPLEMENTATION 단계인 경우):           │
-   │   [1] ✓ 인터페이스 추가 (commit: a1b2c3d)            │
-   │   [2] ◐ 로직 구현                                    │
-   │       checkpoint: 함수 구현 70%, edge case 남음       │
+   │ Plan Progress (when in IMPLEMENTATION):              │
+   │   [1] ✓ add the interface (commit: a1b2c3d)          │
+   │   [2] ◐ implement the logic                          │
+   │       checkpoint: 70% done, edge cases outstanding   │
    │       uncommitted: consensus/wbft/finalize.go        │
-   │   [3] ○ 테스트 추가                                  │
-   │   [4] ○ 통합 테스트                                  │
-   │   [5] ○ 문서 업데이트                                │
+   │   [3] ○ add tests                                    │
+   │   [4] ○ integration test                             │
+   │   [5] ○ update the docs                              │
    │                                                      │
    │ PR:           {COMPLETION.pr_url || "—"}            │
    └──────────────────────────────────────────────────────┘
 
-2.8. 같은 ticket_id의 추가 폴더 안내
-   동일 ticket_id로 여러 폴더가 있으면 (재작업 이력):
-     "이 티켓의 이전 작업 폴더 {N}개가 더 있습니다."
+2.8. Mention other directories for the same ticket
+   When the same ticket_id has several directories (a rework history):
+     "This ticket has {N} earlier job director(ies)."
 ```
 
 ---
 
-## 3. 전체 활성 작업 모드
+## 3. All-active mode
 
 ```
-3.1. 프로젝트 루트 확인
-   bash: git rev-parse --show-toplevel → repo_root
+3.1. Find the project root
+   bash: git rev-parse --show-toplevel -> repo_root
 
-3.2. 활성 작업 폴더 스캔
+3.2. Scan the job directories
    bash: ls -d {repo_root}/.stablenet-expert/tickets/*_* 2>/dev/null
 
-3.3. 각 폴더의 state.json 로드 + 필터
+3.3. Load each state.json and filter
    for each folder:
      read {folder}/state.json
-     활성 조건: current_state not in ["COMPLETED"]
-     활성이면 → active_workspaces 배열에 추가
+     active when: current_state not in ["COMPLETED"]
+     active -> append to active_workspaces
 
-3.4. 활성 작업 없음 처리
+3.4. Nothing active
    IF active_workspaces.empty:
-     "활성 작업이 없습니다." 출력 후 종료
+     print "No active jobs." and stop
 
-3.5. timestamp 역순 정렬 (최신 우선)
+3.5. Sort newest first
    active_workspaces.sort by state.created_at DESC
 
-3.6. 출력 포맷 (요약형)
-   다음 형식으로 한 줄씩 출력:
-   
-   활성 작업 ({N}건):
-   
-   {ticket_id}  {current_state}  {last_activity}  {failure_summary.total_failures}건 실패
-   ────────────  ──────────────  ──────────────  ──────────────
-   STABLE-1234  IMPLEMENTATION  2026-05-28 01:30  1건 실패
-   STABLE-1230  EVALUATION      2026-05-27 14:20  0건
-   STABLE-1228  BLOCKED         2026-05-26 10:15  3건 실패  ⚠
-   
-   상세: /core-dev:status <JIRA-ID>
+3.6. Output format (summary)
+   One line each:
 
-3.7. BLOCKED 작업 강조
-   BLOCKED 상태 작업이 있으면 별도 섹션으로 강조:
-   
-   ⚠ BLOCKED 작업 ({N}건) - 수동 개입 필요:
+   Active jobs ({N}):
+
+   {ticket_id}  {current_state}  {last_activity}  {failure_summary.total_failures} failure(s)
+   ────────────  ──────────────  ──────────────  ──────────────
+   STABLE-1234  IMPLEMENTATION  2026-05-28 01:30  1 failure
+   STABLE-1230  EVALUATION      2026-05-27 14:20  0
+   STABLE-1228  BLOCKED         2026-05-26 10:15  3 failures  ⚠
+
+   Detail: /core-dev:status <JIRA-ID>
+
+3.7. Call out BLOCKED jobs
+   When any job is BLOCKED, give it its own section:
+
+   ⚠ BLOCKED jobs ({N}) - manual intervention needed:
      STABLE-1228:
-       실패 횟수: 3 (max_eval_cycles 초과)
-       Recurring: {recurring_patterns 첫 항목}
-       마지막 활동: 2026-05-26 10:15
+       failures: 3 (max_eval_cycles exceeded)
+       recurring: {first recurring_patterns entry}
+       last activity: 2026-05-26 10:15
 ```
 
 ---
 
-## 4. 에러 처리
+## 4. Error handling
 
-| 시나리오 | 처리 |
+| Scenario | Handling |
 |---------|------|
-| .stablenet-expert/ 미존재 | "코딩 에이전트가 아직 사용된 적이 없습니다." 출력 |
-| state.json 손상 (JSON 파싱 실패) | 해당 폴더 skip, 다른 폴더는 정상 처리 + 경고 |
-| ticket_id 부분 매치 | 정확한 매치만 인정 (STABLE-12는 STABLE-123에 매치되지 않음) |
+| No .stablenet-expert/ | print "The coding agent has not been used here yet." |
+| Corrupt state.json (JSON parse failure) | skip that directory, carry on with the rest, warn |
+| Partial ticket_id match | exact matches only (STABLE-12 does not match STABLE-123) |
 
 ---
 
-## 5. 완료 기준 (체크리스트)
+## 5. Done when (checklist)
 
-- [ ] 특정 티켓 상세 상태 출력 (state, 아티팩트, 실패 이력, plan_progress)
-- [ ] IMPLEMENTATION 단계에서 step별 진행률 (✓/◐/○/✗) + checkpoint 표시
-- [ ] 전체 활성 작업 목록 출력 (요약형, timestamp 역순)
-- [ ] 활성 작업 없을 때 명확한 메시지
-- [ ] BLOCKED 작업 별도 강조
-- [ ] 동일 티켓의 여러 작업 폴더 안내
-- [ ] state.json 손상 시 graceful handling
+- [ ] Single-ticket detail printed (state, artifacts, failure history, plan_progress)
+- [ ] Per-step progress (✓/◐/○/✗) plus checkpoint during IMPLEMENTATION
+- [ ] All-active list printed (summary form, newest first)
+- [ ] A clear message when nothing is active
+- [ ] BLOCKED jobs called out separately
+- [ ] Multiple job directories for one ticket are mentioned
+- [ ] Corrupt state.json handled gracefully

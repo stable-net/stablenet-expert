@@ -1,103 +1,114 @@
 ---
-description: 요구사항을 직접 써서 작업 시작 — 분석·설계·구현·검증을 거쳐 PR 까지. Jira 없이 동작한다.
-argument-hint: "\"<무엇을 만들지/고칠지 한두 문장>\"  [--type feature|bugfix|code_review|release] [--auto-merge]"
+description: Start work from a requirement you write yourself — analysis, design, implementation, verification, through to a PR. Works without Jira.
+argument-hint: "\"<a sentence or two on what to build or fix>\"  [--type feature|bugfix|code_review|release] [--auto-merge]"
 allowed-tools: Read, Write, Edit, Bash, Agent, TodoWrite, mcp__plugin_core-dev_stablenet-knowledge, mcp__plugin_core-dev_chainbench, mcp__plugin_atlassian_atlassian
 ---
 
 # /core-dev:work-with-prompt
 
-Jira 티켓 없이 **자유 텍스트 요구사항**으로 자동화 파이프라인을 시작한다.
-`/core-dev:work` 와 동일한 파이프라인(planner→implementer→evaluator)을 타되,
-진입만 자유 텍스트다. 내부적으로 요구사항을 `ticket.json` 으로 합성하여 기존
-`template-parse` + Orchestrator 를 그대로 재사용한다(`requirement_source: "local"`).
+Start the automation pipeline from **free-text requirements**, with no Jira ticket. It runs the
+same pipeline as `/core-dev:work-with-jira` (planner -> implementer -> evaluator); only the entry
+point differs. Internally the requirement is synthesized into a `ticket.json`, so the existing
+`template-parse` + Orchestrator path is reused unchanged (`requirement_source: "local"`).
 
-> 자율 진입: 이 커맨드는 Jira·중복·민감정보로 인한 **사용자 프롬프트가 없다**.
-> 매 실행이 새 `LOCAL-{timestamp}` 작업이며, 로컬 민감정보는 auto-redact 후 진행한다.
-
----
-
-## 0. 인자 형식
-
-- 예: `/core-dev:work-with-prompt "consensus Finalize 의 nil pointer 패닉을 고쳐줘"`
-- 유형 힌트(선택): `... --type bugfix` (생략 시 본문에서 추론)
-- 자동 머지(선택): `... --auto-merge` — PR 생성에서 멈추지 않고 merge/tag/push까지 자율.
-  **기본은 OFF**(merge/push/tag 게이트 유지). 켜도 merge.md §3 안전조건(APPROVED/CI/MERGEABLE)은 유지된다.
+> Autonomous entry: this command raises **no user prompts** for Jira, duplicates or sensitive
+> data. Every run is a fresh `LOCAL-{timestamp}` job, and local secrets are auto-redacted rather
+> than blocking.
 
 ---
 
-## 1. 인자 검증
+## 0. Argument shape
+
+- e.g. `/core-dev:work-with-prompt "fix the nil pointer panic in consensus Finalize"`
+- Type hint (optional): `... --type bugfix` (inferred from the text when omitted)
+- Auto-merge (optional): `... --auto-merge` — carry on past PR creation through merge/tag/push.
+  **Off by default** (the merge/push/tag gates stay). Even when on, merge.md §3's safety
+  conditions (APPROVED/CI/MERGEABLE) still hold.
+
+---
+
+## 1. Validate the argument
 
 ```
-1.1. 인자 파싱
-   - 따옴표로 감싼 요구사항 본문 → requirement_text
-   - 옵션 --type <feature|bugfix|code_review|release> → type_hint (선택)
-   - 옵션 --auto-merge (플래그) → auto_merge_flag = true (기본 false)
-   - 빈 요구사항 → 사용법 출력 후 중단:
-     "사용법: /core-dev:work-with-prompt \"<요구사항 텍스트>\" [--type <유형>] [--auto-merge]"
+1.1. Parse
+   - the quoted requirement body -> requirement_text
+   - --type <feature|bugfix|code_review|release> -> type_hint (optional)
+   - --auto-merge (flag) -> auto_merge_flag = true (default false)
+   - empty requirement -> print usage and stop:
+     "usage: /core-dev:work-with-prompt \"<requirement text>\" [--type <type>] [--auto-merge]"
 ```
 
 ---
 
-## 2. .stablenet-expert/ 디렉토리 확인
+## 2. Check for .stablenet-expert/
 
 ```
-2.1. 프로젝트 루트 확인
+2.1. Find the project root
    bash: git rev-parse --show-toplevel
-   실패 → "git 레포가 아닙니다. go-stablenet 레포 안에서 실행하세요." → 중단
-   성공 → repo_root 저장
+   failure -> "not a git repository. Run this inside the go-stablenet checkout." -> stop
+   success -> keep as repo_root
 2.2. bash: mkdir -p {repo_root}/.stablenet-expert/tickets
 ```
 
 ---
 
-## 3. 작업 폴더 생성 (항상 새 작업)
+## 3. Create the job directory (always new)
 
 ```
-3.1. bash: date -u +"%Y%m%d_%H%M%S"  → timestamp
+3.1. bash: date -u +"%Y%m%d_%H%M%S"  -> timestamp
 3.2. local_id = "LOCAL-{timestamp}"
 3.3. workspace = "{repo_root}/.stablenet-expert/tickets/{local_id}"
 3.4. bash: mkdir -p {workspace}/logs
 ```
-중복/복구 판별은 생략한다 — local_id 가 매번 고유하므로 항상 신규 작업이다(사용자 프롬프트 없음).
+
+There is no duplicate/resume check: local_id is unique per run, so every run is a new job and
+nothing needs asking.
 
 ---
 
-## 4. 요구사항 intake → ticket.json 합성
+## 4. Requirement intake -> synthesize ticket.json
 
-자유 텍스트를 `template-parse` 가 파싱할 수 있는 구조로 LLM이 직접 합성한다.
+The model synthesizes the free text into a structure `template-parse` can read.
 
 ```
-4.1. work_type 결정
-   type_hint 가 있으면 그 값. 없으면 requirement_text 내용으로 추론:
-     - "버그/패닉/에러/fix/깨짐/실패" 중심 → bugfix
-     - "리뷰/검토/review" 중심 → code_review
-     - "릴리즈/태그/버전/release" 중심 → release
-     - 그 외(새 동작/기능/개선) → feature
+4.1. Decide work_type
+   Use type_hint when given. Otherwise infer from requirement_text:
+     - centred on "bug/panic/error/fix/broken/failing" -> bugfix
+     - centred on "review" -> code_review
+     - centred on "release/tag/version" -> release
+     - otherwise (new behaviour, feature, improvement) -> feature
 
-4.2. description(markdown) 합성
-   template-parse 가 인식하는 헤더로 본문을 구성한다(섹션이 비면 LLM 추론으로 보강하되
-   확신 없는 값은 비워 missing_fields 로 남긴다):
+4.2. Synthesize the description (markdown)
+   Build the body from headers template-parse recognizes. Where a section is empty, fill it in
+   by inference, but leave anything you are not confident about blank so it surfaces in
+   missing_fields:
 
-   - 공통 첫 줄:  "## 작업 유형: {work_type}"
-   - feature:   ## 요약 / ## 배경 / ## 요구사항(체크리스트) / ## 영향 범위(모듈) / ## 수용 기준
-   - bugfix:    ## 요약 / ## 재현 방법 / ## 기대 동작 / ## 실제 동작 / ## 영향 범위(모듈, 심각도) / ## 수용 기준
-   - code_review: ## 요약 / ## 리뷰 대상 / ## 리뷰 기준
-   - release:   ## 요약 / ## 버전 / ## 포함 변경사항 / ## 릴리즈 체크리스트
+   - first line, always:  "## Work Type: {work_type}"
+   - feature:     ## Summary / ## Background / ## Requirements (checklist) / ## Scope (modules) /
+                  ## Acceptance Criteria
+   - bugfix:      ## Summary / ## Steps to Reproduce / ## Expected Behavior / ## Actual Behavior /
+                  ## Scope (modules, severity) / ## Acceptance Criteria
+   - code_review: ## Summary / ## Review Target / ## Review Criteria
+   - release:     ## Summary / ## Version / ## Changes / ## Release Checklist
 
-   본문은 requirement_text 를 충실히 반영하되, go-stablenet 도메인 용어를 보존한다.
-   (영향 범위 모듈을 단정하기 어려우면 비워 둔다 — planner 가 stablenet-knowledge 로 정밀 분석한다.)
+   These are the English half of template-parse §3.1/§3.2's header table; it matches Korean and
+   English alike, so a ticket written either way still parses.
 
-4.3. 로컬 민감정보 스캔 (auto-redact, 하드스톱 없음)
-   requirement_text 에서 명백한 비밀(예: API 키/토큰/패스워드/`sk-`·`ghp_`·`-----BEGIN` 등)을
-   탐지하면 description 내 해당 값을 "[REDACTED]" 로 치환하고 카운트한다.
-     scan_result = (치환 발생) ? "REDACTED" : "CLEAN"   # 절대 BLOCKED 로 중단하지 않음
+   Reflect requirement_text faithfully and keep go-stablenet domain terms as they are.
+   (Leave the scope modules blank rather than guessing -- the planner works them out precisely
+   through stablenet-knowledge.)
 
-4.4. ticket.json 저장 ({workspace}/ticket.json)
+4.3. Scan for local secrets (auto-redact, never a hard stop)
+   Where requirement_text carries an obvious secret (an API key, token, password, `sk-`,
+   `ghp_`, `-----BEGIN`, ...), replace the value in the description with "[REDACTED]" and count it.
+     scan_result = (anything replaced) ? "REDACTED" : "CLEAN"   # never BLOCKED, never stops
+
+4.4. Write ticket.json ({workspace}/ticket.json)
    {
      "ticket_id": "{local_id}",
      "type": "{work_type}",
-     "summary": "<한 줄 요약>",
-     "description": "<4.2 에서 합성한 markdown>",
+     "summary": "<one-line summary>",
+     "description": "<the markdown synthesized in 4.2>",
      "requirement_source": "local",
      "_filter_metadata": { "scan_result": "{scan_result}", "redacted_count": N }
    }
@@ -105,21 +116,23 @@ Jira 티켓 없이 **자유 텍스트 요구사항**으로 자동화 파이프�
 
 ---
 
-## 5. ticket_type 식별 + state.json 초기화
+## 5. Identify ticket_type + initialize state.json
 
 ```
-5.1. template-parse skill 호출
-   input: ticket.description (4.2 의 markdown), summary: ticket.summary
+5.1. Call the template-parse skill
+   input: ticket.description (the markdown from 4.2), summary: ticket.summary
    output: { work_type, summary, pipeline_variant, fields, missing_fields, warnings }
-   결과를 {workspace}/ticket-parsed.json 으로 저장.
-   (work_type 이 intake 추론과 다르면 template-parse 결과를 우선한다.)
+   Save it as {workspace}/ticket-parsed.json.
+   (Where work_type disagrees with the intake inference, template-parse wins.)
 
-5.2. missing_fields 는 중단 사유가 아니다
-   비어있지 않아도 진행한다 — planner 가 ANALYSIS 에서 stablenet-knowledge 로 보강한다(프롬프트 없음).
+5.2. missing_fields is not a reason to stop
+   Proceed even when it is non-empty -- the planner fills the gaps from stablenet-knowledge
+   during ANALYSIS, with no prompting.
 
-5.3. state.json 초기화
-   base_ref = bash: git rev-parse HEAD    # 지금 체크아웃된 커밋이 이 티켓의 베이스 — 이후 어떤
-                                          # 단계도 다른 브랜치로 checkout/pull 해 베이스를 옮기지 않는다
+5.3. Initialize state.json
+   base_ref = bash: git rev-parse HEAD    # the commit checked out now is this ticket's base --
+                                          # no later stage may checkout/pull another branch and
+                                          # move it
    state-machine.init_state(
      ticket_id={local_id},
      ticket_type={work_type},
@@ -128,14 +141,15 @@ Jira 티켓 없이 **자유 텍스트 요구사항**으로 자동화 파이프�
      requirement_source="local",
      base_ref={base_ref}
    )
-   # autonomy 는 requirement_source="local" 에서 {mode:auto, on_blocked:escalate,
-   # auto_merge:false} 로 유도된다. --auto-merge 가 주어졌으면 init_state 후
-   # state.config.autonomy.auto_merge = true 로 덮어쓴다(merge/tag/push 게이트 해제;
-   # 단 merge.md §3 안전조건은 유지). 미지정 시 false(PR 까지만 자율).
+   # With requirement_source="local", autonomy derives as {mode:auto, on_blocked:escalate,
+   # auto_merge:false}. When --auto-merge was given, overwrite
+   # state.config.autonomy.auto_merge = true after init_state (releasing the merge/tag/push
+   # gates; merge.md §3's safety conditions still apply). Left unset it is false -- autonomous
+   # as far as the PR and no further.
 
-5.4. TICKET_INTAKE.sensitive_check 기록
+5.4. Record TICKET_INTAKE.sensitive_check
    states.TICKET_INTAKE.sensitive_check = {
-     "result": "{scan_result}",        # CLEAN | REDACTED (로컬 스캔)
+     "result": "{scan_result}",        # CLEAN | REDACTED (local scan)
      "redacted_count": N,
      "scanned_at": "{ISO now}"
    }
@@ -143,7 +157,7 @@ Jira 티켓 없이 **자유 텍스트 요구사항**으로 자동화 파이프�
 
 ---
 
-## 6. Orchestrator Agent 디스패치
+## 6. Dispatch the Orchestrator agent
 
 ```
 6.1. Agent(
@@ -151,19 +165,20 @@ Jira 티켓 없이 **자유 텍스트 요구사항**으로 자동화 파이프�
        description="Run core-dev pipeline for {local_id} (local requirement)",
        prompt="workspace_dir={workspace}\nmode=fresh"
      )
-6.2. 완료 후 출력:
-   "자유 텍스트 요구사항 작업을 시작했습니다. workspace: {workspace}
-    (requirement_source=local — Jira 동기화 없이 PR 생성까지 진행, merge 는 /core-dev:merge 로 별도)"
+6.2. On completion, print:
+   "Started work from a free-text requirement. workspace: {workspace}
+    (requirement_source=local -- runs to PR creation with no Jira sync; merge is separate,
+     via /core-dev:merge)"
 ```
 
 ---
 
-## 7. 완료 기준 (체크리스트)
+## 7. Done when (checklist)
 
-- [ ] 빈 요구사항에 사용법 출력
-- [ ] git 레포 아닐 때 명확한 에러
-- [ ] 매 실행 고유 LOCAL-{timestamp} 작업 폴더 생성 (중복/복구 프롬프트 없음)
-- [ ] 자유 텍스트 → template-parse 헤더 형식 ticket.json 합성
-- [ ] 로컬 민감정보 auto-redact (BLOCKED 하드스톱 없음)
-- [ ] state.json 이 requirement_source="local" 로 초기화
-- [ ] Orchestrator 가 Jira 호출 없이 파이프라인 수행 (PR 생성까지 자율, merge 게이트 유지)
+- [ ] Empty requirement prints usage
+- [ ] A clear error outside a git repository
+- [ ] A unique LOCAL-{timestamp} job directory per run (no duplicate/resume prompt)
+- [ ] Free text synthesized into a ticket.json using template-parse's headers
+- [ ] Local secrets auto-redacted (no BLOCKED hard stop)
+- [ ] state.json initialized with requirement_source="local"
+- [ ] Orchestrator runs the pipeline with no Jira calls (autonomous to PR creation; merge gate held)

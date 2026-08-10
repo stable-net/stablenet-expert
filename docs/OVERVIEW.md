@@ -291,6 +291,7 @@ flowchart LR
 | `/core-dev:work-with-jira STABLE-1234` | Jira 티켓으로 시작 → PR 풀 사이클 |
 | `/core-dev:work-with-prompt "..."` | 요구사항 텍스트로 시작 (Jira 불필요) |
 | `/core-dev:review-jira STABLE-1234` | 그 티켓 PR 의 리뷰 코멘트를 받아 bugfix 사이클 재진입 |
+| `/core-dev:review-pr <PR-URL>` | 임의 PR 을 격리 클론에서 코드 리뷰 → 승인 또는 코멘트 |
 | `/core-dev:merge` | **main을 건드리는 유일한 명령** — 승인+green일 때만 squash merge |
 | `/core-dev:status` | 진행 상황 조회 |
 | `/core-dev:bench` | A(stablenet-knowledge)/B(code-only)/C(code+skills) 3-way 정보 regime 비교 harness |

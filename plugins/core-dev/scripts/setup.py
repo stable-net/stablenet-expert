@@ -120,6 +120,11 @@ AUTONOMOUS_ALLOW = [
     "Bash(pgrep:*)",
     # PR creation/inspection only — merge stays with /core-dev:merge
     "Bash(gh pr create:*)", "Bash(gh pr view:*)", "Bash(gh pr list:*)",
+    # review-pr works in a throwaway clone under /tmp: fetching it and checking the PR out are
+    # local and reversible. `gh pr review` is deliberately absent -- it posts to the PR where
+    # other people see it, the same reason `gh pr merge` is. The command asks before posting
+    # anyway; the permission prompt on top is the second signature an outward action deserves.
+    "Bash(gh repo clone:*)", "Bash(gh pr checkout:*)",
     "Bash(gh pr checks:*)",
 ]
 

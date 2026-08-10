@@ -16,6 +16,7 @@ if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
 import setup  # noqa: E402
+from setup_checks import manifest  # noqa: E402
 
 SETUP_PY = _SCRIPTS / "setup.py"
 
@@ -120,6 +121,19 @@ class TestAutonomousIndependentOfFix(unittest.TestCase):
             # secret-file path is gitignored
             self.assertIn(".claude/settings.local.json", (d / ".gitignore").read_text())
             self.assertIn("registered", r.stdout)
+
+    def test_manifest_is_gitignored(self):
+        """The manifest is this machine's removal plan, not project config -- committing it
+        would hand another clone a plan for values it never had, and leaving it untracked
+        parks it in `git status` forever."""
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            _run(d, "--autonomous")
+            rel = f".claude/{manifest.FILENAME}"
+            self.assertTrue((d / rel).is_file())
+            self.assertIn(rel, (d / ".gitignore").read_text().splitlines())
+            # and recorded, so --uninstall knows the line was setup's doing
+            self.assertIn(rel, json.loads((d / rel).read_text())["gitignore"])
 
     def test_autonomous_covers_pipeline_write_path(self):
         """The allowlist must cover implementer/evaluator tool use (edits, build, git),

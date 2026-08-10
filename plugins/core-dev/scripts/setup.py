@@ -323,7 +323,7 @@ def _merge_deny(path: Path, entries: list[str]) -> list[str]:
     return _merge_perms(path, "deny", entries)
 
 
-def _ensure_gitignored(repo_root: Path, rel: str) -> None:
+def _ensure_gitignored(repo_root: Path, rel: str, header: str = "core-dev local secrets") -> None:
     gi = repo_root / ".gitignore"
     line = rel
     existing = gi.read_text().splitlines() if gi.is_file() else []
@@ -332,7 +332,23 @@ def _ensure_gitignored(repo_root: Path, rel: str) -> None:
     with gi.open("a") as fh:
         if existing and existing[-1] != "":
             fh.write("\n")
-        fh.write(f"# core-dev local secrets\n{line}\n")
+        fh.write(f"# {header}\n{line}\n")
+
+
+def _ignore_manifest(repo_root: Path, claude_dir: Path) -> None:
+    """Keep setup's own provenance manifest out of the repo's history.
+
+    It records what *this machine's* setup wrote so --uninstall can take exactly that back,
+    which makes it per-checkout state like settings.local.json rather than project config.
+    Committed, it would hand every other clone a removal plan for values that clone never
+    had. Left untracked and unignored it shows up in `git status` forever, which is how it
+    was found.
+    """
+    if not manifest.path_for(claude_dir).is_file():
+        return
+    rel = f".claude/{manifest.FILENAME}"
+    _ensure_gitignored(repo_root, rel, "core-dev machine-local state")
+    manifest.record_gitignore(claude_dir, rel)
 
 
 
@@ -451,8 +467,8 @@ def _uninstall(claude_dir: Path, env_dir: Path, repo_root: Path, args) -> int:
     print(f"    for your own Jira work, and another plugin may need it. To drop it anyway:")
     print(f"      claude mcp logout {atlassian.SERVER}")
     print(f"      claude plugin uninstall {atlassian.PLUGIN}")
-    print("  - the .gitignore line for .claude/settings.local.json, which is harmless and may")
-    print("    predate this plugin.")
+    print("  - the .gitignore lines setup added (.claude/settings.local.json and the manifest),")
+    print("    which are harmless and may predate this plugin.")
     print("\nThen: claude plugin uninstall core-dev@stablenet-expert")
     return 0
 
@@ -658,6 +674,7 @@ def main(argv: list[str] | None = None) -> int:
         _ensure_gitignored(repo_root, ".claude/settings.local.json")
         manifest.record_permissions(claude_dir, w_allow, w_deny)
         manifest.record_gitignore(claude_dir, ".claude/settings.local.json")
+        _ignore_manifest(repo_root, claude_dir)
         print(f"\nregistered {len(w_allow)} permission(s) to .claude/settings.local.json allow"
               + (f": {', '.join(w_allow)}" if w_allow else " (already present)"))
         print(f"registered {len(w_deny)} permission(s) to .claude/settings.local.json deny"
@@ -695,6 +712,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest.record_env(env_dir, "settings.local.json", {k: secret_vals[k] for k in w_sec})
     if w_pin:
         manifest.record_env(claude_dir, "settings.json", {k: pinned[k] for k in w_pin})
+    _ignore_manifest(repo_root, claude_dir)
 
     where = "~/.claude" if env_dir != claude_dir else ".claude"
     print(f"\nwrote {len(w_pub)} key(s) to {where}/settings.json: {', '.join(w_pub) or '(none)'}")

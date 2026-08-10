@@ -296,6 +296,21 @@ restart into a pipeline that cannot read a ticket.
   A `status` of `unknown` means the script could not consult the `claude` CLI at all — report
   that as a broken CLI, not as a missing plugin.
 
+### How a typed value reaches you
+
+**Free text arrives through "Other" and nowhere else.** `AskUserQuestion` appends that entry
+itself and names it. So whenever an answer could be a value the user supplies, the question
+*text* has to invite it, in words, with the shape expected:
+
+> "…already know the address? Choose **Other** and type it (`http://host:port/mcp`)."
+
+**Never create a named option that promises entry** — `Enter a value`, `I'll type it`,
+`Enter the path`. Selecting one returns that label and no value, so the user answers a question
+that collects nothing, and the thing they were asked for is still missing afterwards. Named
+options carry the *alternatives* only: use a detected value, or defer.
+
+This applies to every question below, including the one about the project checkout.
+
 ### Ask by MCP server, one tab each
 
 Group every outstanding row — from all plugins — by **which MCP server it is for**, and put
@@ -325,12 +340,32 @@ search for something to answer. If only one server needs anything, ask a single 
 
 A row that is not tied to any server — the active pack's `repo_root_env`, e.g.
 `GO_STABLENET_ROOT` — gets a fourth question when `setup.py` reports `NOT-A-REPO` or `MISMATCH`,
-because in those cases it wrote nothing and the value has to come from the user. Ask for the path
-(header: `Project repo`), then set it the same way as any other value:
+because in those cases it wrote nothing and the value has to come from the user.
+
+```
+header:   "Project repo"
+question: "<KEY> — the checkout the pipeline builds and tests. setup.py declined to pin it
+           because <NOT-A-REPO: the directory it would have used has no .git |
+           MISMATCH: this is the plugin repo, not a target project>.
+           Choose Other and type the path to the checkout (e.g. ~/Work/github/go-stablenet)."
+options:
+  - "Leave it unset"    (the pipeline falls back to git rev-parse from wherever it runs)
+```
+
+The path only arrives if the question says to use **Other** — an option reading *"Enter the
+path"* returns that string and nothing else, which is how this ended up needing a manual
+`setup.py --fix` afterwards.
+
+Then write it — pass the path through as typed, `~` included; `setup.py` expands it:
 
 ```bash
 "$python_bin" "$plugin_path/scripts/setup.py" --repo "<path>" --fix
 ```
+
+`--repo` both aims the run at that checkout and records the variable inside it, so this is one
+command, not two. Confirm from the script's own output that the line reads `REPO-ROOT` and names
+the path you passed — `NOT-A-REPO` there means the path is still not a checkout, and nothing was
+written.
 
 The pipeline reads this variable to find the checkout it builds and tests (`evaluator.md` §2,
 `implementer.md` §1), so a path given here is used — it is not merely recorded.
@@ -345,11 +380,21 @@ Within each tab, the rows still split by kind:
   `description` as the option description so the user can see what each value is for rather
   than guessing from the variable name. Use `multiSelect: true` when a tab holds more than one.
 
-  **Show `resolved_value` in the option, and always offer to change it.** Two options per key:
-  *use `<value>`* and *enter a different value*. The second is an `AskUserQuestion` "Other",
-  which takes free text. Detection lands on stale checkouts and a leftover process environment
-  carries values nobody chose, so "shall I set CHAINBENCH_DIR?" without showing the value is not
-  a question anyone can answer.
+  **Show `resolved_value`, and invite a different one** per the rule above:
+
+  ```
+  header:  "Knowledge MCP"
+  question: "stablenet-knowledge server endpoint — <description>.
+             Detected: <resolved_value>.  Already know the address? Choose Other and type it."
+  options:
+    - "Use the detected value"            (only when resolved_value is present)
+    - "Leave it for now"                  (says what stops working, from the description)
+  ```
+
+  Detection lands on stale checkouts and a leftover process environment carries values nobody
+  chose, so "shall I set CHAINBENCH_DIR?" without showing the value is not a question anyone can
+  answer — and offering only *accept* or *skip* is not either, when the user is the one who knows
+  the right value.
 
   When `value_withheld` is true the row is a credential and carries no value. Do not ask for it
   here — point at `set-mcp-env.sh`, which prompts with hidden input in the user's own terminal.
@@ -374,7 +419,9 @@ Within each tab, the rows still split by kind:
 - **`missing` rows that are not secret** — the value has to come from the user, but it is not a
   credential (`secret: false`, `value_withheld: false`), so collect it in this server's
   `AskUserQuestion` like the rest: show the key, its `description` and `how_to_find` verbatim,
-  and take the value as free text (the "Other" entry). Then write it yourself:
+  and say in the question text to choose **Other** and type it — the same rule as above, and it
+  matters more here, since with no detected value the *only* useful answer is one the user
+  types. Then write it yourself:
   `"$python_bin" "$plugin_path/scripts/setup.py" --fix --set KEY=VALUE`. The script validates the
   shape and refuses anything that looks like a token, exiting 2 with a reason that never repeats
   the value — report that reason as-is and ask again; do not decide acceptability yourself.

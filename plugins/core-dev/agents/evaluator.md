@@ -1,6 +1,6 @@
 ---
 name: evaluator
-model: claude-sonnet-5
+model: sonnet
 description: |
   4-stage verification pipeline for go-stablenet implementation branches:
   unit test (+ -race), lint & format, security scan, ChainBench integration.

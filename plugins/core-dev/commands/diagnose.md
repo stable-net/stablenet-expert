@@ -1,46 +1,49 @@
 ---
-description: 증상만 주면 근본 원인을 찾아 보고하고 멈춘다 — 코드도 PR 도 건드리지 않는다.
-argument-hint: "\"<무엇이 어떻게 잘못되는지>\"  [--path <좁힐 파일/디렉토리>]"
+description: Give it a symptom and it finds the root cause, reports it, and stops — touching neither code nor a PR.
+argument-hint: "\"<what goes wrong, and how>\"  [--path <file/directory to narrow to>]"
 ---
 
 # /core-dev:diagnose
 
-증상을 입력하면 **근본 원인이 무엇인지**만 파악해서 보고한다. `/core-dev:work-with-prompt`
-와 달리 설계·구현·테스트·PR로 진행하지 **않는다** — **읽기 전용 진단**이다.
+Take a symptom and report **only what the root cause is**. Unlike
+`/core-dev:work-with-prompt` it does **not** carry on into design, implementation, tests or a PR
+— this is **read-only diagnosis**.
 
-내부적으로 `analyzer`(상황분석 + 근본원인 단계 + stablenet-knowledge 검색·root-cause-lifecycle)를
-**진단 모드**로 재사용하되, 근본원인 규명 직후 **멈추고** `diagnosis.md` 를 산출한다.
-재현 테스트를 만들지 않고, 코드를 수정하거나 브랜치를 만들지 않으며, PLANNING으로 넘어가지 않는다.
+Internally it reuses `analyzer` (situation analysis plus the root-cause stage, with
+stablenet-knowledge retrieval and root-cause-lifecycle) in **diagnose mode**: it **stops** as
+soon as the root cause is established and produces `diagnosis.md`. It writes no reproduction
+test, modifies no code, creates no branch, and does not advance to PLANNING.
 
-> 언제 쓰나: "왜 이런 일이 생기지?"를 빠르게 규명하고 싶을 때. 고치는 것까지 자율로
-> 진행하려면 대신 `/core-dev:work-with-prompt` 를 쓴다.
-
----
-
-## 0. 인자 형식
-- 기본: `/core-dev:diagnose "에포크 전환 직후 일부 tx가 부당 거부된다"`
-- 범위 힌트(선택): `... --path core/txpool` — planner가 우선 살필 경로(생략 시 stablenet-knowledge가 전역 검색).
+> When to use it: to work out "why is this happening?" quickly. To have the fix carried out
+> autonomously as well, use `/core-dev:work-with-prompt` instead.
 
 ---
 
-## 1. 인자 검증
+## 0. Argument shape
+- Basic: `/core-dev:diagnose "some transactions are wrongly rejected right after an epoch change"`
+- Scope hint (optional): `... --path core/txpool` — the path the planner looks at first (without
+  it, stablenet-knowledge searches broadly).
+
+---
+
+## 1. Validate the argument
 ```
-1.1. 따옴표 본문 → problem_text. 옵션 --path <경로> → focus_path (선택).
-1.2. 빈 본문 → 사용법 출력 후 중단:
-     "사용법: /core-dev:diagnose \"<증상/문제 설명>\" [--path <경로>]"
+1.1. The quoted body -> problem_text. Option --path <path> -> focus_path (optional).
+1.2. Empty body -> print usage and stop:
+     "usage: /core-dev:diagnose \"<symptom / problem description>\" [--path <path>]"
 ```
 
-## 2. 작업 폴더 (진단은 tickets 와 분리)
+## 2. Job directory (diagnoses are kept apart from tickets)
 ```
-2.1. bash: git rev-parse --show-toplevel → repo_root (실패 시 "git 레포 안에서 실행" 중단)
-2.2. bash: date -u +"%Y%m%d_%H%M%S" → timestamp
+2.1. bash: git rev-parse --show-toplevel -> repo_root (on failure stop: "run inside a git repo")
+2.2. bash: date -u +"%Y%m%d_%H%M%S" -> timestamp
 2.3. workspace = "{repo_root}/.stablenet-expert/diagnoses/DIAG-{timestamp}"
 2.4. bash: mkdir -p {workspace}
-2.5. 로컬 민감정보 auto-redact: problem_text 의 명백한 비밀(sk-/ghp_/-----BEGIN/토큰·패스워드)을
-     "[REDACTED]" 로 치환(하드스톱 없음).
+2.5. Auto-redact local secrets: replace obvious secrets in problem_text
+     (sk-/ghp_/-----BEGIN/tokens/passwords) with "[REDACTED]" (never a hard stop).
 ```
 
-## 3. analyzer 디스패치 (진단 전용 — situation + root cause만)
+## 3. Dispatch the analyzer (diagnosis only — situation + root cause)
 ```
 3.1. Agent(
        subagent_type="analyzer",
@@ -76,19 +79,19 @@ argument-hint: "\"<무엇이 어떻게 잘못되는지>\"  [--path <좁힐 파�
      )
 ```
 
-## 4. 결과 보고
+## 4. Report the result
 ```
-4.1. {workspace}/diagnosis.md 를 읽어 사용자에게 요약 출력:
-     - 근본 원인 한 줄
-     - 핵심 근거(파일:라인) 2~3개
-     - 확신도
-     - "전체 진단: {workspace}/diagnosis.md"
-4.2. 안내: "고치는 작업까지 진행하려면: /core-dev:work-with-prompt \"{problem_text}\""
+4.1. Read {workspace}/diagnosis.md and summarize for the user:
+     - the root cause in one line
+     - two or three key pieces of evidence (file:line)
+     - confidence
+     - "full diagnosis: {workspace}/diagnosis.md"
+4.2. Note: "To carry on into the fix: /core-dev:work-with-prompt \"{problem_text}\""
 ```
 
-## 5. 완료 기준 (체크리스트)
-- [ ] 빈 본문에 사용법 출력
-- [ ] git 레포 아닐 때 명확한 에러
-- [ ] DIAG-{timestamp} 진단 폴더 생성(tickets 와 분리)
-- [ ] planner가 ANALYSIS만 수행하고 diagnosis.md 산출(코드·브랜치·PR 변경 없음)
-- [ ] 근본 원인·근거·확신도 요약 출력
+## 5. Done when (checklist)
+- [ ] An empty body prints usage
+- [ ] A clear error outside a git repository
+- [ ] A DIAG-{timestamp} diagnosis directory created (separate from tickets)
+- [ ] The analyzer does ANALYSIS only and produces diagnosis.md (no code, branch or PR changes)
+- [ ] Root cause, evidence and confidence summarized

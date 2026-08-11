@@ -1,6 +1,6 @@
 ---
 name: bench-analyzer-codeonly
-model: claude-opus-4-8
+model: opus
 description: |
   Benchmark mode B (code-only) analyzer. Same job and artifacts as the real
   analyzer (situation analysis, reproduction test, root cause), but with NO stablenet-knowledge
@@ -36,7 +36,7 @@ isolates). The same task runs under three regimes:
 - **Mode B — this agent** — code only: grep/glob/read, no stablenet-knowledge, no domain skills.
 - **Mode C** — `bench-analyzer-skills`: grep/read + comprehension skills, no stablenet-knowledge.
 
-The model is fixed to `claude-opus-4-8` (identical to the real analyzer) so the
+The model is fixed to the deep tier (`opus`, identical to the real analyzer) so the
 comparison isolates the *information regime*, not the model. The downstream
 `planner`, `implementer`, and `evaluator` are SHARED and mode-blind.
 

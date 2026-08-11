@@ -37,6 +37,14 @@ jobs:
           python-version: "3.12"
       - name: bench harness tests
         run: python -m unittest discover -s bench/tests -t .
+      - name: model-pin gate
+        # Static half of ADR-0020: every agent's frontmatter must carry its tier alias.
+        # A concrete model id here does not resolve off the first-party API, and the
+        # runtime fallback is silent -- so it has to fail loudly somewhere, and this is
+        # the only place that can. Unwired until now, and drifting since #49.
+        run: |
+          python bench/model-pins/check.py
+          python bench/model-pins/tests/test_check.py
       - name: plugin script tests
         run: |
           set -e

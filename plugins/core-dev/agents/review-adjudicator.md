@@ -1,6 +1,6 @@
 ---
 name: review-adjudicator
-model: claude-opus-4-8
+model: opus
 description: |
   Second opinion on a code review before any of it is posted to a PR. Receives draft findings
   and the code they refer to, and decides which survive. Runs on a different model from the

@@ -1,184 +1,183 @@
 ---
-description: 승인된 PR 을 스쿼시 머지하고 Jira 를 Complete 로 옮긴 뒤 브랜치를 정리한다. main 을 건드리는 유일한 커맨드.
-argument-hint: "<Jira 티켓 번호> 또는 <PR URL>   (예: STABLE-1234 / https://github.com/o/r/pull/456)"
+description: Squash-merge an approved PR, move the Jira ticket to Complete, and tidy up the branches. The only command that touches main.
+argument-hint: "<Jira ticket number> or <PR URL>   (e.g. STABLE-1234 / https://github.com/o/r/pull/456)"
 ---
 
 # /core-dev:merge
 
-코드 리뷰를 통과한 PR을 squash-merge하고, 이어서 Jira와 로컬 워크스페이스에서
-후속 마무리를 진행한다.
+Squash-merge a PR that has passed code review, then finish up in Jira and in the local
+workspace.
 
-이 커맨드는 플러그인에서 `main`을 건드리는 유일한 커맨드이므로, 전제조건이
-엄격하고 모든 외부 액션이 로그로 남는다.
+This is the only command in the plugin that touches `main`, so its preconditions are strict and
+every outward action is logged.
 
-§3의 전제조건(PR APPROVED + 필수 체크 green + MERGEABLE)은 하드(HARD) 안전
-게이트이며, `state.config.autonomy.auto_merge == true`인 경우조차 **절대**
-우회되지 않는다. auto_merge가 통제하는 범위는 오직 (1) 사람이 직접
-`/core-dev:merge`를 입력하지 않고도 파이프라인이 이 커맨드에 도달하는지 여부,
-(2) sanitize REDACTED 프롬프트를 처리하는지 여부(§4.3) 뿐이며 — merge 안전
-체크를 완화하는 일은 절대 없다.
-
----
-
-## 1. 인자 검증
-
-```
-1.1. 인자는 두 가지 중 하나다. 무엇을 받았는지로 모드가 갈린다.
-
-     (a) Jira 티켓 번호  — /^[A-Z]+-\d+$/          → 티켓 모드
-     (b) PR URL          — /github\.com/.+/pull/\d+/ → PR 모드
-
-     둘 다 아니면 사용법 출력:
-       "사용법: /core-dev:merge STABLE-1234
-              또는 /core-dev:merge https://github.com/<owner>/<repo>/pull/456"
-
-     두 모드는 §3 의 안전 전제조건(승인·CI·mergeable)을 **똑같이** 통과해야 한다. 다른 것은
-     PR 을 어떻게 찾고, 머지 후 무엇을 기록할 수 있는지뿐이다.
-1.2. 레포 루트 확인:
-     bash: git rev-parse --show-toplevel → repo_root
-     git 레포가 아니면 → 명확한 메시지와 함께 중단.
-```
+§3's preconditions (PR APPROVED + required checks green + MERGEABLE) are a **hard** safety gate
+and are **never** bypassed, not even when `state.config.autonomy.auto_merge == true`. What
+auto_merge controls is only (1) whether the pipeline can reach this command without a person
+typing `/core-dev:merge`, and (2) whether the sanitize REDACTED prompt is handled (§4.3) — it
+never relaxes a merge safety check.
 
 ---
 
-## 2. 워크스페이스 + PR 찾기
-
-**PR 모드는 2.1~2.3 을 건너뛰고 2.0 만 쓴다.** 워크스페이스가 없다는 것이 이 모드의 전제다 —
-이 PR 이 이 파이프라인에서 나왔다는 보장이 없다.
+## 1. Validate the argument
 
 ```
-2.0. (PR 모드) PR URL 에서 직접 얻는다
-     pr_number = URL 의 /pull/(\d+)
+1.1. The argument is one of two things, and which one decides the mode.
+
+     (a) Jira ticket number  — /^[A-Z]+-\d+$/          -> ticket mode
+     (b) PR URL              — /github\.com/.+/pull/\d+/ -> PR mode
+
+     Neither -> print usage:
+       "usage: /core-dev:merge STABLE-1234
+               or    /core-dev:merge https://github.com/<owner>/<repo>/pull/456"
+
+     Both modes clear §3's safety preconditions (approval, CI, mergeable) **identically**. All
+     that differs is how the PR is found and what can be recorded after the merge.
+1.2. Find the repo root:
+     bash: git rev-parse --show-toplevel -> repo_root
+     Not a git repository -> stop with a clear message.
+```
+
+---
+
+## 2. Find the workspace and the PR
+
+**PR mode skips 2.1-2.3 and uses only 2.0.** Having no workspace is the premise of that mode —
+there is no guarantee this PR came out of this pipeline.
+
+```
+2.0. (PR mode) Take it straight from the PR URL
+     pr_number = /pull/(\d+) from the URL
      bash: gh pr view {pr_number} --json headRefName,title,body,url
      branch = headRefName
-     jira_id = `jira-via-atlassian` 스킬 §4 의 규칙으로 추출(브랜치명 → PR body). 실패하면 **묻지 않고**
-               Jira 갱신만 건너뛴다 — 머지 자체는 티켓과 무관하다.
-     → 3단계로 진행
+     jira_id = extracted per the `jira-via-atlassian` skill §4 (branch name -> PR body). On
+               failure, skip the Jira update **without asking** -- the merge itself does not
+               depend on a ticket.
+     -> go to step 3
 
-2.1. (티켓 모드) 가장 최근 티켓 워크스페이스 찾기:
-     {repo_root}/.stablenet-expert/tickets/{jira_id}_* 스캔(timestamp 역순)
-     state.current_state가 {"COMPLETION","COMPLETED"} 중 하나인 첫 번째 항목을 취함.
-     없으면 중단:
-       "{jira_id}에 대한 COMPLETION 단계 워크스페이스를 찾을 수 없습니다.
-        먼저 /core-dev:work-with-jira 로 PR을 생성하세요."
+2.1. (ticket mode) Find the most recent workspace for the ticket:
+     Scan {repo_root}/.stablenet-expert/tickets/{jira_id}_* (newest timestamp first).
+     Take the first whose state.current_state is in {"COMPLETION","COMPLETED"}.
+     None -> stop:
+       "No COMPLETION-stage workspace found for {jira_id}.
+        Create the PR first with /core-dev:work-with-jira."
 
-2.2. workspace/state.json 읽기 → state
+2.2. Read workspace/state.json -> state
      pr_url = state.states.COMPLETION.pr_url
-     pr_url이 비어 있으면:
-       "이 티켓에는 기록된 PR이 없습니다.
-        먼저 /core-dev:work-with-jira 로 파이프라인을 완료하세요."
+     Empty pr_url:
+       "This ticket has no recorded PR.
+        Complete the pipeline first with /core-dev:work-with-jira."
 
-2.3. pr_url에서 PR 번호 추출(정규식 /pull/(\d+)).
+2.3. Extract the PR number from pr_url (regex /pull/(\d+)).
      branch = state.states.IMPLEMENTATION.branch
 ```
 
 ---
 
-## 3. 전제조건 체크 (전부 통과해야 함)
+## 3. Preconditions (all must pass)
 
-각 체크는 `{workspace}/logs/merge-precheck.log`에 기록된다. 하나라도
-실패하면 `main`을 건드리기 전에 중단한다.
+Each check is written to `{workspace}/logs/merge-precheck.log`. A single failure stops the run
+before `main` is touched.
 
 ```
-3.1. gh CLI 인증
+3.1. gh CLI authentication
      bash: gh auth status
-     인증 안 됐으면: "gh auth login을 실행하세요" 힌트와 함께 중단.
+     Unauthenticated -> stop, pointing at `gh auth login`.
 
-3.2. PR이 존재하고 열려 있는지
+3.2. The PR exists and is open
      bash: gh pr view {pr_number} --json state,reviewDecision,mergeable,statusCheckRollup
-     JSON 파싱.
-     pr.state != "OPEN"이면: state 값과 함께 중단
-       (MERGED → "이미 머지됐습니다."; CLOSED → "머지 없이 PR이 닫혔습니다.").
+     Parse the JSON.
+     pr.state != "OPEN" -> stop, naming the state
+       (MERGED -> "already merged."; CLOSED -> "the PR was closed without merging.").
 
-3.3. 리뷰 승인
-     pr.reviewDecision != "APPROVED"이면:
-       중단:
-         "PR이 승인되지 않았습니다(state: {reviewDecision}). 필요 상태: APPROVED."
-         reviewDecision == "CHANGES_REQUESTED"이면:
-           힌트: "피드백 반영을 위해 /core-dev:review-jira {jira_id} 를 실행하세요."
+3.3. Review approval
+     pr.reviewDecision != "APPROVED" ->
+       stop:
+         "The PR is not approved (state: {reviewDecision}). Required: APPROVED."
+         reviewDecision == "CHANGES_REQUESTED" ->
+           hint: "Run /core-dev:review-jira {jira_id} to apply the feedback."
 
-3.4. 필수 상태 체크
-     pr.statusCheckRollup의 각 check에 대해:
-       check.status != "COMPLETED" 이거나
-       check.conclusion이 {"SUCCESS","NEUTRAL","SKIPPED"}에 없으면:
-         failing_checks에 추가
-     failing_checks가 비어있지 않으면:
-       실패한 체크 목록("ci/build", "ci/test", …)과 함께 중단.
+3.4. Required status checks
+     For each check in pr.statusCheckRollup:
+       check.status != "COMPLETED", or
+       check.conclusion not in {"SUCCESS","NEUTRAL","SKIPPED"} ->
+         add to failing_checks
+     failing_checks non-empty ->
+       stop, listing the failed checks ("ci/build", "ci/test", ...).
 
-3.5. Mergeable 여부
-     pr.mergeable != "MERGEABLE"이면:
-       값과 함께 중단(CONFLICTING → "브랜치의 충돌을 해결하세요.";
-                       UNKNOWN → "GitHub이 아직 mergeability를 계산 중입니다. 재시도하세요.").
+3.5. Mergeability
+     pr.mergeable != "MERGEABLE" ->
+       stop, naming the value (CONFLICTING -> "resolve the conflicts on the branch.";
+                                UNKNOWN -> "GitHub is still computing mergeability. Retry.").
 ```
 
-하나라도 중단되면, 맨 위에 한 줄 요약을 출력하고 아래에 체크별 상세를
-출력한다. git 상태는 건드리지 않는다.
+On any stop, print a one-line summary first, then the per-check detail below it. Leave the git
+state untouched.
 
 ---
 
-## 4. squash 커밋 본문 조립
+## 4. Assemble the squash commit body
 
-**PR 모드**: 워크스페이스가 없으므로 plan progress 로 본문을 합성할 수 없다. PR 의 제목과 본문을
-그대로 쓴다(`gh pr view` 로 이미 받아뒀다). 4.3 의 sanitize 는 **양쪽 모드 모두** 거친다 — 본문이
-어디서 왔든 게시되는 것은 같다.
-
+**PR mode**: with no workspace there is no plan progress to synthesize a body from, so use the
+PR's own title and body (already fetched via `gh pr view`). §4.3's sanitize runs in **both**
+modes — wherever the body came from, what gets published is the same.
 
 ```
-4.1. 티켓과 plan progress 읽기
-     workspace/ticket.json 읽기 → ticket
+4.1. Read the ticket and the plan progress
+     read workspace/ticket.json -> ticket
      plan_progress = state.states.IMPLEMENTATION.plan_progress
      commits = flatten(plan_progress.steps[*].commits)
 
-4.2. 크기에 따라 전략을 달리해 본문 작성
+4.2. Write the body, strategy by size
 
-     # 2-tier 포맷터
-     plan_progress.total_steps <= 10이면:
+     # 2-tier formatter
+     plan_progress.total_steps <= 10:
        body = "{ticket_id}: {ticket.summary}\n\n"
-       plan_progress.steps의 각 step에 대해:
-         step.commits의 각 hash에 대해:
+       for each step in plan_progress.steps:
+         for each hash in step.commits:
            subject = bash: git -C {repo_root} log -1 --format=%s {hash}
            body += "* " + subject + "\n"
-     아니면:
-       # 카테고리 버킷팅
-       description에서 유추한 카테고리로 step을 그룹핑:
-                 (interface|api|type|signature) → "Interface changes"
-                 (impl|logic|finalize|...) → "Implementation"
-                 (test|fixture|race|integration) → "Tests"
-                 (doc|godoc|changelog|comment) → "Docs"
-                 기본값 → "Misc"
+     otherwise:
+       # bucket by category
+       Group steps by a category inferred from the description:
+                 (interface|api|type|signature) -> "Interface changes"
+                 (impl|logic|finalize|...) -> "Implementation"
+                 (test|fixture|race|integration) -> "Tests"
+                 (doc|godoc|changelog|comment) -> "Docs"
+                 default -> "Misc"
        body = "{ticket_id}: {ticket.summary}\n\n"
-       [Interface, Implementation, Tests, Docs, Misc] 순서의 각 버킷 이름에 대해:
+       For each bucket name in [Interface, Implementation, Tests, Docs, Misc]:
          steps_in = bucket[name]
-         steps_in이 비어 있으면: 건너뜀
+         steps_in empty -> skip
          total_commits = sum(len(step.commits) for step in steps_in)
          body += f"* {name} ({total_commits} commits)\n"
-         steps_in의 각 step에 대해:
+         for each step in steps_in:
            body += "  - {step.description}\n"
 
      body += "\nJira: {jira_site_url}/browse/{ticket_id}\n"   # site URL from cloudId resolution
      body += "PR: #{pr_number}\n"
 
-4.3. 게시 전 sanitize(P7-7)
+4.3. Sanitize before publishing (P7-7)
      result = pr-sanitize.scan(text=body, context="squash_commit_body")
-     result.ok가 아니면:
-       pr-sanitize의 block 메시지와 함께 중단; merge로 진행하지 **않는다**.
-     result.scan_result == "REDACTED"이면:
-       state.config.autonomy.auto_merge == true이면:
-         계속 진행 — body에 이미 redaction이 적용됨(프롬프트 없음).
-       아니면:
-         계속하기 전에 사용자 확인(pr-sanitize 호출자 가이드에 따라
-         소스 자체를 고치는 쪽을 우선함).
+     not result.ok ->
+       stop with pr-sanitize's block message; do **not** proceed to merge.
+     result.scan_result == "REDACTED" ->
+       state.config.autonomy.auto_merge == true ->
+         continue -- the redaction is already applied to body (no prompt).
+       otherwise ->
+         confirm with the user before continuing (per pr-sanitize's caller guidance, which
+         prefers fixing the source itself).
      body = result.text
 ```
 
 ---
 
-## 5. squash merge 실행
+## 5. Perform the squash merge
 
 ```
-5.1. GitHub 브랜치 보호가 지켜지도록 raw git이 아니라 gh를 사용한다.
+5.1. Use gh rather than raw git, so GitHub's branch protection is honoured.
      subject = "{ticket_id}: {ticket.summary}"
-     # 혹시 몰라 subject도 sanitize한다.
+     # sanitize the subject too, just in case.
      subject = pr-sanitize.scan(text=subject, context="squash_commit_subject").text
 
      bash: gh pr merge {pr_number} --squash --delete-branch \
@@ -188,114 +187,111 @@ argument-hint: "<Jira 티켓 번호> 또는 <PR URL>   (예: STABLE-1234 / https
 PR_BODY_EOF
 )"
 
-5.2. merge 커밋 해시 확보
-     bash: gh pr view {pr_number} --json mergeCommit -q '.mergeCommit.oid' → merge_hash
-     merge_hash가 비어 있으면(GitHub eventual consistency):
-       3초 sleep 후 최대 3회 재시도.
+5.2. Get the merge commit hash
+     bash: gh pr view {pr_number} --json mergeCommit -q '.mergeCommit.oid' -> merge_hash
+     Empty merge_hash (GitHub eventual consistency):
+       sleep 3s and retry, up to 3 times.
 
-5.3. 성공 로그
-     {workspace}/logs/merge.log에 추가:
+5.3. Success log
+     Append to {workspace}/logs/merge.log:
        "{ts} merge ok pr=#{pr_number} hash={merge_hash}"
 ```
 
-`gh pr merge`가 non-zero로 종료되면, merge는 일어나지 **않은** 것이다. gh
-출력을 노출하고 중단한다 — §6의 merge 후 단계는 수행하지 않는다.
+If `gh pr merge` exits non-zero the merge did **not** happen. Surface gh's output and stop — do
+not run §6's post-merge steps.
 
 ---
 
-## 6. Merge 후 정리 (Phase 7 §6)
+## 6. Post-merge cleanup (Phase 7 §6)
 
-**PR 모드에서 건너뛰는 것과 건너뛰지 않는 것:**
+**What PR mode skips and what it does not:**
 
-| 단계 | PR 모드 |
+| Step | PR mode |
 |---|---|
-| 6.1 Jira status → Complete | jira_id 를 뽑았으면 수행, 못 뽑았으면 건너뛴다 |
-| 6.2 Jira 코멘트 | 위와 같다 |
-| 6.3 로컬 브랜치 동기화 | **수행한다** — 워크스페이스와 무관하다 |
-| 6.4 state.json 마무리 | 건너뛴다 — 갱신할 state 가 없다 |
+| 6.1 Jira status -> Complete | done if a jira_id was extracted, skipped otherwise |
+| 6.2 Jira comment | same as above |
+| 6.3 Local branch sync | **done** -- it has nothing to do with the workspace |
+| 6.4 state.json finalization | skipped -- there is no state to update |
 
-건너뛴 것은 §7 출력에 **명시한다**. "머지했다"만 보고 Jira 가 갱신된 줄 알면 보드가 조용히
-어긋난다.
+**Say explicitly** in §7's output what was skipped. Reporting only "merged" leaves the reader
+believing Jira was updated, and the board drifts quietly.
 
-
-각 단계는 best-effort이며 merge를 절대 되돌리지 않는다. 여기서의 실패는
-경고로만 처리된다 — 어느 쪽이든 사용자는 머지된 코드를 그대로 갖는다.
+Every step here is best-effort and never undoes the merge. A failure at this point is a warning
+only — either way the user still has the merged code.
 
 ```
-6.1. Jira: status → Complete
+6.1. Jira: status -> Complete
      transition ticket_id to "Complete" via the `jira-via-atlassian` skill §3
      (getTransitionsForJiraIssue -> three-tier match -> transitionJiraIssue)
-     실패 시: 경고 + Jira를 수동으로 갱신하라는 제안 출력.
+     On failure: warn and suggest updating Jira by hand.
 
-6.2. Jira: merge 해시로 코멘트
+6.2. Jira: comment with the merge hash
      comment_body = "Merged. Commit: {merge_hash}\nBranch: {branch} (deleted)"
-     # 코멘트도 sanitize한다.
+     # sanitize the comment too.
      result = pr-sanitize.scan(text=comment_body, context="jira_merge_comment")
      mcp__plugin_atlassian_atlassian__addCommentToJiraIssue(cloudId, ticket_id, result.text)
 
-6.3. 로컬 브랜치 동기화
-     # default_branch = 레포의 실제 기본 브랜치(origin/HEAD) — "main"이라고 절대 가정하지 않는다
+6.3. Local branch sync
+     # default_branch = the repo's actual default (origin/HEAD) -- never assume "main"
      bash: default_branch=$(git -C {repo_root} symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||'); [ -n "$default_branch" ] || default_branch=main
      bash: git -C {repo_root} checkout {default_branch}
      bash: git -C {repo_root} pull --ff-only origin {default_branch}
-     # 리모트 브랜치는 --delete-branch로 이미 삭제됐다. 로컬
-     # 브랜치는 남아있을 수 있으니, 기본 브랜치에 완전히 merge된 경우에만 제거한다.
+     # The remote branch is already gone via --delete-branch. A local branch may remain;
+     # remove it only when it is fully merged into the default branch.
      bash: git -C {repo_root} branch --merged {default_branch} | grep -E "^\s*{branch}\s*$" \
            | xargs -r git -C {repo_root} branch -d
-     수동으로 만든 미병합 버전이 남아있으면, 손대지 않는다 — 누군가의
-     로컬 작업물에 `git branch -D`를 절대 쓰지 않는다.
+     If an unmerged hand-made version survives, leave it alone -- never run `git branch -D`
+     on somebody's local work.
 
-6.4. state.json 마무리
+6.4. Finalize state.json
      state.states.COMPLETION.status     = "completed"
      state.states.COMPLETION.merged_at  = ISO now UTC
      state.states.COMPLETION.merge_commit = merge_hash
      state.current_state = "COMPLETED"
-     state.json 쓰기
+     write state.json
 ```
 
 ---
 
-## 7. 출력
+## 7. Output
 
-티켓 모드:
+Ticket mode:
 
 ```
-✓ STABLE-1234 머지 완료
+✓ STABLE-1234 merged
   PR:     {pr_url}
   Commit: {merge_hash}
-  Branch: {branch} (삭제됨)
+  Branch: {branch} (deleted)
   Jira:   {ticket_id} → Complete
 ```
 
-PR 모드 — **하지 않은 것을 함께 적는다**:
+PR mode — **name what was not done**:
 
 ```
-✓ PR #456 머지 완료
+✓ PR #456 merged
   PR:     {pr_url}
   Commit: {merge_hash}
-  Branch: {branch} (삭제됨)
-  Jira:   {ticket_id} → Complete        (또는: 티켓을 특정할 수 없어 갱신하지 않음)
-  기록:   워크스페이스가 없어 state.json 은 갱신하지 않음
+  Branch: {branch} (deleted)
+  Jira:   {ticket_id} → Complete        (or: no ticket identified, so not updated)
+  Record: no workspace, so state.json was not updated
 ```
 
-중단 시, 체크별 PASS/FAIL 전제조건 테이블과 처음 실패한 체크의 상세 라인을
-출력한다. 다음에 취할 구체적인 액션을 제안한다
-(예: "리뷰 코멘트 반영을 위해 /core-dev:review-jira 를 실행하세요.").
+On a stop, print the PASS/FAIL precondition table and the detail lines for the first check that
+failed. Suggest a concrete next action (e.g. "Run /core-dev:review-jira to apply the review
+comments.").
 
 ---
 
-## 8. 안전 정책
+## 8. Safety policy
 
-- squash merge는 이 플러그인이 `main`을 건드리는 유일한 지점이다. 중단은
-  눈에 띄게 알려야 하고, 성공 메시지는 간결해야 한다.
-- 브랜치 보호를 절대 우회하지 않는다: `gh pr merge`를 사용하고, raw
-  `git merge`나 `git push origin main`은 절대 쓰지 않는다.
-- 체크를 무시하기 위해 `--no-verify`나 `--admin`을 절대 사용하지 않는다.
-- 이 티켓의 feature 브랜치가 아닌 다른 무엇에도 `git branch -D`를 절대
-  쓰지 않으며, `git branch --merged`로 완전히 merge됐음이 확인된 경우에만
-  쓴다.
-- 부분 실패 후에는 `gh pr view`로 pr.state를 먼저 재확인하지 않고
-  `gh pr merge`를 절대 재실행하지 않는다 — 서버 쪽에서는 실제로 merge가
-  이미 성공했을 수도 있다.
-- 모든 Jira 및 gh API 호출은 사용자가 실행 내역을 감사할 수 있도록
-  `{workspace}/logs/merge.log`에 기록된다.
+- The squash merge is the only point at which this plugin touches `main`. A stop must be
+  conspicuous; a success message should be brief.
+- Never bypass branch protection: use `gh pr merge`, never raw `git merge` or
+  `git push origin main`.
+- Never use `--no-verify` or `--admin` to skip checks.
+- Never run `git branch -D` on anything but this ticket's feature branch, and only once
+  `git branch --merged` confirms it is fully merged.
+- After a partial failure, never re-run `gh pr merge` without first re-checking pr.state with
+  `gh pr view` — the merge may in fact have succeeded server-side.
+- Every Jira and gh API call is written to `{workspace}/logs/merge.log` so the user can audit
+  what ran.

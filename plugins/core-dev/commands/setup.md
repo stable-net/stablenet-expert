@@ -1,101 +1,113 @@
 ---
-description: core-dev 가 쓰는 settings 값을 점검하고 등록한다. 제거는 --uninstall.
-argument-hint: "[--check | --fix | --uninstall] [--yes] [--scope user|project] [--repo <경로>]   (생략 시 점검만)"
+description: Check and register the settings values core-dev uses. Use --uninstall to take them back.
+argument-hint: "[--check | --fix | --uninstall] [--yes] [--scope user|project] [--repo <path>]   (checks only when omitted)"
 ---
 
 # /core-dev:setup
 
-설치 직후 `core-dev` 가 바로 동작하도록, 플러그인 MCP 서버(.mcp.json)가 요구하는
-환경값이 프로젝트 설정에 등록돼 있는지 **점검**하고, 빠진 값은 **자동탐지 → 못 찾으면
-대화형 입력**으로 채워 넣는다.
+So that `core-dev` works straight after installation: **check** whether the environment values
+the plugin's MCP servers (`.mcp.json`) require are registered, and fill in what is missing —
+**detected automatically, or asked for when detection fails**.
 
-- 경로·공개값 → **`~/.claude/settings.json` 의 `env`**(user 스코프 기본). 이 값들은 머신을
-  서술하므로(체크아웃 하나, 서버 하나) 프로젝트마다 다시 넣을 이유가 없다. `--scope project`
-  를 주면 `{repo_root}/.claude/` 로 대신 쓴다 — 공용 머신이거나 전역 파일을 건드리면 안 될 때.
-- 시크릿 → `{repo_root}/.claude/settings.local.json` (자동 .gitignore). 현재 시크릿 항목은 없다 —
-  Jira 는 OAuth 로 인증하고 자격증명은 Claude Code 가 보관한다(ADR-0013).
-- **활성 도메인팩의 `repo_root_env`(예 `GO_STABLENET_ROOT`) → 현재 repo 루트로 `settings.json` 에 자동 기록**
-  (현재 폴더에서 실행 시; project_id 모호하면 `--project <id>`).
-- **`--autonomous`**: granular `permissions.allow`(플러그인 MCP + read-only bash + 파이프라인 write path:
-  Write/Edit·go/make 빌드·feature-branch git·gh pr create)와 `permissions.deny`(`.env*`·`.secrets`·
-  `settings.local.json` Read 차단)를 `settings.local.json` 에 등록(무프롬프트 opt-in).
-  merge/tag/release 는 allowlist 에 없다 — `/core-dev:merge` 게이트와 git-guard hook 이 유지된다.
-- **`--uninstall`**: `--fix` 가 쓴 것을 되돌린다. 쓸 때마다 키와 **값**을 매니페스트
-  (`.claude/.stablenet-expert-managed.json`)에 남겨두므로, **값이 그대로인 항목만** 지운다.
-  사용자가 나중에 고친 값은 남기고 보고한다 — 남의 수정을 되돌리는 것이 낡은 키를 남기는 것보다
-  나쁘다(ADR-0018). 기본은 드라이런이고 `--yes` 를 붙여야 실제로 지운다.
-  플러그인 제거 **전에** 실행해야 한다: `claude plugin uninstall` 이 끝나면 무엇이 이 플러그인
-  것이었는지 아는 스크립트도 함께 사라진다.
-- **`--repo <경로>`**: 대상 프로젝트를 명시한다. 기본값은 현재 디렉터리의 git 루트라서, 이걸
-  주지 않으면 프로젝트 안에서 실행해야 한다. 어느 경로에서든 돌리려면 이 플래그를 쓴다 —
-  안 쓰고 밖에서 돌리면 user 스코프만 정리되고 프로젝트 키는 조용히 남는다.
+- Paths and public values -> **`env` in `~/.claude/settings.json`** (user scope, the default).
+  These describe the machine (one checkout, one server), so there is no reason to re-enter them
+  per project. With `--scope project` they go to `{repo_root}/.claude/` instead — for a shared
+  machine, or where the global file must not be touched.
+- Secrets -> `{repo_root}/.claude/settings.local.json` (gitignored automatically). There are no
+  secret entries at present: Jira authenticates over OAuth and Claude Code holds the credentials
+  (ADR-0013).
+- **The active domain pack's `repo_root_env` (e.g. `GO_STABLENET_ROOT`) -> written to
+  `settings.json` as the current repo root** (when run from inside it; pass `--project <id>` if
+  the project_id is ambiguous).
+- **`--autonomous`**: registers a granular `permissions.allow` (plugin MCP + read-only bash +
+  the pipeline's write path: Write/Edit, go/make builds, feature-branch git, gh pr create) and
+  `permissions.deny` (blocking Read of `.env*`, `.secrets`, `settings.local.json`) in
+  `settings.local.json` — opt-in, for running without prompts. merge/tag/release are not on the
+  allowlist: the `/core-dev:merge` gate and the git-guard hook stay in force.
+- **`--uninstall`**: takes back what `--fix` wrote. Every write records the key **and the value**
+  in a manifest (`.claude/.stablenet-expert-managed.json`), so **only entries whose value is
+  unchanged** are removed. A value the user edited later is kept and reported — undoing
+  somebody's edit is worse than leaving a stale key (ADR-0018). It is a dry run by default;
+  `--yes` makes it act. Run it **before** removing the plugin: once
+  `claude plugin uninstall` finishes, the script that knows which entries were this plugin's is
+  gone with it.
+- **`--repo <path>`**: names the target project. The default is the git root of the current
+  directory, so without this flag the command must run inside the project. Use it to run from
+  anywhere — without it, a run started elsewhere cleans only the user scope and leaves the
+  project keys quietly in place.
 
-> 점검 항목: `STABLENET_KNOWLEDGE_MCP_URL`, `CHAINBENCH_DIR`,
+What is checked: `STABLENET_KNOWLEDGE_MCP_URL` and `CHAINBENCH_DIR`; the Atlassian MCP plugin
+(installed and authenticated); plus advisories for `chainbench-mcp` on PATH and for
+`permissions`.
 
-스크립트 `${CLAUDE_PLUGIN_ROOT}/scripts/setup.py` 가 실제 점검·기록을 수행한다(stdlib only).
-
-> Atlassian MCP 플러그인(설치·인증 상태), 그리고
-> `chainbench-mcp` PATH·`permissions` 권고.
+`${CLAUDE_PLUGIN_ROOT}/scripts/setup.py` does the actual checking and writing (stdlib only).
 
 ---
 
-## 0. 인자 (사용자가 준 플래그를 그대로 setup.py 에 전달)
-- 기본(인자 없음): 점검(--check 동등) → 미완이면 §2 로 등록 제안·수행.
-- `--check`: 점검만(기록 안 함).
-- `--fix`: env 를 settings.json 에 기록(활성 팩 `repo_root_env` 포함 — 단 cwd 가 plugin repo 면 MISMATCH 로 건너뜀).
-- `--autonomous`: granular allow/deny 등록(**`--fix` 없이도 동작**).
-- `--project <id>`: 활성 도메인팩 명시(auto-detect 모호 시).
+## 0. Arguments (pass the user's flags straight through to setup.py)
+- Default (no arguments): check (equivalent to `--check`), then offer and perform §2's
+  registration for anything outstanding.
+- `--check`: check only, write nothing.
+- `--fix`: write env into settings.json (including the active pack's `repo_root_env` — skipped
+  as MISMATCH when the cwd is the plugin repo).
+- `--autonomous`: register the granular allow/deny (**works without `--fix`**).
+- `--project <id>`: name the active domain pack when auto-detection is ambiguous.
 
-## 1. 실행 (플래그 전달)
+## 1. Run it (passing the flags)
 ```
-1.1. bash: python3 ${CLAUDE_PLUGIN_ROOT}/scripts/setup.py {사용자 플래그; 없으면 --check}
-     # 예: /core-dev:setup --autonomous        → setup.py --autonomous (allowlist 등록)
-     #     /core-dev:setup --fix --autonomous   → env + repo_root_env + allowlist 기록
-1.2. 출력 표·기록 결과를 사용자에게 그대로 보여준다(KEY/STATUS/SOURCE).
-1.3. repo_root_env 가 **MISMATCH** 면 안내: "현재 plugin repo 라 repo_root_env 미기록 —
-     실제 작업은 타깃 프로젝트(예: go-stablenet) 루트에서 setup 을 실행하라."
-1.4. exit 0 이고 (--fix/--autonomous 없이) 전부 해소 → 종료: "설정이 모두 갖춰져 있습니다."
-     MISSING 이 있으면 §2.
+1.1. bash: python3 ${CLAUDE_PLUGIN_ROOT}/scripts/setup.py {user flags; --check if none}
+     # e.g. /core-dev:setup --autonomous       -> setup.py --autonomous (register the allowlist)
+     #      /core-dev:setup --fix --autonomous  -> env + repo_root_env + allowlist
+1.2. Show the user the output table and the write results as-is (KEY/STATUS/SOURCE).
+1.3. repo_root_env reported as **MISMATCH** -> say: "this is the plugin repo, so repo_root_env
+     was not written -- run setup from the root of the target project (e.g. go-stablenet)."
+1.4. exit 0 with everything resolved (and no --fix/--autonomous) -> finish:
+     "Everything is already configured." Anything MISSING -> §2.
 ```
 
-## 2. 미완 항목 처리 (자동탐지 → 대화형)
+## 2. Handle what is outstanding (detect, then ask)
 ```
-2.1. MISSING 항목이 있으면, 먼저 자동탐지·기존 env 로 채울 수 있는 값만 기록:
+2.1. With MISSING entries, first write only what detection or the existing env can supply:
      bash: python3 ${CLAUDE_PLUGIN_ROOT}/scripts/setup.py --fix
-     (탐지/env 로 찾은 경로값을 .claude/settings.json 에 병합. 이미 있는 값은 보존.)
+     (Merges detected/env path values into .claude/settings.json. Existing values are kept.)
 
-2.2. 그래도 남은 MISSING(주로 Jira URL/이메일/토큰, 또는 탐지 실패한 경로):
-     사용자에게 각 값을 물어본다(시크릿은 화면에 노출하지 않도록 주의 안내).
-     받은 값으로 재실행:
+2.2. For whatever is still MISSING (typically a path detection could not find):
+     Ask the user for each value (warning them not to put a secret on screen).
+     Re-run with what they give:
      bash: python3 ${CLAUDE_PLUGIN_ROOT}/scripts/setup.py --fix \
              --set KEY1=VALUE1 --set KEY2=VALUE2 ...
-     # 시크릿이 생기면 --set 로 전달 → 스크립트가 settings.local.json 에 기록하고
-     #   .claude/settings.local.json 을 .gitignore 에 추가한다.
-     # 사용자가 터미널에서 직접 채우고 싶어 하면 안내: `! python3 .../setup.py --fix --interactive`
+     # Should a secret entry ever exist, pass it through --set -- the script writes it to
+     #   settings.local.json and adds .claude/settings.local.json to .gitignore.
+     # If the user would rather fill it in themselves in a terminal, point them at:
+     #   `! python3 .../setup.py --fix --interactive`
 
-2.3. 재점검:
+2.3. Re-check:
      bash: python3 ${CLAUDE_PLUGIN_ROOT}/scripts/setup.py --check
-     여전히 MISSING 이면 무엇이 왜 빠졌는지 보고하고, 해당 항목의 설치/빌드 방법을
-     docs/SETUP.md 기준으로 안내(예: stablenet-knowledge-mcp 빌드, chainbench 설치).
+     Still MISSING -> report what is missing and why, and give the install/build route for it
+     from docs/SETUP.md (e.g. building stablenet-knowledge-mcp, installing chainbench).
 ```
 
-## 3. 마무리 안내
+## 3. Closing notes
 ```
-3.1. 기록 완료 시:
-     - "settings.json/settings.local.json 에 등록 완료. MCP 서버가 새 env 를 읽도록
-        세션을 재시작하세요(exit → claude --continue). /reload-plugins 는 MCP 를 재시작하지 않습니다."
-     - chainbench-mcp 가 PATH 에 없으면 그 설치 안내.
-     - `--fix` 는 **활성 팩 repo_root_env(예 `GO_STABLENET_ROOT`)를 현재 repo 루트로 자동 기록** —
-       `git rev-parse` 로도 흐르지만 명시화로 혼동 제거. project_id 모호 시 `--project <id>`.
-     - 무프롬프트가 필요하면 `--autonomous` 로 granular allow(플러그인 MCP + read-only bash +
-       Write/Edit·빌드·feature-branch git) + deny(시크릿 Read 차단) 등록. merge/tag 는 여전히 프롬프트
-       (또는 `/core-dev:merge`). 그 밖의 도구까지 전면 무프롬프트는 `permissions.defaultMode` 사용자 설정
-       (자동 설정 안 함 — 보안).
+3.1. Once written:
+     - "Registered in settings.json/settings.local.json. Restart the session so the MCP servers
+        read the new env (exit -> claude --continue). /reload-plugins does not restart MCP."
+     - If chainbench-mcp is not on PATH, give its install route.
+     - `--fix` **writes the active pack's repo_root_env (e.g. `GO_STABLENET_ROOT`) as the current
+       repo root** -- it would also flow from `git rev-parse`, but making it explicit removes the
+       ambiguity. Pass `--project <id>` when the project_id is unclear.
+     - For prompt-free runs, `--autonomous` registers a granular allow (plugin MCP + read-only
+       bash + Write/Edit, builds, feature-branch git) and deny (blocking Read of secrets).
+       merge/tag still prompt (or go through `/core-dev:merge`). Going prompt-free across every
+       other tool means the user setting `permissions.defaultMode` themselves -- this never sets
+       it, for security.
 ```
 
-## 4. 완료 기준 (체크리스트)
-- [ ] setup.py --check 결과 표를 사용자에게 출력
-- [ ] 자동탐지·기존 env 로 채울 수 있는 값은 --fix 로 .claude/settings.json 에 병합(기존값 보존)
-- [ ] 못 찾은 값은 대화형으로 받아 --set 로 기록(시크릿은 settings.local.json + .gitignore)
-- [ ] 재점검으로 해소 확인, 남으면 설치/빌드 방법 안내
-- [ ] 세션 재시작 안내(MCP env 반영)
+## 4. Done when (checklist)
+- [ ] The setup.py --check table shown to the user
+- [ ] Values available from detection or the existing env merged into .claude/settings.json via
+      --fix (existing values preserved)
+- [ ] Values that could not be found asked for and written via --set (secrets to
+      settings.local.json + .gitignore)
+- [ ] Re-checked to confirm; anything left gets its install/build route
+- [ ] Session restart explained (so MCP picks up the env)

@@ -56,6 +56,17 @@ REMEDIATION = {
                             "action": "restart the Claude Code session so MCP servers read the new env"},
     "permissions_unset":   {"klass": "setup",   "command": "/core-dev:setup --autonomous",
                             "action": "register a granular allowlist (only if you want unattended runs)"},
+    # --- sub-agent model pins (ADR-0020). All three are silent at runtime: an
+    # unresolvable pin inherits the parent model and logs at warn, so nothing surfaces.
+    "pin_is_concrete_id":  {"klass": "manual",  "command": "python3 bench/model-pins/check.py --apply",
+                            "action": "pin the tier alias (opus/sonnet), not a concrete model id"},
+    "tier_alias_unmapped": {"klass": "manual",  "command": "",
+                            "action": "set ANTHROPIC_DEFAULT_<TIER>_MODEL to this deployment's own model id "
+                                      "(in your shell or ~/.claude/settings.json env — never in this repo), "
+                                      "then restart the session"},
+    "subagent_model_override": {"klass": "manual", "command": "",
+                            "action": "unset CLAUDE_CODE_SUBAGENT_MODEL to restore per-agent tiers, "
+                                      "then restart the session"},
     # --- routed by commands/doctor.md from LIVE MCP probes (script cannot see these) ---
     "stablenet_knowledge_not_serviceable": {"klass": "manual",  "command": "",
                             "action": "check the stablenet-knowledge server is up and STABLENET_KNOWLEDGE_MCP_URL points at it, then restart"},
@@ -205,6 +216,18 @@ def diagnose(plugin_root: Path | None, project_id_override) -> dict:
                           "plugin_allowlisted": allowlisted,
                           "allow_count": len(allow)}
 
+    # --- sub-agent model pins ---
+    # Advisory, not part of the verdict: a collapsed tier still runs, it just does not run
+    # what was asked for. It is reported because it is otherwise invisible (ADR-0020).
+    if plugin_root:
+        try:
+            from setup_checks import model_pins
+            out["model_pins"] = model_pins.check(plugin_root / "agents")
+            for i in out["model_pins"]["issues"]:
+                _add_issue(out, i["kind"], i["detail"])
+        except Exception as e:  # noqa: BLE001 -- diagnosis must not fail on a sub-check
+            out["model_pins"] = {"error": str(e), "issues": [], "ok": None}
+
     out["verdict"] = "READY" if not out["issues"] and not out["restart_needed"] else "ATTENTION"
     out["remediations"] = _remediations(out, repo_root_env, allowlisted)
     return out
@@ -253,6 +276,10 @@ def render(out: dict) -> str:
     L.append("  env:")
     for k, e in out["env"].items():
         L.append(f"    {k:<18} {e['status']:<14} process={e['process'] or '-'}  settings={e['settings'] or '-'}")
+    mp = out.get("model_pins")
+    if mp and not mp.get("error"):
+        from setup_checks import model_pins as _mp
+        L += _mp.render(mp)
     pm = out["permissions"]
     L.append(f"  permissions: defaultMode={pm['defaultMode']} plugin_allowlisted={pm['plugin_allowlisted']} (allow={pm['allow_count']})")
     if out["restart_needed"]:

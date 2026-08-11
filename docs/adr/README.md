@@ -26,6 +26,7 @@
 | [ADR-0017](ADR-0017-setup-external-plugin-dependencies.md) | 외부 플러그인 의존의 셋업 계약 | Accepted (2026-08-06) | 구현됨 — ADR-0014의 행 스키마를 `row_kind`로 확장하고 Atlassian MCP 설치·OAuth를 `setup_checks/atlassian.py`가 담당. 실행은 `--with-plugins` opt-in(테스트가 머신을 건드리지 않도록), 상태 판정 불가 시 `unknown`으로 행동 보류. CLI 동작 4건은 실측 |
 | [ADR-0018](ADR-0018-setup-scope-and-uninstall.md) | 설정 스코프와 제거 | Accepted (2026-08-06) | 구현됨 — env 는 user 스코프(`~/.claude`), `repo_root_env` 는 project 유지. `--fix` 가 키와 **값**을 매니페스트에 기록하고 `--uninstall` 은 값이 그대로인 것만 제거(사용자가 바꾼 값은 보존·보고). 기본 드라이런, atlassian 플러그인은 공유 자산이라 자동 제거하지 않음 |
 | [ADR-0019](ADR-0019-doctor-marketplace-scoped-actionability.md) | doctor 체크의 마켓플레이스 스코프 (보고 범위 ≠ 수정 범위) | Accepted (2026-08-09) | 구현됨 — 소유 판정은 레지스트리 키의 `@<marketplace>`, 외부 플러그인 행은 새 상태 `external`(진단은 유지, 수정 선택지에서 제외), 판정은 자기 소유 서버만 계산, 충돌은 우리 플러그인이 당사자일 때만 `critical`. `test_check_mcp.py` 12건이 계약과 회귀 방지 불변식을 고정 |
+| [ADR-0020](ADR-0020-provider-portable-model-pins.md) | 서브에이전트 모델 핀은 티어 별칭 (provider 이식성) | Accepted (2026-08-11) | 구현됨 — frontmatter 는 `opus`/`sonnet` 별칭만, 구체 id 는 `models.json` 의 `reference_model`(가격용)로만 존속. 해석 실패는 에러가 아니라 **부모 모델 상속 + warn 로그**라 조용하므로, doctor 가 사전 보고(값이 아니라 set/unset 만)하고 `review-pr` §6.5 가 adjudicator 독립성을 사후 검증(family 만, id 미출력). 핀 게이트를 CI 에 배선 — #49 이후 main 에서 계속 실패 중이었음 |
 
 의존 관계: ADR-0001 ← ADR-0002 ← ADR-0004 (도메인팩 → setup/doctor → remediation 라우팅).
 ADR-0005는 ADR-0001(도메인팩)을 전제로 한다. ADR-0006·ADR-0007은 독립이며, `HANDOFF.md`(2026-06-05

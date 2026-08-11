@@ -1,6 +1,6 @@
 ---
 name: planner
-model: claude-opus-4-8
+model: opus
 description: |
   Performs PLANNING → DESIGN for go-stablenet tickets. The Analyzer agent now owns
   the ANALYSIS stage for "full"/"bugfix" (situation analysis, reproduction, root

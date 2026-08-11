@@ -40,12 +40,10 @@ TIERS = ("opus", "sonnet", "haiku", "fable")
 DEFAULT_PATH = Path.home() / ".claude" / "bedrock-models.env"
 
 _HEADER = "# Written by core-dev (scripts/bedrock_tiers.py). Do not commit."
-# Matches `setup_checks.model_pins._truthy`, not the CLI's bare truthiness: `0` reads as
-# off in both places, so turning the flag off with `0` also stops these exports (ADR-0022).
-_GUARD_OPEN = 'case "${CLAUDE_CODE_USE_BEDROCK:-}" in'
-_GUARD_CASE = "  1|true|yes|on|TRUE|YES|ON)"
-_GUARD_CASE_END = "    ;;"
-_GUARD_CLOSE = "esac"
+# Matches `setup_checks.model_pins._truthy` exactly: only `1` is on (ADR-0022). Not the
+# CLI's bare truthiness, under which `0` would still mean Bedrock.
+_GUARD_OPEN = 'if [ "${CLAUDE_CODE_USE_BEDROCK:-}" = "1" ]; then'
+_GUARD_CLOSE = "fi"
 
 # A model id or inference-profile ARN uses only these. Everything else -- whitespace,
 # quotes, `$`, backticks, `;` -- is rejected, because this value is written into a file
@@ -102,17 +100,15 @@ def render(values: dict[str, str]) -> str:
         "# actually has. Sourced from your shell profile; the guard keeps it inert when",
         "# Bedrock is not in use, so a first-party session is unaffected.",
         "#",
-        "# The guard matches core-dev's rule, not the CLI's: only an affirmative value",
-        "# counts, so CLAUDE_CODE_USE_BEDROCK=0 stops these exports. Note the CLI itself",
-        "# still reads 0 as Bedrock -- unset the variable to switch provider for real.",
+        "# The guard matches core-dev's rule, not the CLI's: only CLAUDE_CODE_USE_BEDROCK=1",
+        "# exports. Any other value, `true` included, does not. Note the CLI itself reads",
+        "# any non-empty value as Bedrock -- unset the variable to switch provider for real.",
         "",
         _GUARD_OPEN,
-        _GUARD_CASE,
     ]
     for tier in TIERS:
         if tier in values:
-            lines.append(f'    export {env_var(tier)}="{values[tier]}"')
-    lines.append(_GUARD_CASE_END)
+            lines.append(f'  export {env_var(tier)}="{values[tier]}"')
     lines.append(_GUARD_CLOSE)
     lines.append("")
     return "\n".join(lines)

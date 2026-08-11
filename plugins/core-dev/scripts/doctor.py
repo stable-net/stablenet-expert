@@ -60,6 +60,9 @@ REMEDIATION = {
     # unresolvable pin inherits the parent model and logs at warn, so nothing surfaces.
     "pin_is_concrete_id":  {"klass": "manual",  "command": "python3 bench/model-pins/check.py --apply",
                             "action": "pin the tier alias (opus/sonnet), not a concrete model id"},
+    "foreign_pin_is_concrete_id": {"klass": "manual", "command": "",
+                            "action": "update or disable the installed plugin — its pins resolve "
+                                      "through the same global env but are not editable from here"},
     # Not ~/.claude/settings.json: that file is unconditional and literal-only, so a
     # Bedrock id there applies to every provider and has to be written out in full
     # (ADR-0021). The value belongs in the shell layer, which is already per-machine.
@@ -238,7 +241,11 @@ def diagnose(plugin_root: Path | None, project_id_override) -> dict:
     if plugin_root:
         try:
             from setup_checks import model_pins
-            out["model_pins"] = model_pins.check(plugin_root / "agents")
+            # scan_installed: the tier env vars are process-global, so every installed
+            # plugin's pins resolve through them. Checking only this plugin would report
+            # "fine" while a neighbouring plugin's tier is unmapped (ADR-0022).
+            out["model_pins"] = model_pins.check(plugin_root / "agents",
+                                                 scan_installed=True)
             for i in out["model_pins"]["issues"]:
                 _add_issue(out, i["kind"], i["detail"])
         except Exception as e:  # noqa: BLE001 -- diagnosis must not fail on a sub-check

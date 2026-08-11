@@ -63,10 +63,10 @@ class TestWrite(unittest.TestCase):
         bedrock_tiers.write({"opus": ARN, "sonnet": "us.anthropic.claude-sonnet-4-6"},
                             self.path)
         body = self.path.read_text()
-        self.assertIn('case "${CLAUDE_CODE_USE_BEDROCK:-}" in', body)
+        self.assertIn('if [ "${CLAUDE_CODE_USE_BEDROCK:-}" = "1" ]; then', body)
         self.assertIn('export ANTHROPIC_DEFAULT_OPUS_MODEL="', body)
         self.assertIn('export ANTHROPIC_DEFAULT_SONNET_MODEL="', body)
-        self.assertTrue(body.rstrip().endswith("esac"))
+        self.assertTrue(body.rstrip().endswith("fi"))
         self.assertEqual(oct(self.path.stat().st_mode & 0o777), "0o600")
 
     def test_guard_keeps_it_inert_off_bedrock(self):
@@ -225,15 +225,14 @@ class TestGeneratedFileIsValidShell(unittest.TestCase):
                             'export CLAUDE_CODE_USE_BEDROCK=""',
                             "export CLAUDE_CODE_USE_BEDROCK=0",
                             "export CLAUDE_CODE_USE_BEDROCK=false",
-                            "export CLAUDE_CODE_USE_BEDROCK=off"):
+                            "export CLAUDE_CODE_USE_BEDROCK=off",
+                            "export CLAUDE_CODE_USE_BEDROCK=true",
+                            "export CLAUDE_CODE_USE_BEDROCK=yes"):
                 self.assertEqual(self._source_with(bash, path, prelude), "[]", prelude)
 
-            for prelude in ("export CLAUDE_CODE_USE_BEDROCK=1",
-                            "export CLAUDE_CODE_USE_BEDROCK=true",
-                            "export CLAUDE_CODE_USE_BEDROCK=yes",
-                            "export CLAUDE_CODE_USE_BEDROCK=on"):
-                self.assertEqual(self._source_with(bash, path, prelude),
-                                 f"[{ARN}]", prelude)
+            self.assertEqual(
+                self._source_with(bash, path, "export CLAUDE_CODE_USE_BEDROCK=1"),
+                f"[{ARN}]")
 
     def test_zsh_agrees_with_bash(self):
         """The file lands in a zsh profile on this machine; `case` is POSIX but the

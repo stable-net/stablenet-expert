@@ -60,10 +60,20 @@ REMEDIATION = {
     # unresolvable pin inherits the parent model and logs at warn, so nothing surfaces.
     "pin_is_concrete_id":  {"klass": "manual",  "command": "python3 bench/model-pins/check.py --apply",
                             "action": "pin the tier alias (opus/sonnet), not a concrete model id"},
-    "tier_alias_unmapped": {"klass": "manual",  "command": "",
-                            "action": "set ANTHROPIC_DEFAULT_<TIER>_MODEL to this deployment's own model id "
-                                      "(in your shell or ~/.claude/settings.json env — never in this repo), "
-                                      "then restart the session"},
+    # Not ~/.claude/settings.json: that file is unconditional and literal-only, so a
+    # Bedrock id there applies to every provider and has to be written out in full
+    # (ADR-0021). The value belongs in the shell layer, which is already per-machine.
+    "tier_alias_unmapped": {"klass": "setup",
+                            "command": 'python3 ${CLAUDE_PLUGIN_ROOT}/scripts/bedrock_tiers.py '
+                                       '--set opus="$YOUR_OPUS_ARN" --set sonnet="$YOUR_SONNET_ARN" --fix',
+                            "action": "record this deployment's own model ids in "
+                                      "~/.claude/bedrock-models.env (never in this repo), source it "
+                                      "from your shell profile, then restart the session"},
+    "tier_file_not_sourced": {"klass": "manual", "command": "",
+                            "action": "add the source line for ~/.claude/bedrock-models.env to your "
+                                      "shell profile, then restart the session"},
+    "tier_file_mode":      {"klass": "manual",  "command": "chmod 600 ~/.claude/bedrock-models.env",
+                            "action": "tighten the file mode — it holds internal cloud resource identifiers"},
     "subagent_model_override": {"klass": "manual", "command": "",
                             "action": "unset CLAUDE_CODE_SUBAGENT_MODEL to restore per-agent tiers, "
                                       "then restart the session"},
@@ -228,6 +238,24 @@ def diagnose(plugin_root: Path | None, project_id_override) -> dict:
         except Exception as e:  # noqa: BLE001 -- diagnosis must not fail on a sub-check
             out["model_pins"] = {"error": str(e), "issues": [], "ok": None}
 
+    # --- where the tier aliases get their values (ADR-0021) ---
+    # Only meaningful off the first-party API; on it the aliases resolve on their own.
+    if (out.get("model_pins") or {}).get("provider") not in (None, "first_party"):
+        try:
+            import bedrock_tiers
+            st = bedrock_tiers.status()
+            out["bedrock_tiers"] = st
+            if st["exists"] and not st["wired"]:
+                _add_issue(out, "tier_file_not_sourced",
+                           f"{st['path']} exists but no shell profile sources it, so the "
+                           f"session never sees the tier values")
+            if st["exists"] and st["mode"] not in (None, "0o600"):
+                _add_issue(out, "tier_file_mode",
+                           f"{st['path']} is {st['mode']} — it holds internal cloud "
+                           f"resource identifiers; expected 0600")
+        except Exception as e:  # noqa: BLE001 -- diagnosis must not fail on a sub-check
+            out["bedrock_tiers"] = {"error": str(e)}
+
     out["verdict"] = "READY" if not out["issues"] and not out["restart_needed"] else "ATTENTION"
     out["remediations"] = _remediations(out, repo_root_env, allowlisted)
     return out
@@ -280,6 +308,10 @@ def render(out: dict) -> str:
     if mp and not mp.get("error"):
         from setup_checks import model_pins as _mp
         L += _mp.render(mp)
+    bt = out.get("bedrock_tiers")
+    if bt and not bt.get("error"):
+        import bedrock_tiers as _bt
+        L += _bt.render_status(bt)
     pm = out["permissions"]
     L.append(f"  permissions: defaultMode={pm['defaultMode']} plugin_allowlisted={pm['plugin_allowlisted']} (allow={pm['allow_count']})")
     if out["restart_needed"]:

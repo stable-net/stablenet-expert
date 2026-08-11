@@ -23,16 +23,24 @@ from pathlib import Path
 from .usage import CanonicalUsage
 
 # Estimate path lacks a model field, so map the dispatched sub-agent to its model.
-# SINGLE SOURCE: bench/model-pins/models.json (tier -> model id, agent -> tier).
-# Read it at runtime so this is not a second copy that can drift from frontmatter
-# (check.py enforces frontmatter == models.json). Fall back to a literal map only
-# if the file is missing/unparseable, so the bench still runs.
+# SINGLE SOURCE: bench/model-pins/models.json (tier -> {alias, reference_model},
+# agent -> tier). Read it at runtime so this is not a second copy that can drift
+# from frontmatter (check.py enforces frontmatter == the tier alias). Fall back to
+# a literal map only if the file is missing/unparseable, so the bench still runs.
+#
+# What is mapped here is the tier's `reference_model` -- the concrete id the alias
+# resolves to on the first-party API. Frontmatter itself pins the ALIAS, because a
+# concrete id does not resolve on Bedrock/Vertex (ADR-0020). So this map is a
+# best-effort label for the estimate path only: on another provider the alias
+# resolves elsewhere and this name is wrong. Wherever a session transcript exists,
+# usage_by_model_from_session reads the real model and wins -- see collect_cell_usage.
 _MODELS_JSON = Path(__file__).resolve().parents[1] / "model-pins" / "models.json"
 _FALLBACK_AGENT_MODEL: dict[str, str] = {
     "orchestrator": "claude-opus-4-8", "planner": "claude-opus-4-8",
     "analyzer": "claude-opus-4-8", "bench-analyzer-codeonly": "claude-opus-4-8",
     "bench-analyzer-skills": "claude-opus-4-8", "bench-solver-codeonly": "claude-opus-4-8",
     "bench-solver-project-skills": "claude-opus-4-8",
+    "review-adjudicator": "claude-opus-4-8",
     "implementer": "claude-sonnet-5", "evaluator": "claude-sonnet-5",
 }
 _FALLBACK_MODEL = "claude-sonnet-5"
@@ -42,9 +50,9 @@ def _load_agent_model() -> dict[str, str]:
     """Resolve {agent: model_id} from models.json; fall back to the literal map."""
     try:
         doc = json.loads(_MODELS_JSON.read_text())
-        tiers = doc["tiers"]
-        return {agent: tiers[tier] for agent, tier in doc["agents"].items()}
-    except (OSError, json.JSONDecodeError, KeyError):
+        ref = {name: spec["reference_model"] for name, spec in doc["tiers"].items()}
+        return {agent: ref[tier] for agent, tier in doc["agents"].items()}
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
         return dict(_FALLBACK_AGENT_MODEL)
 
 

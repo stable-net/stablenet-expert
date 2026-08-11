@@ -1,13 +1,22 @@
 {
-  "_doc": "SINGLE SOURCE OF TRUTH for coding-agent model pins. Two tiers; each agent maps to a tier. To upgrade a generation, edit ONE tier value here, then run `python3 bench/model-pins/check.py --apply` to propagate to agent .md frontmatter. bench/lib/capture.py reads this file directly at runtime (no second copy). check.py also verifies bench/prices.json has a price row for each tier model. NOTE: Claude Code agent frontmatter `model:` accepts no runtime indirection (${VAR}/central-config unsupported) and the global CLAUDE_CODE_SUBAGENT_MODEL env var would flatten both tiers to one model — so frontmatter must stay literal and is kept in sync by check.py rather than referencing this file at runtime.",
+  "_doc": "SINGLE SOURCE OF TRUTH for core-dev model pins. Two tiers; each agent maps to a tier. Each tier carries an `alias` (what goes into agent .md frontmatter) and a `reference_model` (the concrete model the alias resolves to on the first-party API). Edit a tier, then run `python3 bench/model-pins/check.py --apply` to propagate the alias to frontmatter. bench/lib/capture.py reads this file at runtime (no second copy). check.py also verifies bench/prices.json has a price row for each reference_model. Frontmatter carries the ALIAS, not the concrete id: an id is provider-specific (on Bedrock it becomes a region-prefixed inference profile or an ARN), and pinning one there makes the pin unresolvable off the first-party API -- Claude Code then silently inherits the parent model instead of erroring. See ADR-0020. NOTE: frontmatter still accepts no runtime indirection (${VAR}/central-config unsupported), and the global CLAUDE_CODE_SUBAGENT_MODEL env var would flatten both tiers to one model -- so frontmatter stays literal and is kept in sync by check.py.",
   "tiers": {
-    "deep": "claude-opus-4-8",
-    "exec": "claude-sonnet-5"
+    "deep": {
+      "alias": "opus",
+      "reference_model": "claude-opus-4-8",
+      "_doc": "Deep reasoning: analysis, planning, adjudication."
+    },
+    "exec": {
+      "alias": "sonnet",
+      "reference_model": "claude-sonnet-5",
+      "_doc": "Execution: implementation and verification."
+    }
   },
   "agents": {
     "orchestrator": "deep",
     "analyzer": "deep",
     "planner": "deep",
+    "review-adjudicator": "deep",
     "bench-analyzer-codeonly": "deep",
     "bench-analyzer-skills": "deep",
     "bench-solver-codeonly": "deep",

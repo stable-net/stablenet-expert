@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-model: claude-opus-4-8
+model: opus
 description: |
   Pipeline state machine controller. Reads state.json, dispatches the
   appropriate sub-agent (planner/implementer/evaluator), and handles

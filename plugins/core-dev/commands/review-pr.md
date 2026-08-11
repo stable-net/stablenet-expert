@@ -155,6 +155,26 @@ Collect each finding into `{workdir}/review-findings.json` in this shape:
 
 6.4. If the adjudicator fails or comes back empty, **post nothing.**
      Posting an unreviewed review is worse than posting none. Keep the report and say so.
+
+6.5. Confirm it actually ran on a different model:
+       bash: python3 "${CLAUDE_PLUGIN_ROOT}/scripts/session_models.py" --require-distinct
+
+     Exit 1 means no sub-agent ran on a family the main thread did not -- so the
+     adjudicator either fell back to this session's model or could not be confirmed.
+     Treat that exactly like 6.4: **post nothing**, keep the report, and say which of
+     the two it was, quoting the script's output.
+
+     This is checked rather than assumed because the pin is only a request. A
+     sub-agent `model:` that does not resolve makes Claude Code fall back to the parent
+     model and log at `warn` -- nothing appears in the UI, so a collapsed adjudicator
+     is indistinguishable from a working one right up until it agrees with everything
+     the reviewer said. It resolves on the first-party API and can silently fail to on
+     Bedrock or Vertex, where the available models are whatever the account enabled
+     (ADR-0020).
+
+     The script reports model *families* only, never ids: on Bedrock an id is a
+     region-prefixed inference profile or an ARN, which is an internal cloud resource
+     identifier. Do not work around a failure here by printing the id.
 ```
 
 ---
@@ -222,7 +242,8 @@ Collect each finding into `{workdir}/review-findings.json` in this shape:
 - [ ] Diffed with `{merge_base}...HEAD` (not `..`)
 - [ ] All three axes reviewed with stablenet-knowledge evidence
 - [ ] `review-report.md` written, limits stated
-- [ ] Second opinion from the adjudicator on a different model; drops discarded
+- [ ] Second opinion from the adjudicator, **confirmed** to have run on a different
+      model family (§6.5), not merely pinned to one; drops discarded
 - [ ] User confirmed before posting or approving
 - [ ] pr-sanitize cleared
 - [ ] User's original checkout untouched

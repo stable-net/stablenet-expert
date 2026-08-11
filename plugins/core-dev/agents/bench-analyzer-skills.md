@@ -1,6 +1,6 @@
 ---
 name: bench-analyzer-skills
-model: claude-opus-4-8
+model: opus
 description: |
   Benchmark mode C (code + comprehension skills) analyzer. Same job and artifacts
   as the real analyzer, but with NO stablenet-knowledge retrieval — it locates code with grep/read
@@ -35,7 +35,7 @@ skills:
 A/B/C comparison variant of the **analyzer** (see `bench-analyzer-codeonly.md` for
 the three-mode framing). Mode C = grep/read for *finding* code + comprehension
 skills for *interpreting* it, but still **no stablenet-knowledge retrieval**. The model is fixed to
-`claude-opus-4-8` so the comparison isolates the information regime. The downstream
+the deep tier (`opus`) so the comparison isolates the information regime. The downstream
 `planner`, `implementer`, and `evaluator` are SHARED and mode-blind.
 
 ## Contract: identical artifacts

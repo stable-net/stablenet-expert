@@ -19,7 +19,8 @@ type: skill
 - **C_project_skills** — core-dev ❌ · stablenet-knowledge ❌. `bench-solver-project-skills`가 **타깃 프로젝트 자신의
   `.claude`**(`/stablenet-review-code` 등)로 **단독 완주**. evaluator는 측정 전용 referee로만 공유.
 
-세 모드 모두 모델은 `claude-opus-4-8`로 고정 — 비교는 *접근법 regime*을 격리한다.
+세 모드 모두 모델은 deep 티어(`opus`)로 고정 — 비교는 *접근법 regime*을 격리한다.
+(핀은 티어 별칭이다 — 구체 id 는 provider 마다 다르고, 해석 실패가 조용하다: ADR-0020.)
 **B/C 격리는 도구·스킬 부재로 하드 보장**(프롬프트 의존 아님): solver 에이전트에 stablenet-knowledge·core-dev
 스킬을 부여하지 않는다. 측정은 결정적 tool(`bench/compare.py`), 구동은 이 skill + Agent tool +
 transcript hook. (모델 비대칭 주의: A는 implement가 sonnet, B/C는 단일 solver라 opus 단독 —

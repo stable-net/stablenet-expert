@@ -1,6 +1,6 @@
 ---
 name: analyzer
-model: claude-opus-4-8
+model: opus
 description: |
   The ANALYSIS stage of the pipeline (split out of the Planner). It does
   situation analysis (stablenet-knowledge retrieval), problem reproduction (authors a failing test —

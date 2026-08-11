@@ -1,6 +1,6 @@
 ---
 name: bench-solver-project-skills
-model: claude-opus-4-8
+model: opus
 description: |
   Benchmark mode C (project-native skills) WHOLE-APPROACH solver. Solves the
   ticket end to end using ONLY the target project's OWN .claude assets (its
@@ -28,7 +28,7 @@ mode C.
 - **B** — `bench-solver-codeonly`: bare LLM + code + grep, no skills at all.
 - **C — this agent** — the TARGET PROJECT's own `.claude` assets + source.
 
-Model fixed to `claude-opus-4-8` so the comparison isolates the *regime*, not the
+Model fixed to the deep tier (`opus`) so the comparison isolates the *regime*, not the
 model.
 
 ## Hard regime constraints (isolation by tool/knowledge absence)

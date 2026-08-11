@@ -90,7 +90,7 @@
 
 > 아래 1~5는 모두 반영됨: `plugins/core-dev/agents/bench-solver-{codeonly,project-skills}.md` 신설,
 > `bench-orchestration/SKILL.md` §0 정의 교체 + §4.4 A/(B·C) 분기, `bench/manifests/stable-0005-abc.json`
-> 타깃루트 통일, 구식 `bench-analyzer-{codeonly,skills}.md` deprecation 배너. 모델 핀 `claude-opus-4-8`.
+> 타깃루트 통일, 구식 `bench-analyzer-{codeonly,skills}.md` deprecation 배너. 모델 핀 deep 티어(`opus`).
 
 1. **B/C는 더 이상 "분석-단계 변이"가 아니다.** 기존 `bench-analyzer-codeonly`/`bench-analyzer-skills`는
    분석만 하고 **공유 planner/implementer/evaluator**(= coding-agent)로 넘겼다. 새 정의에서 B·C는
@@ -106,7 +106,7 @@
 
 ## 5b. 알려진 caveat — 모델 비대칭 (착수 전 인지)
 
-세 모드 모두 `claude-opus-4-8`로 핀하지만, **A는 단계별 모델이 갈린다**: analyzer/planner는
+세 모드 모두 deep 티어(`opus`)로 핀하지만, **A는 단계별 모델이 갈린다**: analyzer/planner는
 opus-4-8, implementer/evaluator는 sonnet-4-6. 반면 **B/C는 단일 solver라 진단·수정 전부
 opus-4-8 단독**이다. 즉 *구현 단계 모델*이 A(sonnet) vs B/C(opus)로 다르다.
 

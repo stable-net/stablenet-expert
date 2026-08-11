@@ -14,15 +14,26 @@ True runtime centralization is **not possible** in Claude Code: agent frontmatte
 exec=sonnet) to one model. So the pins must stay literal — but they are now derived
 from / checked against one source.
 
+**What is literal there is the tier ALIAS (`opus`/`sonnet`), not a concrete model id.**
+A concrete id is provider-specific — on Bedrock the same model is a region-prefixed
+inference profile or an ARN — and a pin that does not resolve is not an error: Claude
+Code falls back to the parent model and logs at `warn`. So an id in frontmatter
+silently disables the pin off the first-party API. The concrete id lives on here as
+`reference_model`, for pricing only. See ADR-0020.
+
 ## How
 
-- **`models.json`** — the single source: `tiers` (deep/exec → model id) + `agents`
-  (agent → tier). Edit one tier value to upgrade a generation.
+- **`models.json`** — the single source: `tiers` (deep/exec → `{alias, reference_model}`)
+  + `agents` (agent → tier). The alias is what reaches frontmatter; the reference model
+  is the concrete id the alias resolves to on the first-party API, used to key
+  `prices.json`.
 - **`bench/lib/capture.py`** reads `models.json` at runtime (no second copy; literal
   fallback only if the file is unreadable, so the bench still runs).
-- **`check.py`** verifies frontmatter == models.json (both directions), that
-  capture.py resolves the same map, and that prices.json covers each tier model.
-  `--apply` rewrites the frontmatter `model:` lines to match.
+- **`check.py`** verifies frontmatter == the tier alias (both directions), that
+  capture.py resolves the same reference models, and that prices.json covers each
+  reference model. `--apply` rewrites the frontmatter `model:` lines to match. It runs
+  in CI (`python-tests` job) — it was unwired until ADR-0020, and had been failing on
+  `main` since `review-adjudicator` arrived with an unregistered pin.
 
 ## Run
 
@@ -34,15 +45,35 @@ python3 bench/model-pins/tests/test_check.py  # unit + sandbox + real-repo confo
 
 ## Upgrade recipe (the "single edit")
 
-1. edit the tier value in `models.json` (e.g. `"deep": "claude-opus-4-9"`),
-2. `python3 bench/model-pins/check.py --apply` — rewrites all deep-tier agent files,
+1. edit the tier's `reference_model` in `models.json` (e.g.
+   `"deep": {"alias": "opus", "reference_model": "claude-opus-4-9"}`),
+2. `python3 bench/model-pins/check.py --apply`,
 3. capture.py follows automatically; if `prices.json` lacks the new id, check.py
    fails until you add its price row (so cost accounting can't silently break).
+
+Note the alias rarely changes — a generation upgrade is a `reference_model` edit, and
+frontmatter usually stays put. That is the intended shape: the deployment decides which
+model an alias means.
+
+## Will the pins take effect?
+
+`check.py` is static — it cannot see that the runtime resolved something else. For that:
+
+```
+python3 plugins/core-dev/scripts/doctor.py --plugin-root plugins/core-dev   # before a run
+python3 plugins/core-dev/scripts/session_models.py                          # after one
+```
+
+Neither prints a model id (ADR-0020 §3c/§3d).
 
 ## Note
 
 This is the centralization half of overlay P3; the 4-7→4-8 *bump* was done earlier
-(commit `304afba`). The deterministic guarantee here: 9 agents + capture.py + prices
+(commit `304afba`). The deterministic guarantee here: 10 agents + capture.py + prices
 all conform to one file, drift is caught (exit 1), and an upgrade is one edit +
 `--apply`. Frontmatter staying literal is a Claude Code constraint, not a choice —
 see the mechanism finding above.
+
+What that guarantee does **not** cover is whether the pin survives contact with the
+provider. It is a static check; the runtime can resolve something else and say nothing.
+ADR-0020 is what closes that gap.

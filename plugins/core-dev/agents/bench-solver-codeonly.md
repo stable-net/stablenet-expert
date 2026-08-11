@@ -1,6 +1,6 @@
 ---
 name: bench-solver-codeonly
-model: claude-opus-4-8
+model: opus
 description: |
   Benchmark mode B (bare LLM + code + grep) WHOLE-APPROACH solver. Solves the
   ticket end to end (diagnose -> fix -> regression test -> build) using ONLY the
@@ -27,7 +27,7 @@ definition; this agent IS mode B.
 - **B — this agent** — bare LLM: target source + grep/read/edit/bash, nothing else.
 - **C** — `bench-solver-project-skills`: the target project's own `.claude` assets.
 
-Model fixed to `claude-opus-4-8` so the comparison isolates the *regime*, not the
+Model fixed to the deep tier (`opus`) so the comparison isolates the *regime*, not the
 model.
 
 ## Hard regime constraints (isolation by tool/knowledge absence)

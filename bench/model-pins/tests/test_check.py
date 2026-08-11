@@ -16,9 +16,10 @@ if str(_PKG) not in sys.path:
 import check  # noqa: E402
 
 
-def _sandbox(tmp: Path, *, analyzer="claude-opus-4-8", evaluator="claude-sonnet-4-6",
+def _sandbox(tmp: Path, *, analyzer="opus", evaluator="sonnet",
              prices=("claude-opus-4-8", "claude-sonnet-4-6")):
-    models = {"tiers": {"deep": "claude-opus-4-8", "exec": "claude-sonnet-4-6"},
+    models = {"tiers": {"deep": {"alias": "opus", "reference_model": "claude-opus-4-8"},
+                        "exec": {"alias": "sonnet", "reference_model": "claude-sonnet-4-6"}},
               "agents": {"analyzer": "deep", "evaluator": "exec"}}
     (tmp / "models.json").write_text(json.dumps(models))
     agents = tmp / "agents"; agents.mkdir()
@@ -34,15 +35,25 @@ def _run(tmp, apply=False):
 
 
 class TestUnit(unittest.TestCase):
-    def test_resolve(self):
-        doc = {"tiers": {"deep": "O", "exec": "S"}, "agents": {"a": "deep", "b": "exec"}}
-        self.assertEqual(check.resolve(doc), {"a": "O", "b": "S"})
+    def test_resolve_gives_aliases(self):
+        doc = {"tiers": {"deep": {"alias": "opus", "reference_model": "O"},
+                         "exec": {"alias": "sonnet", "reference_model": "S"}},
+               "agents": {"a": "deep", "b": "exec"}}
+        self.assertEqual(check.resolve(doc), {"a": "opus", "b": "sonnet"})
+
+    def test_reference_models_are_separate_from_aliases(self):
+        """Pricing keys on the concrete id; frontmatter keys on the alias. Mixing the
+        two is what put a provider-specific id in frontmatter in the first place."""
+        doc = {"tiers": {"deep": {"alias": "opus", "reference_model": "O"},
+                         "exec": {"alias": "sonnet", "reference_model": "S"}},
+               "agents": {"a": "deep", "b": "exec"}}
+        self.assertEqual(check.resolve_reference_models(doc), {"a": "O", "b": "S"})
 
     def test_frontmatter_parse(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "x.md"
-            p.write_text("---\nname: x\nmodel: claude-opus-4-8\n---\n")
-            self.assertEqual(check.frontmatter_model(p), "claude-opus-4-8")
+            p.write_text("---\nname: x\nmodel: opus\n---\n")
+            self.assertEqual(check.frontmatter_model(p), "opus")
 
 
 class TestSandbox(unittest.TestCase):
@@ -53,17 +64,25 @@ class TestSandbox(unittest.TestCase):
 
     def test_drift_detected(self):
         with tempfile.TemporaryDirectory() as d:
-            tmp = Path(d); _sandbox(tmp, analyzer="claude-opus-4-7")   # stale pin
+            tmp = Path(d); _sandbox(tmp, analyzer="sonnet")   # wrong tier
             self.assertEqual(_run(tmp), 1)
 
     def test_apply_fixes_drift(self):
         with tempfile.TemporaryDirectory() as d:
-            tmp = Path(d); _sandbox(tmp, analyzer="claude-opus-4-7")
+            tmp = Path(d); _sandbox(tmp, analyzer="sonnet")
             self.assertEqual(_run(tmp), 1)               # drift before
             self.assertEqual(_run(tmp, apply=True), 0)   # --apply resolves it
             self.assertEqual(check.frontmatter_model(tmp / "agents" / "analyzer.md"),
-                             "claude-opus-4-8")
+                             "opus")
             self.assertEqual(_run(tmp), 0)               # stays fixed
+
+    def test_concrete_id_in_frontmatter_is_drift(self):
+        """The regression this whole change exists for: a concrete model id in
+        frontmatter does not resolve on Bedrock/Vertex, and Claude Code inherits the
+        parent model instead of failing. The gate has to reject it."""
+        with tempfile.TemporaryDirectory() as d:
+            tmp = Path(d); _sandbox(tmp, analyzer="claude-opus-4-8")
+            self.assertEqual(_run(tmp), 1)
 
     def test_prices_gap_detected(self):
         with tempfile.TemporaryDirectory() as d:

@@ -37,19 +37,39 @@ class TestProviderDetection(unittest.TestCase):
         self.assertEqual(model_pins.detect_provider({"CLAUDE_CODE_USE_VERTEX": "true"}), "vertex")
         self.assertEqual(model_pins.detect_provider({}), "first_party")
 
-    def test_zero_and_false_still_mean_bedrock(self):
-        """Claude Code selects the provider with a bare JS truthiness test, so "0" and
-        "false" are non-empty strings and still select Bedrock. Reading them as
-        first-party would make this check report the wrong provider on exactly the
-        machine it exists for."""
-        for v in ("0", "false", "no", "off", "1", "true"):
+    def test_only_affirmative_values_mean_bedrock(self):
+        """`0` reads as off here -- that is what someone setting `0` means by it."""
+        for v in ("1", "true", "TRUE", "yes", "on", " 1 "):
             self.assertEqual(model_pins.detect_provider({"CLAUDE_CODE_USE_BEDROCK": v}),
                              "bedrock", v)
-
-    def test_only_unset_or_empty_is_first_party(self):
+        for v in ("0", "false", "no", "off", ""):
+            self.assertEqual(model_pins.detect_provider({"CLAUDE_CODE_USE_BEDROCK": v}),
+                             "first_party", v)
         self.assertEqual(model_pins.detect_provider({}), "first_party")
-        self.assertEqual(model_pins.detect_provider({"CLAUDE_CODE_USE_BEDROCK": ""}),
-                         "first_party")
+
+    def test_a_non_affirmative_value_is_reported_as_a_disagreement(self):
+        """The CLI reads `0` as Bedrock, so reading it as off here opens a window where
+        the tier checks are skipped while requests still go to Bedrock. The window is
+        allowed (ADR-0022) but must not be silent."""
+        for v in ("0", "false", "off", "no"):
+            self.assertEqual(
+                model_pins.provider_flag_disagrees({"CLAUDE_CODE_USE_BEDROCK": v}),
+                ["CLAUDE_CODE_USE_BEDROCK"], v)
+
+    def test_no_disagreement_when_the_two_rules_agree(self):
+        for env in ({}, {"CLAUDE_CODE_USE_BEDROCK": ""},
+                    {"CLAUDE_CODE_USE_BEDROCK": "1"},
+                    {"CLAUDE_CODE_USE_BEDROCK": "true"}):
+            self.assertEqual(model_pins.provider_flag_disagrees(env), [], env)
+
+    def test_the_disagreement_surfaces_as_an_issue(self):
+        with tempfile.TemporaryDirectory() as d:
+            agents = Path(d)
+            (agents / "a.md").write_text("---\nmodel: opus\n---\n")
+            res = model_pins.check(agents, {"CLAUDE_CODE_USE_BEDROCK": "0"})
+        kinds = [i["kind"] for i in res["issues"]]
+        self.assertIn("provider_flag_disagrees", kinds)
+        self.assertEqual(res["provider"], "first_party")
 
 
 class TestPinCheck(unittest.TestCase):

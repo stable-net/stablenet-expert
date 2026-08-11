@@ -37,16 +37,26 @@ _MODEL_LINE = re.compile(r"^model:\s*(\S+)\s*$", re.MULTILINE)
 
 
 def detect_provider(env: dict | None = None) -> str:
-    """`bedrock` | `vertex` | `first_party`, by the same rule Claude Code uses.
+    """`bedrock` | `vertex` | `first_party`, read as the operator meant it.
 
-    Claude Code selects the provider with a bare JavaScript truthiness test on the
-    variable -- `CLAUDE_CODE_USE_BEDROCK ? "bedrock" : ...` -- so **any non-empty value
-    means Bedrock, `"0"` and `"false"` included**. Only unsetting it (or setting it
-    empty) goes back to the first-party API.
+    A provider variable counts as on only when its value says on -- `1`, `true`, `yes`,
+    `on`. `CLAUDE_CODE_USE_BEDROCK=0` reads as off here, because that is what someone
+    setting `0` means by it, and `0` is how people switch a flag off temporarily.
 
-    That is a trap worth mirroring exactly rather than "fixing" here. A checker that
-    read `=0` as first-party would report the wrong provider on the one machine the
-    check exists for, and would hide the misconfiguration instead of reporting it.
+    **This deliberately does not match Claude Code's own rule, and the difference is
+    load-bearing.** The CLI selects the provider with a bare JavaScript truthiness test:
+
+        re.CLAUDE_CODE_USE_BEDROCK ? "bedrock" : ...        # CLI 2.1.228, verbatim
+
+    There is no comparison in front of `?`, so *any* non-empty string is true and the
+    CLI reads `0` and `false` as **Bedrock**. Only unset or empty turns it off there.
+
+    So on a machine with `CLAUDE_CODE_USE_BEDROCK=0` this function answers
+    `first_party` while the CLI still routes requests to Bedrock, and the Bedrock checks
+    that follow are skipped. `provider_flag_disagrees()` exists to surface exactly that
+    window; `doctor` reports it so the gap is visible rather than silent.
+
+    To actually reach the first-party API, unset the variable or set it empty.
     """
     e = os.environ if env is None else env
     if _truthy(e.get("CLAUDE_CODE_USE_BEDROCK")):
@@ -56,9 +66,34 @@ def detect_provider(env: dict | None = None) -> str:
     return "first_party"
 
 
+# What an operator writes to mean "on". Anything else -- including `0` and `false` --
+# is off, per ADR-0022.
+_TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
+
+# The CLI's rule, kept separately so the two can be compared rather than confused.
+_PROVIDER_VARS = ("CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX")
+
+
 def _truthy(v) -> bool:
-    """JavaScript truthiness for an env value: any non-empty string counts."""
+    """Is this env value an affirmative? `0`/`false`/`off` are not."""
+    return v is not None and str(v).strip().lower() in _TRUE_VALUES
+
+
+def _cli_truthy(v) -> bool:
+    """The CLI's own test: any non-empty string is true. Used only to detect a mismatch."""
     return bool(v is not None and str(v) != "")
+
+
+def provider_flag_disagrees(env: dict | None = None) -> list[str]:
+    """Provider vars this module reads as off but the CLI still reads as on.
+
+    Non-empty and not affirmative -- `0`, `false`, `off`, `no` -- is the whole set. It
+    is worth naming because it is invisible: the CLI routes to the provider anyway, and
+    every check keyed on `detect_provider()` has already been skipped.
+    """
+    e = os.environ if env is None else env
+    return [k for k in _PROVIDER_VARS
+            if _cli_truthy(e.get(k)) and not _truthy(e.get(k))]
 
 
 def alias_env_var(alias: str) -> str:
@@ -87,6 +122,19 @@ def check(agents_dir: Path, env: dict | None = None) -> dict:
                        if v not in TIER_ALIASES and v != INHERIT})
 
     issues: list[dict] = []
+
+    # Read as off here, still on in the CLI. Everything below keys on `provider`, so
+    # without this line the whole Bedrock section would just quietly not appear.
+    for var in provider_flag_disagrees(e):
+        issues.append({
+            "kind": "provider_flag_disagrees",
+            "detail": f"{var} is set to a value that is neither empty nor affirmative, "
+                      f"so this check reads it as off — but Claude Code tests it with "
+                      f"bare truthiness and still routes to that provider. The tier "
+                      f"checks below were skipped while the CLI is not on the "
+                      f"first-party API. Unset it (or set it empty) to actually switch "
+                      f"off, or set it to 1 to keep using it",
+        })
 
     # A global override outranks every frontmatter pin, so both tiers become one model.
     if e.get("CLAUDE_CODE_SUBAGENT_MODEL", "").strip() not in ("", INHERIT):

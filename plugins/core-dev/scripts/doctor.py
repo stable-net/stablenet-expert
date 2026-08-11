@@ -74,6 +74,12 @@ REMEDIATION = {
                                       "shell profile, then restart the session"},
     "tier_file_mode":      {"klass": "manual",  "command": "chmod 600 ~/.claude/bedrock-models.env",
                             "action": "tighten the file mode — it holds internal cloud resource identifiers"},
+    # core-dev reads `0` as off; the CLI does not (ADR-0022). Everything Bedrock-specific
+    # keys on the former, so the gap has to be named or it is just a missing section.
+    "provider_flag_disagrees": {"klass": "manual", "command": "",
+                            "action": "unset the provider variable (or set it empty) to actually reach "
+                                      "the first-party API, or set it to 1 to keep using that provider — "
+                                      "`0` reads as off here but the CLI still routes to it"},
     "subagent_model_override": {"klass": "manual", "command": "",
                             "action": "unset CLAUDE_CODE_SUBAGENT_MODEL to restore per-agent tiers, "
                                       "then restart the session"},

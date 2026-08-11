@@ -63,10 +63,10 @@ class TestWrite(unittest.TestCase):
         bedrock_tiers.write({"opus": ARN, "sonnet": "us.anthropic.claude-sonnet-4-6"},
                             self.path)
         body = self.path.read_text()
-        self.assertIn('if [ -n "$CLAUDE_CODE_USE_BEDROCK" ]; then', body)
+        self.assertIn('case "${CLAUDE_CODE_USE_BEDROCK:-}" in', body)
         self.assertIn('export ANTHROPIC_DEFAULT_OPUS_MODEL="', body)
         self.assertIn('export ANTHROPIC_DEFAULT_SONNET_MODEL="', body)
-        self.assertTrue(body.rstrip().endswith("fi"))
+        self.assertTrue(body.rstrip().endswith("esac"))
         self.assertEqual(oct(self.path.stat().st_mode & 0o777), "0o600")
 
     def test_guard_keeps_it_inert_off_bedrock(self):
@@ -200,10 +200,20 @@ class TestCli(unittest.TestCase):
 
 
 class TestGeneratedFileIsValidShell(unittest.TestCase):
-    def test_bash_parses_it_and_the_guard_holds(self):
-        """Sourcing it off Bedrock must export nothing; on Bedrock it must export."""
-        import shutil
+    def _source_with(self, bash, path, prelude):
         import subprocess
+        r = subprocess.run(
+            [bash, "-c", f'{prelude}; source "{path}"; '
+                         f'echo "[${{ANTHROPIC_DEFAULT_OPUS_MODEL:-}}]"'],
+            capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return r.stdout.strip()
+
+    def test_bash_parses_it_and_the_guard_holds(self):
+        """Only an affirmative value exports. `0` must not -- that is the whole point of
+        reading `0` as off (ADR-0022), and it is what a shell actually does that
+        decides it, not what the generator intended."""
+        import shutil
         bash = shutil.which("bash")
         if not bash:
             self.skipTest("bash not available")
@@ -211,19 +221,35 @@ class TestGeneratedFileIsValidShell(unittest.TestCase):
             path = Path(d) / "bedrock-models.env"
             bedrock_tiers.write({"opus": ARN}, path)
 
-            off = subprocess.run(
-                [bash, "-c", f'unset CLAUDE_CODE_USE_BEDROCK; source "{path}"; '
-                             f'echo "[${{ANTHROPIC_DEFAULT_OPUS_MODEL:-}}]"'],
-                capture_output=True, text=True)
-            self.assertEqual(off.returncode, 0, off.stderr)
-            self.assertEqual(off.stdout.strip(), "[]")
+            for prelude in ("unset CLAUDE_CODE_USE_BEDROCK",
+                            'export CLAUDE_CODE_USE_BEDROCK=""',
+                            "export CLAUDE_CODE_USE_BEDROCK=0",
+                            "export CLAUDE_CODE_USE_BEDROCK=false",
+                            "export CLAUDE_CODE_USE_BEDROCK=off"):
+                self.assertEqual(self._source_with(bash, path, prelude), "[]", prelude)
 
-            on = subprocess.run(
-                [bash, "-c", f'export CLAUDE_CODE_USE_BEDROCK=1; source "{path}"; '
-                             f'echo "[${{ANTHROPIC_DEFAULT_OPUS_MODEL:-}}]"'],
-                capture_output=True, text=True)
-            self.assertEqual(on.returncode, 0, on.stderr)
-            self.assertEqual(on.stdout.strip(), f"[{ARN}]")
+            for prelude in ("export CLAUDE_CODE_USE_BEDROCK=1",
+                            "export CLAUDE_CODE_USE_BEDROCK=true",
+                            "export CLAUDE_CODE_USE_BEDROCK=yes",
+                            "export CLAUDE_CODE_USE_BEDROCK=on"):
+                self.assertEqual(self._source_with(bash, path, prelude),
+                                 f"[{ARN}]", prelude)
+
+    def test_zsh_agrees_with_bash(self):
+        """The file lands in a zsh profile on this machine; `case` is POSIX but the
+        guard is worth confirming in the shell that will actually run it."""
+        import shutil
+        zsh = shutil.which("zsh")
+        if not zsh:
+            self.skipTest("zsh not available")
+        with TemporaryDirectory() as d:
+            path = Path(d) / "bedrock-models.env"
+            bedrock_tiers.write({"opus": ARN}, path)
+            self.assertEqual(
+                self._source_with(zsh, path, "export CLAUDE_CODE_USE_BEDROCK=0"), "[]")
+            self.assertEqual(
+                self._source_with(zsh, path, "export CLAUDE_CODE_USE_BEDROCK=1"),
+                f"[{ARN}]")
 
 
 if __name__ == "__main__":

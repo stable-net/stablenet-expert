@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # check-environment.sh — common toolchain prerequisites for the stablenet-expert ecosystem
 # as a whole. Deliberately NOT broken down per plugin: this is the same flat list as
-# docs/SETUP.md §1 "Prerequisites" (Go/C toolchain/Node/git/gh/python3/Ollama+bge-m3), checked
-# unconditionally regardless of which plugins are actually installed. Doctor Step 0.
+# docs/SETUP.md §1 "Prerequisites" (Go/C toolchain/Node/git/gh/python3), checked unconditionally
+# regardless of which plugins are actually installed. Doctor Step 0.
+#
+# The bar for belonging here is "every install needs it". A dependency of *building* an
+# artefact does not qualify, however central the artefact is -- see the Ollama note below.
 set -u
 
 emit() {
@@ -109,18 +112,12 @@ else
   all_pass=false
 fi
 
-# Ollama + bge-m3 -- stablenet-knowledge semantic + intent retrieval (degrades gracefully without it)
-if command -v ollama >/dev/null 2>&1; then
-  if ollama list 2>/dev/null | grep -q "bge-m3"; then
-    emit "Ollama" "pass" "running, bge-m3 pulled"
-  else
-    emit "Ollama" "warn" "installed but bge-m3 not pulled -- run 'ollama pull bge-m3' (see docs/SETUP.md §1)"
-    all_pass=false
-  fi
-else
-  emit "Ollama" "warn" "not found -- stablenet-knowledge falls back to degraded (keyword-only) retrieval, see docs/SETUP.md §1"
-  all_pass=false
-fi
+# Ollama + bge-m3 is deliberately not checked here. It is a build-side dependency: it embeds the
+# corpus when the stablenet-knowledge index is *produced*. A machine that only queries the server
+# never runs an embedder, so on every consumer -- which is nearly every install -- the check
+# reported a warning about a tool that machine has no reason to have, and dropped ALL_PASS with
+# it. Prerequisites for building the index live in docs/SETUP.md §4.3, next to the build steps
+# that need them.
 
 # Security policy -- the org's rules, loaded into every session through the user's CLAUDE.md.
 # Not shipped by this marketplace: it is organisation policy, so doctor checks and points, and

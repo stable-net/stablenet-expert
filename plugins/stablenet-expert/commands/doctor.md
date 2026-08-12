@@ -325,8 +325,17 @@ Two channels exist and the question must offer **both**, because each one fails 
   the question does not relabel the option. So carry the entry path as an option too:
 
   ```
-  - "Type the address here"   → description: "I'll ask for it in the next message and write it."
+  - "I already know it — enter it here"
+      → description: "Ask me in your next message; I'll give you the <address|path> and you
+                      write it."
   ```
+
+  **Label it as a statement about the user, not an instruction to them.** `Type the address
+  here` reads as a command — *type something* — next to two options that are self-descriptions
+  (*leave it*, *I'll do it myself*), so it scans as the odd one out rather than as the third
+  answer. The option is chosen by people who **have** the value, and its label has to say that
+  condition out loud: *I already know it*. The imperative phrasing was reported as
+  "type whatever" and skipped for exactly this reason.
 
   **Selecting it returns the label, never a value.** That is real, and it is why an earlier
   version of this file banned such options outright — the wrong conclusion from a correct
@@ -341,6 +350,54 @@ Two channels exist and the question must offer **both**, because each one fails 
 This applies to every question that collects a value, including the project checkout. It applies
 to none that collects a secret: a credential has no type-it-here path at all, only
 `set-mcp-env.sh`.
+
+### The three options every value question carries
+
+Every tab that collects a value offers the **same three**, in this order, whatever the key is.
+A question that drops one of them removes an answer somebody needs, and one that words them
+differently per tab makes three questions look like three unrelated decisions:
+
+```
+options:
+  - "I'll run the command myself"
+      → "Prints the exact setup.py --set command and writes nothing now. Use this to keep the
+         value out of this conversation."
+  - "Skip for now"
+      → "<what stops working, taken from the row's own description>"
+  - "I already know it — enter it here"
+      → "Ask me in your next message; I'll give you the <address|path> and you write it."
+```
+
+Add **one** more only when the script already resolved a value — `"Use the detected value"`,
+first in the list, showing the value. That is the four-option ceiling `AskUserQuestion` allows,
+which is why nothing else may be added.
+
+Each option is a different person's answer, and none substitutes for another:
+
+| | for someone who | why it cannot be dropped |
+|---|---|---|
+| run it myself | wants the value off the transcript, or prefers their own terminal | the only path for a value that is sensitive but not a credential |
+| skip | is not using this server today | without it, the only way out is answering a question they cannot answer |
+| already know it | has the value in hand | without it, the question collects nothing — the failure that was reported |
+
+The entry option stays **last**: the first two are what someone declines with, and the one that
+finishes the setup reads as the conclusion of the list rather than as an instruction opening it.
+
+**What each branch does when it comes back:**
+
+- `I'll run the command myself` — print the exact command, with the real key and real paths
+  filled in, and **write nothing**. No placeholder the user has to decode:
+
+  ```bash
+  "$python_bin" "$plugin_path/scripts/setup.py" --fix --set STABLENET_KNOWLEDGE_MCP_URL=<address>
+  ```
+
+  Say that a restart is needed afterwards, and that `/stablenet-expert:doctor` will confirm it.
+  Do not offer to run it for them — choosing this option is the statement that they will.
+- `Skip for now` — record nothing, and in the Step 5 summary name what stays unavailable, from
+  the row's own `description`. Never call the setup complete when a row was skipped.
+- `I already know it — enter it here` — end the turn with one plain sentence asking for the
+  value, per **How a typed value reaches you**. It returns its label, never a value.
 
 ### Unattended runs
 
@@ -413,17 +470,20 @@ header:   "Project repo"
 question: "<KEY> — the checkout the pipeline builds and tests. setup.py declined to pin it
            because <NOT-A-REPO: the directory it would have used has no .git |
            MISMATCH: this is the plugin repo, not a target project>.
-           Choose Other and type the path to the checkout (e.g. ~/Work/github/go-stablenet)."
+           Choose Other and type the path (e.g. ~/Work/github/go-stablenet), or pick the last
+           option and I'll ask you for it."
 options:
-  - "Type the path here"  (→ ask in the next message, then write it)
-  - "Leave it unset"      (the pipeline falls back to git rev-parse from wherever it runs)
+  - "I'll run the command myself"       (print the --repo … --fix command; write nothing)
+  - "Skip for now"                      (the pipeline falls back to git rev-parse from
+                                         wherever it runs)
+  - "I already know it — enter it here" (→ ask in the next message, then write it)
 ```
 
-Both options are required, and not only because `AskUserQuestion` refuses a single-option
-question: with *leave it unset* alone the only way to answer usefully is to notice `Other`,
-which is how this ended up needing a manual `setup.py --fix` afterwards. `Type the path here`
-returns its own label like any option — read it as the request to ask, per **How a typed value
-reaches you**.
+The same three as everywhere else, and all three are required — not only because
+`AskUserQuestion` refuses a single-option question. With *skip* alone the only way to answer
+usefully is to notice `Other`, which is how this ended up needing a manual `setup.py --fix`
+afterwards. `I already know it — enter it here` returns its own label like any option — read it
+as the request to ask, per **How a typed value reaches you**.
 
 Then write it — pass the path through as typed, `~` included; `setup.py` expands it:
 
@@ -454,12 +514,14 @@ Within each tab, the rows still split by kind:
   ```
   header:  "Knowledge MCP"
   question: "stablenet-knowledge server endpoint — <description>.
-             Detected: <resolved_value>.  Already know the address? Choose Other and type it."
+             Detected: <resolved_value>.  Already know the address? Choose Other and type it
+             (http://host:port/mcp), or pick the last option and I'll ask you for it."
   options:
-    - "Use the detected value"            (only when resolved_value is present)
-    - "Type the address here"             (→ ask in the next message; see "How a typed value
+    - "Use the detected value"            (only when resolved_value is present; show the value)
+    - "I'll run the command myself"       (print the --set command; write nothing)
+    - "Skip for now"                      (says what stops working, from the description)
+    - "I already know it — enter it here" (→ ask in the next message; see "How a typed value
                                            reaches you" — it returns the label, not a value)
-    - "Leave it for now"                  (says what stops working, from the description)
   ```
 
   **The entry option goes in even when `resolved_value` is present.** A detected value is a
@@ -495,16 +557,18 @@ Within each tab, the rows still split by kind:
 - **`missing` rows that are not secret** — the value has to come from the user, but it is not a
   credential (`secret: false`, `value_withheld: false`), so collect it in this server's
   `AskUserQuestion` like the rest: show the key, its `description` and `how_to_find` verbatim,
-  carry a `Type the <thing> here` option, and say in the question text to choose **Other** and
-  type it — the same rule as above, and it matters more here: with no detected value the *only*
-  useful answer is one the user types, so a question offering just *skip* and *I'll do it
-  myself* collects nothing by construction. Then write it yourself:
+  carry the three options from **The three options every value question carries**, and say in
+  the question text to choose **Other** and type it — the same rule as above, and it matters
+  more here: with no detected value the *only* useful answer is one the user types, so a
+  question offering just *skip* and *I'll do it myself* collects nothing by construction.
+  Then write it yourself:
   `"$python_bin" "$plugin_path/scripts/setup.py" --fix --set KEY=VALUE`. The script validates the
   shape and refuses anything that looks like a token, exiting 2 with a reason that never repeats
   the value — report that reason as-is and ask again; do not decide acceptability yourself.
-  `STABLENET_KNOWLEDGE_MCP_URL` is this case. The run-it-yourself `--set` command stays available
-  for a user who would rather keep the address out of the transcript, but it goes last, after the
-  options that collect the value — see the address bullet in "MCP env not configured" above.
+  `STABLENET_KNOWLEDGE_MCP_URL` is this case. Running `--set` by hand stays available for a user
+  who would rather keep the address out of the transcript — that is what `I'll run the command
+  myself` is for, and printing the command is the whole of that branch. The option that collects
+  the value is still the last one in the list, so the list does not end on a way out.
 - **`missing` rows that are `secret: true`** — same as above except the value must never enter
   this conversation. Point at `set-mcp-env.sh` per the rules earlier in this step; do not offer
   `--set` for a secret and do not run it yourself.

@@ -1,6 +1,6 @@
 {
   "name": "stablenet-expert",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Meta-plugin for the stablenet-expert marketplace. Ecosystem doctor: common toolchain prerequisites, plugin install/enable status, MCP server connectivity, and cross-plugin MCP server registration conflicts.",
   "author": {
     "name": "mhha"

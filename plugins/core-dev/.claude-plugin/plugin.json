@@ -1,6 +1,6 @@
 {
   "name": "core-dev",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "go-stablenet Jira-driven automated development pipeline — the core development plugin of the stablenet-expert marketplace",
   "author": {
     "name": "mhha"

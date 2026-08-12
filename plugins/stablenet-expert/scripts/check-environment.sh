@@ -125,22 +125,36 @@ fi
 # a file that exists but is not imported is the dangerous one, because everything looks
 # installed while nothing is loaded -- the rules are simply absent from the session and no one
 # has a reason to suspect it.
-security_rules="$HOME/.claude/rules/SECURITY.md"
+#
+# Case is not part of the policy. The filename was hardcoded as SECURITY.md on both tests, and
+# the import test was the only case-sensitive one -- so on macOS, whose filesystem is
+# case-insensitive, `[ -f .../SECURITY.md ]` matched a lowercase security.md and passed while the
+# grep for `@rules/SECURITY.md` failed against the `@rules/security.md` that was importing that
+# very file. The result told a correctly-configured user their policy was "on disk but absent
+# from every session", and the fix it printed would have imported the same file a second time.
+# Both spellings are looked for now, and the import match is case-insensitive.
 claude_md="$HOME/.claude/CLAUDE.md"
-if [ ! -f "$security_rules" ]; then
+# Globbed rather than tested against a list of spellings, so the name reported back is the
+# directory's own entry. Testing candidates would echo the spelling we guessed, which on a
+# case-insensitive filesystem is not necessarily the one on disk.
+security_rules=""
+for candidate in "$HOME"/.claude/rules/[Ss][Ee][Cc][Uu][Rr][Ii][Tt][Yy].md; do
+  if [ -f "$candidate" ]; then security_rules="$candidate"; break; fi
+done
+if [ -z "$security_rules" ]; then
   emit "Security rules" "critical" \
     "~/.claude/rules/SECURITY.md not found -- the group security policy is not installed. Get it from your security team and place it there, then add '@rules/SECURITY.md' to ~/.claude/CLAUDE.md"
   all_pass=false
 elif [ ! -f "$claude_md" ]; then
   emit "Security rules" "critical" \
-    "SECURITY.md is present but ~/.claude/CLAUDE.md does not exist, so nothing loads it -- create it with a line reading '@rules/SECURITY.md'"
+    "$(basename "$security_rules") is present but ~/.claude/CLAUDE.md does not exist, so nothing loads it -- create it with a line reading '@rules/SECURITY.md'"
   all_pass=false
-elif ! grep -qE '^[[:space:]]*@(rules/|~/\.claude/rules/|\$HOME/\.claude/rules/)SECURITY\.md[[:space:]]*$' "$claude_md"; then
+elif ! grep -qiE '^[[:space:]]*@(rules/|~/\.claude/rules/|\$HOME/\.claude/rules/)SECURITY\.md[[:space:]]*$' "$claude_md"; then
   emit "Security rules" "critical" \
-    "SECURITY.md exists but ~/.claude/CLAUDE.md does not import it -- add a line reading '@rules/SECURITY.md'. Until then the policy is on disk but absent from every session"
+    "$(basename "$security_rules") exists but ~/.claude/CLAUDE.md does not import it -- add a line reading '@rules/SECURITY.md'. Until then the policy is on disk but absent from every session"
   all_pass=false
 else
-  emit "Security rules" "pass" "~/.claude/rules/SECURITY.md imported by ~/.claude/CLAUDE.md"
+  emit "Security rules" "pass" "~/.claude/rules/$(basename "$security_rules") imported by ~/.claude/CLAUDE.md"
 fi
 
 if $all_pass; then

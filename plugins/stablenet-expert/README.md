@@ -13,8 +13,10 @@ Four checks, run as six steps
 [ADR-0011](../../docs/adr/ADR-0011-stablenet-expert-doctor-interactive-setup.md)):
 
 0. **Common environment** — the flat, ecosystem-wide toolchain prerequisites (Go/C
-   toolchain/Node/git/gh/python3/Ollama+bge-m3, same list as `docs/SETUP.md` §1), checked
-   unconditionally regardless of which plugins are installed — not broken down per plugin.
+   toolchain/Node/git/gh/python3), checked unconditionally regardless of which plugins are
+   installed — not broken down per plugin. Build-side dependencies are out of scope: embedding
+   the stablenet-knowledge corpus needs Ollama+`bge-m3`, but querying the server does not, so
+   that requirement lives in `docs/SETUP.md` §4.3 with the build steps.
 1. **Plugin status** — is every plugin published in this marketplace's `marketplace.json`
    installed and enabled.
 2. **MCP connectivity** — for every MCP server a currently-*enabled* plugin declares: is its
@@ -31,9 +33,9 @@ Four checks, run as six steps
 
 Steps 3 (decide) and 4 (execute) are split: Step 3 collects every outstanding item from Steps
 0-2 into one `AskUserQuestion` multi-select (checkbox) prompt — nothing changes yet, it's
-selection only. Step 4 then applies whatever was selected: plugin install/enable and
-`ollama pull bge-m3` run directly (safe, reversible); other toolchain gaps get the install
-command printed, not auto-run (a system-wide, hard-to-reverse change needs its own explicit
+selection only. Step 4 then applies whatever was selected: plugin install/enable runs directly
+(safe, reversible); other toolchain gaps get the install command printed, not auto-run (a
+system-wide, hard-to-reverse change needs its own explicit
 confirmation); missing MCP env gets pointed at `scripts/set-mcp-env.sh` — a script the *user*
 runs themselves, directly in their own terminal, that prompts for the value with hidden input
 and writes it straight into `~/.claude/settings.json` (or a project-scoped, gitignored

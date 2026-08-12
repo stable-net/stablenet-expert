@@ -42,11 +42,16 @@ Six steps, run in order:
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-environment.sh"
 ```
 
-This is a **flat, ecosystem-wide** check — Go/C toolchain/git/gh/python3/Ollama+bge-m3, plus the
-group security policy being installed *and imported* (the
-same list as `docs/SETUP.md` §1) — not broken down per plugin. It runs unconditionally,
+This is a **flat, ecosystem-wide** check — Go/C toolchain/git/gh/python3, plus the group security
+policy being installed *and imported* — not broken down per plugin. It runs unconditionally,
 regardless of which plugins are installed, because these are shared prerequisites the whole
 marketplace draws from, not any one plugin's private dependency.
+
+That last clause is the membership test, and Ollama+bge-m3 failed it. An embedder is needed to
+*build* the stablenet-knowledge index, not to query it, so on a machine that only consumes the
+server the check warned about a tool that machine has no reason to have. Build-side
+prerequisites belong in `docs/SETUP.md` §4.3 beside the build steps, not in a check every
+install runs.
 
 Report:
 
@@ -112,8 +117,7 @@ the user wants handled this session. Options map 1:1 to the outstanding rows, ph
 concrete action, e.g.:
 
 - `Install core-dev@stablenet-expert` (from a Step 1 `info` row)
-- `Enable contract-dev` (from a Step 1 `info` row: installed but not enabled)
-- `Pull the bge-m3 model (ollama pull bge-m3)` (from a Step 0 `warn` row)
+- `Enable contract-dev` (from a Step 1 `info` row)
 - `Install Python 3.12 alongside your current interpreter` (from the Step 0 `python3` row —
   `critical` if none exists, `info` if one exists but predates 3.10)
 - `Install and authenticate the Atlassian MCP plugin` (from a `row_kind: "plugin"` row — say
@@ -176,13 +180,6 @@ different kinds of actions with different safety profiles, don't treat them unif
 - **Plugin install/enable** (Step 1 items): run `claude plugin install <plugin>@stablenet-expert`
   or `claude plugin enable <plugin>@stablenet-expert` directly — safe, user-scoped, reversible via
   uninstall/disable.
-- **`ollama pull bge-m3`** (Step 0 item, if selected): safe to run directly — user-scoped, purely
-  additive.
-
-  Only offer this when Ollama itself is present. When the Step 0 row says Ollama is *not
-  installed*, pulling a model is not a step that exists yet — offer the install command instead
-  (below) and say the model pull follows it. Offering a pull that cannot run is worse than
-  offering nothing: it reads as an available fix.
 - **`Security rules` (Step 0 `critical`)**: never fix this one. The file is organisation policy
   and this marketplace does not ship it — writing something plausible into
   `~/.claude/rules/SECURITY.md` would create a policy nobody approved, and adding the import

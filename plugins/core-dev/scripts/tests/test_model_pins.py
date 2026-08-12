@@ -34,22 +34,102 @@ def _agents(tmp: Path, pins: dict[str, str]) -> Path:
 class TestProviderDetection(unittest.TestCase):
     def test_bedrock_and_vertex_and_default(self):
         self.assertEqual(model_pins.detect_provider({"CLAUDE_CODE_USE_BEDROCK": "1"}), "bedrock")
-        self.assertEqual(model_pins.detect_provider({"CLAUDE_CODE_USE_VERTEX": "true"}), "vertex")
+        self.assertEqual(model_pins.detect_provider({"CLAUDE_CODE_USE_VERTEX": "1"}), "vertex")
         self.assertEqual(model_pins.detect_provider({}), "first_party")
 
-    def test_zero_and_false_still_mean_bedrock(self):
-        """Claude Code selects the provider with a bare JS truthiness test, so "0" and
-        "false" are non-empty strings and still select Bedrock. Reading them as
-        first-party would make this check report the wrong provider on exactly the
-        machine it exists for."""
-        for v in ("0", "false", "no", "off", "1", "true"):
+    def test_only_1_means_bedrock(self):
+        """One accepted spelling (ADR-0022). `true` is off here as surely as `0` is."""
+        for v in ("1", " 1 "):
             self.assertEqual(model_pins.detect_provider({"CLAUDE_CODE_USE_BEDROCK": v}),
                              "bedrock", v)
-
-    def test_only_unset_or_empty_is_first_party(self):
+        for v in ("0", "false", "no", "off", "true", "yes", "on", "TRUE", ""):
+            self.assertEqual(model_pins.detect_provider({"CLAUDE_CODE_USE_BEDROCK": v}),
+                             "first_party", v)
         self.assertEqual(model_pins.detect_provider({}), "first_party")
-        self.assertEqual(model_pins.detect_provider({"CLAUDE_CODE_USE_BEDROCK": ""}),
-                         "first_party")
+
+    def test_any_non_1_value_is_reported_as_a_disagreement(self):
+        """The CLI reads every non-empty value as Bedrock, so anything that is not `1`
+        opens a window where the tier checks are skipped while requests still go to
+        Bedrock. The window is allowed (ADR-0022) but must not be silent."""
+        for v in ("0", "false", "off", "no", "true", "yes"):
+            self.assertEqual(
+                model_pins.provider_flag_disagrees({"CLAUDE_CODE_USE_BEDROCK": v}),
+                ["CLAUDE_CODE_USE_BEDROCK"], v)
+
+    def test_no_disagreement_when_the_two_rules_agree(self):
+        """Only unset, empty, and `1` mean the same thing to both rules."""
+        for env in ({}, {"CLAUDE_CODE_USE_BEDROCK": ""},
+                    {"CLAUDE_CODE_USE_BEDROCK": "1"}):
+            self.assertEqual(model_pins.provider_flag_disagrees(env), [], env)
+
+    def test_the_disagreement_surfaces_as_an_issue(self):
+        with tempfile.TemporaryDirectory() as d:
+            agents = Path(d)
+            (agents / "a.md").write_text("---\nmodel: opus\n---\n")
+            res = model_pins.check(agents, {"CLAUDE_CODE_USE_BEDROCK": "0"})
+        kinds = [i["kind"] for i in res["issues"]]
+        self.assertIn("provider_flag_disagrees", kinds)
+        self.assertEqual(res["provider"], "first_party")
+
+
+class TestInstalledPluginSurvey(unittest.TestCase):
+    """The tier env vars are process-global, so one plugin's view understates the blast
+    radius. These pin that the survey sees every installed plugin, once each."""
+
+    def _fake_plugins(self, root: Path):
+        a = root / "marketplaces" / "mkt" / "plugins" / "alpha" / "agents"
+        a.mkdir(parents=True)
+        (a / "one.md").write_text("---\nmodel: sonnet\n---\n")
+        b = root / "marketplaces" / "mkt" / "plugins" / "beta" / "agents"
+        b.mkdir(parents=True)
+        (b / "two.md").write_text("---\nmodel: claude-opus-4-8\n---\n")
+        (b / "three.md").write_text("---\nmodel: inherit\n---\n")
+        # same plugin, unpacked twice under cache/ -- must not be counted again
+        for ver in ("1.0.0", "1.1.0"):
+            c = root / "cache" / "mkt" / "alpha" / ver / "agents"
+            c.mkdir(parents=True)
+            (c / "one.md").write_text("---\nmodel: sonnet\n---\n")
+
+    def test_discovers_each_plugin_once(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._fake_plugins(root)
+            dirs = model_pins.discover_agent_dirs(root)
+        self.assertEqual(sorted(dirs), ["alpha", "beta"])
+        self.assertIn("marketplaces", str(dirs["alpha"]))  # source wins over cache
+
+    def test_survey_separates_aliases_from_concrete_ids(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._fake_plugins(root)
+            s = model_pins.survey_installed({}, root)
+        self.assertEqual(s["aliases"], ["sonnet"])
+        self.assertEqual(s["with_concrete_ids"], ["beta"])
+        self.assertEqual(s["plugins"]["beta"]["agents"], 2)
+
+    def test_a_foreign_tier_widens_what_must_be_mapped(self):
+        """core-dev pins only opus here; beta's sonnet still needs a mapping."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            self._fake_plugins(root)
+            agents = root / "own"
+            agents.mkdir()
+            (agents / "a.md").write_text("---\nmodel: opus\n---\n")
+            res = model_pins.check(agents, {"CLAUDE_CODE_USE_BEDROCK": "1"},
+                                   plugins_root=root, scan_installed=True)
+        self.assertEqual(res["aliases"], ["opus", "sonnet"])
+        kinds = [i["kind"] for i in res["issues"]]
+        self.assertIn("foreign_pin_is_concrete_id", kinds)
+        unmapped = next(i for i in res["issues"] if i["kind"] == "tier_alias_unmapped")
+        self.assertIn("SONNET", unmapped["detail"])
+
+    def test_scanning_is_opt_in(self):
+        """Default stays single-plugin so existing callers are unaffected."""
+        with tempfile.TemporaryDirectory() as d:
+            agents = Path(d)
+            (agents / "a.md").write_text("---\nmodel: opus\n---\n")
+            res = model_pins.check(agents, {})
+        self.assertIsNone(res["installed"])
 
 
 class TestPinCheck(unittest.TestCase):

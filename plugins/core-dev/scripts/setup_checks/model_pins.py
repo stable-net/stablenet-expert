@@ -37,16 +37,28 @@ _MODEL_LINE = re.compile(r"^model:\s*(\S+)\s*$", re.MULTILINE)
 
 
 def detect_provider(env: dict | None = None) -> str:
-    """`bedrock` | `vertex` | `first_party`, by the same rule Claude Code uses.
+    """`bedrock` | `vertex` | `first_party`, read as the operator meant it.
 
-    Claude Code selects the provider with a bare JavaScript truthiness test on the
-    variable -- `CLAUDE_CODE_USE_BEDROCK ? "bedrock" : ...` -- so **any non-empty value
-    means Bedrock, `"0"` and `"false"` included**. Only unsetting it (or setting it
-    empty) goes back to the first-party API.
+    A provider variable counts as on only when it is exactly `1`. Every other value --
+    `0`, `false`, and `true` and `yes` alike -- is off. `CLAUDE_CODE_USE_BEDROCK=0` reads
+    as off here because that is what someone setting `0` means by it, and one accepted
+    spelling keeps this rule identical everywhere it is restated (see the shell guard in
+    `bedrock_tiers.py`).
 
-    That is a trap worth mirroring exactly rather than "fixing" here. A checker that
-    read `=0` as first-party would report the wrong provider on the one machine the
-    check exists for, and would hide the misconfiguration instead of reporting it.
+    **This deliberately does not match Claude Code's own rule, and the difference is
+    load-bearing.** The CLI selects the provider with a bare JavaScript truthiness test:
+
+        re.CLAUDE_CODE_USE_BEDROCK ? "bedrock" : ...        # CLI 2.1.228, verbatim
+
+    There is no comparison in front of `?`, so *any* non-empty string is true and the
+    CLI reads `0` and `false` as **Bedrock**. Only unset or empty turns it off there.
+
+    So on a machine with `CLAUDE_CODE_USE_BEDROCK=0` this function answers
+    `first_party` while the CLI still routes requests to Bedrock, and the Bedrock checks
+    that follow are skipped. `provider_flag_disagrees()` exists to surface exactly that
+    window; `doctor` reports it so the gap is visible rather than silent.
+
+    To actually reach the first-party API, unset the variable or set it empty.
     """
     e = os.environ if env is None else env
     if _truthy(e.get("CLAUDE_CODE_USE_BEDROCK")):
@@ -56,14 +68,95 @@ def detect_provider(env: dict | None = None) -> str:
     return "first_party"
 
 
+# `1` means on. Everything else -- `0`, `false`, `off`, and also `true`/`yes`, which
+# would be affirmative in most flag conventions -- is off (ADR-0022). One spelling is the
+# point: with a single accepted value there is no second thing to remember, and no value
+# that is on here but off in a shell `case` somewhere else.
+_TRUE_VALUES = frozenset({"1"})
+
+# The CLI's rule, kept separately so the two can be compared rather than confused.
+_PROVIDER_VARS = ("CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX")
+
+
 def _truthy(v) -> bool:
-    """JavaScript truthiness for an env value: any non-empty string counts."""
+    """Is this env value an affirmative? `0`/`false`/`off` are not."""
+    return v is not None and str(v).strip().lower() in _TRUE_VALUES
+
+
+def _cli_truthy(v) -> bool:
+    """The CLI's own test: any non-empty string is true. Used only to detect a mismatch."""
     return bool(v is not None and str(v) != "")
+
+
+def provider_flag_disagrees(env: dict | None = None) -> list[str]:
+    """Provider vars this module reads as off but the CLI still reads as on.
+
+    Non-empty and not affirmative -- `0`, `false`, `off`, `no` -- is the whole set. It
+    is worth naming because it is invisible: the CLI routes to the provider anyway, and
+    every check keyed on `detect_provider()` has already been skipped.
+    """
+    e = os.environ if env is None else env
+    return [k for k in _PROVIDER_VARS
+            if _cli_truthy(e.get(k)) and not _truthy(e.get(k))]
 
 
 def alias_env_var(alias: str) -> str:
     """The per-tier override a non-first-party deployment sets to name its own model."""
     return f"ANTHROPIC_DEFAULT_{alias.upper()}_MODEL"
+
+
+PLUGINS_ROOT = Path.home() / ".claude" / "plugins"
+
+
+def discover_agent_dirs(plugins_root: Path | None = None) -> dict[str, Path]:
+    """{plugin label: agents dir} for every installed plugin that ships agents.
+
+    The tier env vars are process-global, so *every* installed plugin's `model:` pins
+    resolve through them -- not just the one `doctor` was pointed at. Checking a single
+    plugin and reporting "fine" is how a pin in a neighbouring plugin stays invisible.
+
+    A plugin can appear under both `marketplaces/` (the source checkout) and `cache/`
+    (an unpacked version, sometimes several). They are the same plugin, so the first
+    path found per name wins, `marketplaces/` first because it is the live source.
+    """
+    root = PLUGINS_ROOT if plugins_root is None else plugins_root
+    found: dict[str, Path] = {}
+    # marketplaces/<market>/plugins/<plugin>/agents, then cache/<market>/<plugin>/<ver>/agents
+    for pattern, name_at in (("marketplaces/*/plugins/*/agents", -2),
+                             ("cache/*/*/*/agents", -3)):
+        for d in sorted(root.glob(pattern)):
+            if not d.is_dir():
+                continue
+            name = d.parts[name_at]
+            found.setdefault(name, d)
+    return found
+
+
+def survey_installed(env: dict | None = None,
+                     plugins_root: Path | None = None) -> dict:
+    """Tier aliases and concrete ids across every installed plugin.
+
+    Reports which plugins pin what, so an unmapped tier is attributed to all the plugins
+    that would be affected rather than to core-dev alone.
+    """
+    dirs = discover_agent_dirs(plugins_root)
+    per_plugin: dict[str, dict] = {}
+    for name, d in dirs.items():
+        pins = read_pins(d)
+        if not pins:
+            continue
+        per_plugin[name] = {
+            "agents": len(pins),
+            "aliases": sorted({v for v in pins.values() if v in TIER_ALIASES}),
+            "concrete": sorted({v for v in pins.values()
+                                if v not in TIER_ALIASES and v != INHERIT}),
+        }
+    aliases = sorted({a for p in per_plugin.values() for a in p["aliases"]})
+    return {
+        "plugins": per_plugin,
+        "aliases": aliases,
+        "with_concrete_ids": sorted(n for n, p in per_plugin.items() if p["concrete"]),
+    }
 
 
 def read_pins(agents_dir: Path) -> dict[str, str]:
@@ -76,8 +169,14 @@ def read_pins(agents_dir: Path) -> dict[str, str]:
     return pins
 
 
-def check(agents_dir: Path, env: dict | None = None) -> dict:
-    """Report whether each pinned tier can resolve. Values are never included."""
+def check(agents_dir: Path, env: dict | None = None,
+          plugins_root: Path | None = None, scan_installed: bool = False) -> dict:
+    """Report whether each pinned tier can resolve. Values are never included.
+
+    `scan_installed` widens the tier set to every installed plugin. The env vars are
+    process-global, so a tier any installed plugin pins is a tier this deployment needs
+    mapped -- reporting only `agents_dir` understates what is affected.
+    """
     e = dict(os.environ if env is None else env)
     provider = detect_provider(e)
     pins = read_pins(agents_dir)
@@ -86,7 +185,24 @@ def check(agents_dir: Path, env: dict | None = None) -> dict:
     literals = sorted({v for v in pins.values()
                        if v not in TIER_ALIASES and v != INHERIT})
 
+    installed = survey_installed(e, plugins_root) if scan_installed else None
+    if installed:
+        aliases = sorted(set(aliases) | set(installed["aliases"]))
+
     issues: list[dict] = []
+
+    # Read as off here, still on in the CLI. Everything below keys on `provider`, so
+    # without this line the whole Bedrock section would just quietly not appear.
+    for var in provider_flag_disagrees(e):
+        issues.append({
+            "kind": "provider_flag_disagrees",
+            "detail": f"{var} is set to a value that is neither empty nor affirmative, "
+                      f"so this check reads it as off — but Claude Code tests it with "
+                      f"bare truthiness and still routes to that provider. The tier "
+                      f"checks below were skipped while the CLI is not on the "
+                      f"first-party API. Unset it (or set it empty) to actually switch "
+                      f"off, or set it to 1 to keep using it",
+        })
 
     # A global override outranks every frontmatter pin, so both tiers become one model.
     if e.get("CLAUDE_CODE_SUBAGENT_MODEL", "").strip() not in ("", INHERIT):
@@ -120,9 +236,22 @@ def check(agents_dir: Path, env: dict | None = None) -> dict:
                       f"this account the sub-agent silently runs on the parent model",
         })
 
+    # A concrete id in *another* plugin resolves through the same global env, so it is
+    # this deployment's problem even though it is not this repo's file.
+    if installed and installed["with_concrete_ids"]:
+        issues.append({
+            "kind": "foreign_pin_is_concrete_id",
+            "detail": f"installed plugin(s) {', '.join(installed['with_concrete_ids'])} "
+                      f"pin concrete model ids; off first-party those resolve through a "
+                      f"region-prefixed profile the account may not have, and the "
+                      f"fallback is silent. They are not fixable from this repo — update "
+                      f"or disable the plugin",
+        })
+
     return {
         "provider": provider,
         "pins": pins,
+        "installed": installed,
         "aliases": aliases,
         "concrete_ids": len(literals),
         # Presence only — deliberately not the values (see module docstring).
@@ -139,6 +268,12 @@ def render(result: dict) -> list[str]:
     lines = [f"  model pins : provider={result['provider']} "
              f"tiers={','.join(result['aliases']) or '-'} "
              f"agents={len(result['pins'])}"]
+    inst = result.get("installed")
+    if inst and inst["plugins"]:
+        total = sum(p["agents"] for p in inst["plugins"].values())
+        lines.append(f"               installed plugins with pins: "
+                     f"{len(inst['plugins'])} ({total} agents) — "
+                     f"{', '.join(sorted(inst['plugins']))}")
     if result["provider"] != "first_party":
         state = ", ".join(f"{alias_env_var(a)}={'set' if ok else 'UNSET'}"
                           for a, ok in result["alias_env_set"].items())

@@ -72,7 +72,7 @@ venv/
 # =========================
 # LLM tool local state (never ship contributor-machine config)
 # =========================
-.claude/settings.local.json
+.claude/
 .claire/
 .codex-workspace/
 .gemini-workspace/

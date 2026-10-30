@@ -174,8 +174,15 @@ Default to ONE `get_for_task` call, not a granular sweep. It returns a sanitized
 token-budgeted pack with citations, code bodies, AND `graph_neighbors` — relation
 edges (calls/called_by/…) whose targets may be edge-only citations (no body).
 ```
-pack = cks_context_get_for_task(prompt = ticket.summary + key requirements + scope.modules)
+pack = cks_context_get_for_task(prompt = ticket.summary + key requirements + scope.modules,
+                                code_query = <the same task restated in code vocabulary, in English>)
 ```
+**Always pass `code_query`.** Write 1-3 English sentences naming what the code that must change does and
+the identifiers, types, packages and files you expect there (from the ticket, the domain pack, error
+text). The pack's first semantic search uses it instead of the prompt; a Korean or symptom-only prompt
+rarely shares vocabulary with the owning function. Measured on 56 held-out grpc-go PRs: the owning
+function reached the pack in 36-40 instead of 18-23. Name only what you have grounds for; a guessed
+identifier that does not exist pulls in look-alikes.
 Persist as `related-code.json.pack`. **Cite the bodies the pack returned directly in
 analysis.md — do NOT re-`Read` those spans** (the #1 source of wasted tokens). `Read`
 only spans the pack did not include.

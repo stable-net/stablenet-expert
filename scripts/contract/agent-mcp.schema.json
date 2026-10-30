@@ -11,7 +11,7 @@
         "cks_context_get_for_task": {
           "owner": "stablenet-knowledge",
           "description": "Compose a budgeted evidence pack for a development task (the primary planning entrypoint): intent -> semantic -> keyword/graph -> budget -> sanitize.",
-          "input": { "properties": { "prompt": { "type": "string" }, "max_citations": { "type": "number" }, "budget_tokens": { "type": "number" } }, "required": ["prompt"] }
+          "input": { "properties": { "prompt": { "type": "string" }, "code_query": { "type": "string" }, "max_citations": { "type": "number" }, "budget_tokens": { "type": "number" } }, "required": ["prompt"] }
         },
         "cks_context_semantic_search": {
           "owner": "stablenet-knowledge",

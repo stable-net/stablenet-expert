@@ -158,8 +158,14 @@ sanitized, token-budgeted EvidencePack with citations AND code bodies for the ta
 
 ```
 pack = mcp__plugin_core-dev_stablenet-knowledge__cks_context_get_for_task(
-  prompt = ticket.summary + " " + key requirements + " " + scope.modules)
+  prompt = ticket.summary + " " + key requirements + " " + scope.modules,
+  code_query = <the same task restated in code vocabulary, in English>)
 ```
+
+**Always pass `code_query`**: 1-3 English sentences naming what the code that must change does and the
+identifiers, types, packages and files you expect there (from the ticket, the Analyzer's root cause, the
+domain pack). It replaces the prompt as the first semantic search; on 56 held-out grpc-go PRs it lifted
+the owning function into the pack in 36-40 cases instead of 18-23. Name only what you have grounds for.
 
 Persist as `related-code.json.pack`. **Cite the bodies the pack already returned
 directly in analysis.md — do NOT re-`Read` those files.** Re-reading a span stablenet-knowledge

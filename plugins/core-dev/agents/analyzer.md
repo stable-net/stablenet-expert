@@ -115,7 +115,10 @@ Each path ends by writing artifacts and calling
 ### 3.0 stablenet-knowledge health / serviceability gate
 **Load the stablenet-knowledge tools first (deferred plugin MCP tools).** If a call says the tool
 is unknown, run ToolSearch once then call normally:
-`ToolSearch "select:mcp__plugin_core-dev_stablenet-knowledge__cks_ops_health,mcp__plugin_core-dev_stablenet-knowledge__cks_context_get_for_task,mcp__plugin_core-dev_stablenet-knowledge__cks_context_semantic_search,mcp__plugin_core-dev_stablenet-knowledge__cks_context_get_subgraph,mcp__plugin_core-dev_stablenet-knowledge__cks_context_impact_analysis,mcp__plugin_core-dev_stablenet-knowledge__cks_context_concurrency_impact,mcp__plugin_core-dev_stablenet-knowledge__cks_context_find_callers,mcp__plugin_core-dev_stablenet-knowledge__cks_ops_freshness"`.
+`ToolSearch "select:mcp__plugin_core-dev_stablenet-knowledge__cks_ops_health,mcp__plugin_core-dev_stablenet-knowledge__cks_context_get_for_task,mcp__plugin_core-dev_stablenet-knowledge__cks_context_semantic_search,mcp__plugin_core-dev_stablenet-knowledge__cks_context_get_subgraph,mcp__plugin_core-dev_stablenet-knowledge__cks_context_impact_analysis,mcp__plugin_core-dev_stablenet-knowledge__cks_context_concurrency_impact,mcp__plugin_core-dev_stablenet-knowledge__cks_context_find_callers,mcp__plugin_core-dev_stablenet-knowledge__cks_context_find_callees,mcp__plugin_core-dev_stablenet-knowledge__cks_context_find_symbol,mcp__plugin_core-dev_stablenet-knowledge__cks_context_review_function,mcp__plugin_core-dev_stablenet-knowledge__cks_context_value_dependencies,mcp__plugin_core-dev_stablenet-knowledge__cks_context_find_invariants,mcp__plugin_core-dev_stablenet-knowledge__cks_context_change_history,mcp__plugin_core-dev_stablenet-knowledge__cks_context_search_text,mcp__plugin_core-dev_stablenet-knowledge__cks_ops_freshness"`.
+`review_function` (fields a function writes, its callers) and `value_dependencies` (the conditions that
+guard a write; pass the `canonical_id` that `find_symbol` lists) are how the `root-cause-lifecycle`
+store edge is traced; load them with the rest.
 
 stablenet-knowledge semantic retrieval (ckv) is **required** — a ckg-only/blind run produces
 confidently-wrong analysis. Honor `serviceable` (true only when both ckg and ckv
@@ -379,8 +382,8 @@ if there are two stages, check both; every use-site of the suspect object via `f
 `search_text`). Eliminating a path that yields the SAME observable by static reasoning is the
 classic miss.
 ★ **The stablenet-knowledge bodies you already received can REFUTE your hypothesis** — before committing, re-read
-the get_for_task pack / hits for evidence against your leading guess (e.g. a comment saying a
-value is computed "during validation"). Evidence in hand outranks your static reasoning; do not
+the get_for_task pack / hits for evidence against your leading guess (e.g. a comment that states
+why a value is kept, cached or computed where it is). Evidence in hand outranks your static reasoning; do not
 assert against the pack.
 ★ **If competing candidates remain, static falsification is shaky, or ≥2 paths produce the same
 observable, do NOT guess.** Use the `investigative-probe` skill to observe the suspect value at
@@ -517,7 +520,8 @@ the very mechanism that is broken** (hand-rolled consensus, stubbed networking, 
    reproduction failure, not a pass. Equally (D-2): if the ticket symptom won't reproduce but some
    *other* defect does, do NOT silently retarget the run onto that other defect — the RED must be of
    the ticket symptom (§5.2 symptom-bound RED). A high-confidence root cause that won't reproduce
-   usually means the SETUP is missing the symptom's conditions (idle/empty-block window, timing) —
+   usually means the SETUP is missing the symptom's conditions (a window that holds off the
+   clearing event, timing) —
    fix the setup first (§5b step 3b), don't abandon the cause.
 
 5. **Reproduction certifies; knowledge never does — and 3 real attempts before any fallback.**
@@ -580,15 +584,15 @@ AND accumulates as regression (§5.3, point 5).
    chainbench_tx_wait), induce faults (chainbench_network_partition) as the scenario requires.
    Start from a known-clean baseline (assert/restore the relevant policy state) so prior-run
    pollution cannot mask or fake the symptom.
-3b. IDLE / EMPTY-BLOCK WINDOW (D-3 — REQUIRED for staleness / "persists-then-clears" symptoms).
-   If the symptom only manifests while the chain is IDLE and self-heals on the next state change
-   (stale cache/env, a head-tracking miss, "after trigger X the symptom persists then clears"),
-   construct a SUSTAINED empty-block window AFTER the trigger: STOP sending state-changing txs and
-   let several empty blocks be produced (poll chainbench_status until height advances by N with no
-   tx), THEN assert the symptom INSIDE that window. Continuing to send txs changes the state root
-   every block and advances the stale cache → the symptom (correctly) will NOT reproduce. This idle
-   window IS the RED precondition for `symptom_assertion` (§5.2); omitting it is the classic way a
-   real staleness bug "passes on base" and the run pivots to the wrong defect.
+3b. CLEARING-EVENT-FREE WINDOW (D-3 — REQUIRED for staleness / "persists-then-clears" symptoms).
+   If the symptom self-heals on some later event, find that event first (`root-cause-lifecycle`
+   step 5: the event that clears the symptom). After the trigger, hold the network in a window
+   where that event does not happen (do not send whatever causes it; poll chainbench_status for
+   progress), THEN assert the symptom INSIDE that window. Letting the clearing event happen makes
+   the symptom (correctly) not reproduce. This window IS the RED precondition for
+   `symptom_assertion` (§5.2); omitting it is the classic way a real staleness bug "passes on base"
+   and the run pivots to the wrong defect. Which event clears the symptom comes from the trace and
+   the knowledge index, not from this file.
 4. AUTHOR the repro test as a bash script following the chainbench convention
    (---chainbench-meta--- header, `source lib/common.sh`, assert_* helpers):
      test_path = $CB/tests/repro/{ticket-id}-{slug}.sh         # category = "repro" (§5.3)
@@ -622,8 +626,8 @@ defect — that is not a reproduction of this ticket. Name which assertion encod
 hypothesis.** When the §4 root cause is high-confidence — corroborated by an existing regression
 test, or a known pattern (stale cache/env, a head-tracking miss, a timing/idle window) — yet the
 symptom assertion won't go RED, do NOT abandon the hypothesis. First enumerate the symptom's
-NECESSARY runtime conditions (idle/empty-block window, timing, account class, fee relation) and
-CONSTRUCT them in the setup (e2e: §5b step 3b idle window). Only after a faithful setup *still*
+NECESSARY runtime conditions (a window without the clearing event, timing, account class, fee
+relation) and CONSTRUCT them in the setup (e2e: §5b step 3b window). Only after a faithful setup *still*
 fails to reproduce may you downgrade the hypothesis. **Never swap to a different, more-easily-
 reproducible defect and call it this ticket** — that is precisely how a fix lands on the wrong
 root cause.
@@ -653,7 +657,7 @@ e2e:         { "tier":"e2e", "test_name":"repro/<ticket>-<slug>",
                "chainbench_test":"repro/<ticket>-<slug>",
                "chainbench_test_file":"<CHAINBENCH_DIR>/tests/repro/<ticket>-<slug>.sh",
                "profile":"<profile>", "binary_build_cmd":"<ver.build.binary_cmd — active pack, e.g. make gstable>",
-               "preconditions":[...], "idle_window":"<empty-block window built, if staleness symptom>",
+               "preconditions":[...], "idle_window":"<window built that holds off the clearing event, if staleness symptom>",
                "symptom_assertion":"<the assertion that encodes the ticket symptom>",
                "symptom_red_confirmed":true, "red_confirmed":true, "red_output":"<tail>", "authored_cycle":1 }
 ```

@@ -626,6 +626,27 @@ downstream-compensate` + a one-line reason. Choosing `downstream-compensate` whi
 source-correct edge exists in `affected_sites` (`must_fix:true`) is a design smell the
 self-review (§5.3) must justify or revise.
 
+### 5.2d Fix-candidate comparison — pick the fix, don't take the first one (bugfix)
+
+In blockchain code one change reaches consensus, propagation, storage and the fee market, so the
+first fix that greens the reproduction is not yet the chosen fix. For each step that changes
+behaviour, write down **at least two candidates** (the source-correct edge from §5.2c, plus the
+most plausible alternative — a different site, or a narrower/wider condition at the same site)
+and compare them in the design:
+
+| column | how to fill it |
+|---|---|
+| behaviour change | what each consumer of the changed value now does differently (`find_callers` / `impact_analysis` on the changed symbol) |
+| stated intent | comments at the touched code, `find_invariants`, domain entries for the symbol — quote the line; "none found" is an answer |
+| consensus / determinism | can two nodes now compute a different result, or does a state root, block hash or receipt change |
+| concurrency | `concurrency_impact` on the changed symbol |
+| exposure | can untrusted input (p2p message, RPC call, transaction) reach the changed path |
+| footprint | files and lines changed |
+
+Reject a candidate that contradicts a stated intent unless you cite evidence that the intent is
+itself wrong. Prefer the candidate with the smaller behaviour change when both close the broken
+edge. Record `chosen_candidate` and one line per rejected candidate saying why.
+
 ### 5.3 Self-review loop
 
 After drafting all steps:
@@ -636,6 +657,8 @@ read what was just written → review for:
   - missing nil/error checks
   - side-effect checklist items left unanswered
   - derived state (§5.2b) flagged but missing its write-site table or invariant/test
+  - a behaviour-changing step without the §5.2d comparison, or a chosen candidate that
+    contradicts a quoted intent without evidence
   - dependencies between steps that contradict plan.md
   - violation of CKG concurrency hints
 

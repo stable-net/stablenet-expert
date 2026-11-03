@@ -38,6 +38,16 @@
           "description": "List the callees of a symbol (forward call edges).",
           "input": { "properties": { "symbol": { "type": "string" }, "depth": { "type": "number" }, "max_total": { "type": "number" } }, "required": ["symbol"] }
         },
+        "cks_context_review_function": {
+          "owner": "stablenet-knowledge",
+          "description": "Review one function: written fields, control statements, callees, callers back to entry points, concurrency, history and tests.",
+          "input": { "properties": { "symbol": { "type": "string" }, "caller_depth": { "type": "number" }, "max_items": { "type": "number" } }, "required": ["symbol"] }
+        },
+        "cks_context_value_dependencies": {
+          "owner": "stablenet-knowledge",
+          "description": "Go CFG, def-use and control dependence (the conditions guarding each write) for one function, selected by exactly one of node_id or the canonical_id from find_symbol.",
+          "input": { "properties": { "node_id": { "type": "string" }, "canonical_id": { "type": "string" }, "expected_commit": { "type": "string" } }, "required": [] }
+        },
         "cks_context_get_subgraph": {
           "owner": "stablenet-knowledge",
           "description": "Return all nodes/edges within depth hops of a symbol, all edge types.",

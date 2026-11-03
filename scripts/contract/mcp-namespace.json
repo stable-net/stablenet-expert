@@ -9,6 +9,8 @@
     "context_find_symbol",
     "context_find_callers",
     "context_find_callees",
+    "context_review_function",
+    "context_value_dependencies",
     "context_get_subgraph",
     "context_impact_analysis",
     "context_concurrency_impact",

@@ -11,8 +11,8 @@
 
 A symptom is L2-reproducible when it can be exhibited with real in-process objects and a
 deterministic driver — e.g.:
-- a governance/header value change followed by an idle (empty-block) window, then asserting a
-  consumer reads the new value;
+- a governance/header value change followed by a block sequence that holds off whatever would
+  clear the symptom, then asserting a consumer reads the new value;
 - multi-engine consensus *round progression* in one process (proposer rotation, view dynamics)
   using the real WBFT engine — `N` engines, one or more brought down/delayed;
 - send a tx and read the real effective-tip / pool decision;
@@ -34,7 +34,7 @@ rule-1 — `simulation-harness` does not loosen it.)
   several engines, `GoNewRound`, `MustSucceed`, and scenario hooks such as
   `makeScenarioEngineDown` / `DisableCommitMsg` to inject down/delay faults).
 - **Block sequence generation**: `core.GenerateChain` (used widely by core tests to build a
-  precise block sequence — e.g. a change block followed by N empty blocks).
+  precise block sequence — e.g. a change block followed by N blocks of chosen contents).
 
 ## Determinism (L2 is the flaky-risk tier)
 
